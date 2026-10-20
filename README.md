@@ -2,13 +2,17 @@
 
 Group project for the course TSM_MachLeData (MLOps), MSE HES-SO, autumn 2026.
 
+## What is PII?
+
+PII means *Personally Identifiable Information*: any data that can tell who a person is. For example a name, an AVS number, an IBAN, an e-mail address or a phone number.
+
 ## Project idea
 
-AI agents are used more and more to automate work: a developer's coding assistant, or an agent that handles the paperwork of a medical practice. These agents read documents, files and tool outputs, and they send them to a model provider in the cloud. This often includes personal data: names, AVS numbers, IBANs, phone numbers, health information.
+AI agents are used more and more to automate work. These agents read documents, files and tool outputs, and they send them to a model provider in the cloud. This often includes personal data: names, AVS numbers, IBANs, phone numbers, health information.
 
-We build a small model that runs locally, on the machine where the data lives. It finds the personal data and hides it behind placeholders, such as `<PERSON_1>`, before anything leaves the machine. When the answer comes back, it puts the real values back. The agent can still do its job, and the provider never sees the real data. We test it first with Claude Code.
+We are building a small model that runs locally, on the machine where the data lives. It finds the personal data and hides it behind placeholders, such as `<PERSON_1>`, before anything leaves the machine. When the answer comes back, it puts the real values back. The agent can still do its job, and the provider never sees the real data. We will test it first with Claude Code.
 
-To make the model small and fast, we use two techniques:
+To make the model small and fast, we will use two techniques:
 
 - **Distillation**: a small "student" model learns to copy a large "teacher" model.
 - **Quantization**: we store the numbers inside the model with fewer bits, so the model takes less space and runs faster.
