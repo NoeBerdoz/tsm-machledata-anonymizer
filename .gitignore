@@ -1,0 +1,14 @@
+## macOS
+.DS_Store
+
+## Editors
+.idea/
+.vscode/
+
+## Report
+report/*.pdf
+
+## Slides
+slides/node_modules/
+slides/dist/
+slides/*.pdf

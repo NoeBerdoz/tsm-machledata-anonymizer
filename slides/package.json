@@ -1,0 +1,22 @@
+{
+  "name": "anonymizer-slides",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:seminar": "slidev seminar/slides.md",
+    "dev:final": "slidev final/slides.md",
+    "build:seminar": "slidev build seminar/slides.md --out dist/seminar",
+    "build:final": "slidev build final/slides.md --out dist/final",
+    "export:seminar": "slidev export seminar/slides.md --output seminar.pdf",
+    "export:final": "slidev export final/slides.md --output final.pdf",
+    "build": "npm run build:seminar && npm run build:final",
+    "export": "npm run export:seminar && npm run export:final"
+  },
+  "dependencies": {
+    "@slidev/cli": "53.0.0",
+    "@slidev/theme-default": "0.25.0"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.64.0"
+  }
+}
