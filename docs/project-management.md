@@ -60,14 +60,39 @@ Keep "In progress" short: at most two cards per person.
 
 1. Pick an issue in "Ready". Assign yourself (the "Assignees" box in the issue) and move the card to "In progress".
 2. Create a branch from `main` named after the issue, for example `4-public-datasets`.
-3. Commit in small steps. Each message says what changed.
-4. Open a pull request and write `Closes #4` in its description. Move the card to "In review".
+3. Commit in small steps. Each message follows [Conventional Commits](#commit-messages) and says what changed.
+4. Open a pull request whose title also follows Conventional Commits, and write `Closes #4` in its description. Move the card to "In review".
 5. Ask a teammate to read it. A review is welcome but not required to merge.
 6. Squash-merge into `main`. The issue closes, the branch is deleted, and the card moves to "Done".
 
 Some issues end with a decision rather than code, for example "Do we need our own test set?". Write the decision and its reason in a comment, update `docs/` if needed, then close the issue.
 
-Data and models never go into git: they are versioned with DVC. When the code arrives, automatic checks (tests and lint) run on every pull request.
+Data and models never go into git: they are versioned with DVC. Automatic checks (lint and tests) run on every pull request, see [development.md](development.md#checks).
+
+## Commit messages
+
+We follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). A message starts with a type, an optional scope in parentheses, a colon, and a short description:
+
+```
+feat(hooks): replace names with placeholders before sending
+fix: keep the IBAN checksum when restoring values
+docs: add the dataset licences
+```
+
+| Type | Use it for |
+|---|---|
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `docs` | Documentation only, including the report and the slides |
+| `test` | Adding or changing tests |
+| `refactor` | A code change that neither adds a feature nor fixes a bug |
+| `build` | Dependencies, the Python project, DVC setup |
+| `ci` | The GitHub Actions workflows |
+| `chore` | Anything else that does not touch the code |
+
+The scope is free, but the issue labels (`data`, `model`, `hooks`, `pipeline`, `bench`) are a good choice.
+
+We squash-merge, so the title of the pull request becomes the commit message on `main`. That is why the pull request title must follow the convention too.
 
 ## Weekly sync
 
