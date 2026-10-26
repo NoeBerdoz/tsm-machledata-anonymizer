@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  # Runs on pushes targeting main branch
+  push:
+    branches:
+      - main
+
+  # Runs on pull requests
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+      # uv reads the Python version from .python-version
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check
+      - name: Check formatting
+        run: uv run ruff format --check
+      - name: Run tests
+        run: uv run pytest
