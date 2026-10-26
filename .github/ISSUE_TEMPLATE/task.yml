@@ -1,0 +1,29 @@
+name: Task
+description: One piece of work with one owner, about two days at most
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What this task should find out or produce, and why it matters for the project.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: A checklist anyone in the team can verify.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Where the result goes (a file in docs/, a notebook, a pull request, a comment with the decision).
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on
+      description: Other issues that must be done first, for example #3.
