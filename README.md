@@ -23,10 +23,18 @@ To make the model small and fast, we will use two techniques:
 .
 ├── README.md                    this page
 ├── .gitignore                   files that git does not track (PDFs, node_modules, ...)
+├── pyproject.toml               the Python project and its dependencies
+├── uv.lock                      the exact version of every dependency
+├── src/pii_anonymizer/          our code, as a Python package
+├── tests/                       the tests
+├── notebooks/                   explorations
+├── data/                        the data, versioned with DVC
+├── .github/workflows/ci.yml     lint and tests on every pull request
 ├── docs/
 │   ├── smart-goals.md           our goals, thresholds and test sets
 │   ├── datasets.md              the datasets we plan to use, with their licences
 │   ├── benchmark-protocol.md    how we will measure model size and speed
+│   ├── development.md           how the code is organised, and why
 │   └── project-management.md    how we plan and share the work
 ├── report/
 │   ├── README.md                how to build the report
@@ -38,6 +46,18 @@ To make the model small and fast, we will use two techniques:
     ├── seminar/slides.md        the seminar talk
     └── final/slides.md          the final talk
 ```
+
+## Set up the project and run the tests
+
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/). It installs Python 3.13 and every dependency for you. From the repository root:
+
+```sh
+uv sync                  # creates .venv with the right Python and dependencies
+uv run pytest            # runs the tests
+uv run ruff check        # checks the code style
+```
+
+You also need [DVC](https://dvc.org/doc/install) to get the data. See [docs/development.md](docs/development.md) for the project layout, the parameters and the daily commands.
 
 ## Build the report
 
