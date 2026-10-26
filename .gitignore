@@ -12,3 +12,12 @@ report/*.pdf
 slides/node_modules/
 slides/dist/
 slides/*.pdf
+
+## Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+## Notebooks
+.ipynb_checkpoints/
