@@ -70,7 +70,7 @@ The file is at the root and named `params.yaml` because that is where DVC looks 
 
 ## Data
 
-The data never goes into git. `data/raw/` holds the datasets as downloaded, and `data/prepared/` the output of the `prepare` stage. Git only keeps the small `.dvc` files that point to the data. The DVC remote storage will be set up once we choose it in [#1](https://github.com/NoeBerdoz/tsm-machledata-anonymizer/issues/1).
+The data never goes into git. `data/raw/` holds the datasets as downloaded, and `data/prepared/` the output of the `prepare` stage. Git only keeps the small `.dvc` files that point to the data. The DVC remote storage, a bucket on Google Cloud Storage, is set up in [#8](https://github.com/NoeBerdoz/tsm-machledata-anonymizer/issues/8).
 
 ## Dependencies
 
