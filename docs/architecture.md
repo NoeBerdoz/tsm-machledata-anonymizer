@@ -7,7 +7,6 @@ The diagrams are in `docs/diagrams/`. The editable version is in Figma: [Schéma
 ## Why our own interface and backend
 
 We first planned to plug the anonymizer into Claude Code with hooks. We now build our own application instead: the user writes the prompt in our interface, we detect the personal data, we replace it, and we send the pseudonymized text to the OpenAI API through our backend.
-1
 - **Advantage:** we control the whole path, from the prompt to the response. This is much simpler than working around the limits of the hooks of an existing agent.
 - **Drawback:** it only protects requests made through our interface. We assume that users send their LLM requests only through our application.
 
