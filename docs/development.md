@@ -70,7 +70,21 @@ The file is at the root and named `params.yaml` because that is where DVC looks 
 
 ## Data
 
-The data never goes into git. `data/raw/` holds the datasets as downloaded, and `data/prepared/` the output of the `prepare` stage. Git only keeps the small `.dvc` files that point to the data. The DVC remote storage, a bucket on Google Cloud Storage, is set up in [#8](https://github.com/NoeBerdoz/tsm-machledata-anonymizer/issues/8).
+The data never goes into git. `data/raw/` holds the datasets as downloaded, and `data/prepared/` the output of the `prepare` stage. Git only keeps the small `.dvc` files that point to the data by hash, the data itself lives in a bucket on Google Cloud Storage, `gs://tsm-machledata-anonymizer-dvc`. The remote is already configured in `.dvc/config`, and DVC comes with `uv sync` (it is a development dependency), so there is nothing to install.
+
+One step per machine: DVC authenticates with Google's *Application Default Credentials*, which are separate from your `gcloud` CLI login, so log in once with our group account:
+
+```sh
+gcloud auth application-default login
+```
+
+Then get the data:
+
+```sh
+uv run dvc pull
+```
+
+On a fresh clone you need both halves: the `.dvc` files arrive with `git clone`, the data arrives with `dvc pull`. If `data/` stays empty, `uv run dvc status -c` compares your local cache with the remote and shows what is missing where.
 
 ## Dependencies
 

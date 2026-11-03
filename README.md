@@ -57,7 +57,7 @@ uv run pytest            # runs the tests
 uv run ruff check        # checks the code style
 ```
 
-You also need [DVC](https://dvc.org/doc/install) to get the data. See [docs/development.md](docs/development.md) for the project layout, the parameters and the daily commands.
+DVC comes with `uv sync`. To get the data, log in once per machine with the group's dedicated Google account (`gcloud auth application-default login`) and run `uv run dvc pull`. See [docs/development.md](docs/development.md) for the details, the project layout, the parameters and the daily commands.
 
 ## Build the report
 
