@@ -56,7 +56,7 @@ We were unable to inspect this dataset. We will most likely not use it for train
 
 ### 2.5 TAB, GraSCCo, BigCode PII, privaite-bench, open-pii-masking-500k
 
-No rows read yet (to do before v0, tracked in Issue #4). For BigCode PII, request access first; each member who needs the data must request it.
+No rows read yet (to do before v0, tracked in Issue #20). For BigCode PII, request access first; each member who needs the data must request it.
 
 All the rows we read so far are English, but we train on FR, DE, and IT. We will check rows in these languages with an agent and an LLM as a judge (same issue).
 
