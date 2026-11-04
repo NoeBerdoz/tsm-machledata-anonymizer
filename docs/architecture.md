@@ -18,7 +18,7 @@ The idea is simple: personal data never leaves the user's device. Only pseudonym
 
 ### On the user's device (private zone)
 
-1. **User interface.** The user writes a prompt and can attach files (PDF, TXT, DOCX, CSV). We might implement feedback buttons letting the user rate each response. This feedback goes to monitoring.
+1. **User interface.** The user writes a prompt and can attach files (PDF, TXT, DOCX, CSV). The user can rate each response from 1 to 5 stars. This feedback goes to monitoring (for now to a local file, without any prompt or response text).
 2. **Local pseudonymization engine.** The engine finds personal data in the prompt and in the files. It has two parts that work together:
    - **Regex rules** for structured identifiers, which follow a fixed format.
    - **Our ML model** for contextual entities, such as names or addresses, which need context to be found. This is the model we train ourselves: a student distilled from a larger teacher and quantized, produced by the pipeline in part 2.
@@ -81,16 +81,16 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 
 - **Response times**, to check that pseudonymization stays fast enough.
 - **Errors**, in the application and in the backend.
-- **User feedback**, from the feedback buttons in the interface (if implemented).
+- **User feedback**, from the star rating in the interface.
 
 
 ## Tools per block
 
 | Block | Tool | Status |
 |---|---|---|
-| User interface | React JS | to decide |
+| User interface | Streamlit (the engine is in Python, so the page calls it directly) | chosen |
 | Regex rules | Python `re` | planned |
-| ML model on the device | ONNX Runtime or PyTorch | to decide |
+| ML model on the device | ONNX Runtime or PyTorch (until our model exists: `qwen3:4b` with Ollama) | to decide |
 | Backend API | FastAPI | chosen |
 | Backend hosting | Cloud Run | to decide |
 | LLM | OpenAI Responses API | chosen |

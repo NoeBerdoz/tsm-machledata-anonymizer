@@ -21,3 +21,6 @@ __pycache__/
 
 ## Notebooks
 .ipynb_checkpoints/
+
+## Local application
+feedback.jsonl
