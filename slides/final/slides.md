@@ -17,6 +17,8 @@ TODO: team names
 
 Teacher fine-tuning, distillation with a gold-label control, quantization.
 
+Pseudonymization, not anonymization: the mapping table on the device can put the real values back.
+
 ---
 
 # The compression curve (2 min)
@@ -43,9 +45,9 @@ TODO: p50 and p95 against the O3 budget
 
 ---
 
-# The agent end to end (1 min)
+# The app end to end (1 min)
 
-TODO: leaks in the 20 sessions, agent utility, restoration
+TODO: leaks in what the backend sends to OpenAI, utility through the app, restoration
 
 ---
 

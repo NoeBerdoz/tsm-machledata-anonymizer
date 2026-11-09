@@ -7,7 +7,7 @@ exportFilename: seminar
 
 # Distilling and quantizing a PII detector
 
-How small can an anonymizer get before it starts to leak?
+How small can a pseudonymizer get before it starts to leak?
 
 TODO: team names
 
@@ -15,9 +15,10 @@ TODO: team names
 
 # The setting (1 min)
 
-- A coding agent sends tool outputs to a cloud model, personal data included
-- A local model replaces sensitive values with placeholders, and hooks restore them
-- The detector runs on every agent turn, so it must be small and fast
+- In our app, the prompt and attached files are pseudonymized on the device
+- Only pseudonymized text goes to our backend and OpenAI, and the real values are restored on the device
+- The detector runs on every request, so it must be small and fast
+- Pseudonymization, not anonymization: the mapping table on the device can put the real values back
 
 TODO: one diagram of the mask and restore loop
 
@@ -46,9 +47,9 @@ TODO: one diagram of the mask and restore loop
 | Goal | Target |
 |---|---|
 | O1 Protection | Student recall ≥ 95 % of teacher, Swiss IDs ≥ 99 % |
-| O2 Utility | Char. precision ≥ GLiNER2-PII, 90 % of agent tasks |
+| O2 Utility | Char. precision ≥ GLiNER2-PII, paired utility ≥ 90 % |
 | O3 Compression | ≥ 12× smaller, p95 ≤ ¼ of teacher |
-| O4 Integration | Leaks within budget, 0 silent fallbacks |
+| O4 End to end | Leaks to OpenAI within budget, no silent failures, exact restoration |
 | O5 MLOps | Gated publication, one alert |
 
 TODO: thresholds decided at v0
