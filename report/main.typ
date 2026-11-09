@@ -1,6 +1,6 @@
 // Project report. Eight pages at most, references excluded.
 #set document(
-  title: "A small on-device PII anonymizer for AI coding agents",
+  title: "A small on-device PII pseudonymizer for cloud LLMs",
   author: ("TODO", "TODO", "TODO", "TODO"),
 )
 #set page(paper: "a4", margin: 2.2cm, numbering: "1")
@@ -9,7 +9,7 @@
 #set heading(numbering: "1.")
 
 #align(center)[
-  #text(size: 16pt, weight: "bold")[A small on-device PII anonymizer for AI coding agents]
+  #text(size: 16pt, weight: "bold")[A small on-device PII pseudonymizer for cloud LLMs]
 
   TSM_MachLeData, MSE HES-SO, autumn 2026 \
   TODO: team members
@@ -19,7 +19,8 @@
 TODO: problem, method, main result in numbers.
 
 = Introduction
-TODO: why tool outputs of coding agents leak personal data, and what we built.
+TODO: why prompts and files sent to a cloud LLM leak personal data, and what we built.
+TODO: one sentence on why we say pseudonymization: the mapping table lets us put the real values back. So we call it pseudonymization, not anonymization: the data can still be linked to a person with extra information, here the mapping table kept on the device. The GDPR draws the same line between the two (Art. 4(5) and Recital 26).
 
 = Related work
 TODO: PrivAiTe @privaite, Hide and Seek @has, GLiNER2 @gliner2, knowledge distillation @hinton2015, quantization @jacob2018.
@@ -31,8 +32,8 @@ TODO (v1).
 TODO (v2).
 == Quantization
 TODO (v3).
-== Hooks integration
-TODO: PostToolUse, PreToolUse, MessageDisplay, UserPromptSubmit.
+== The app: pseudonymization engine, backend and restoration
+TODO: the interface (prompt and attached files), the local engine (regex rules and our model), the replacement and the mapping table on the device, the backend (FastAPI) and the OpenAI Responses API, the restoration on the device.
 
 = Experiments
 TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark protocol.
@@ -42,9 +43,9 @@ TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark proto
   columns: (auto, 1fr, auto, auto),
   table.header[*Goal*][*Target*][*Measured*][*Met*],
   [O1], [Student recall ≥ 95 % of teacher, Swiss IDs ≥ 99 %], [TODO], [TODO],
-  [O2], [Char. precision ≥ GLiNER2-PII, utility ≥ 90 %], [TODO], [TODO],
+  [O2], [Char. precision ≥ GLiNER2-PII, utility through the app ≥ 90 %], [TODO], [TODO],
   [O3], [≥ 12× smaller, p95 ≤ ¼ of teacher], [TODO], [TODO],
-  [O4], [Leaks within budget, 0 silent fallbacks, 100 % restoration], [TODO], [TODO],
+  [O4], [Leaks within budget, 100 % exact restoration, 100 % of injected bad replacements flagged, 0 silent failures], [TODO], [TODO],
   [O5], [Gate refuses and publishes, one alert], [TODO], [TODO],
 )
 
@@ -52,7 +53,7 @@ TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark proto
 TODO: DVC stages, CI gates, artifact publication, monitoring.
 
 = Limits
-TODO: synthetic training data, typed prompts not covered by hooks, text only.
+TODO: synthetic training data, only requests through our app are protected, text only.
 
 = Conclusion
 TODO.
