@@ -50,7 +50,7 @@ Keep "In progress" short: at most two cards per person.
 
 | Milestone | Content | Due |
 |---|---|---|
-| v0 | Architecture, project skeleton, evaluation harness, data decisions, first baselines, first cloud training run, seminar talk | 2026-11-16 |
+| v0 | Architecture, project skeleton, evaluation script, data decisions, first baselines, first cloud training run, seminar talk | 2026-11-16 |
 | v1 | Fine-tuned teacher | 2026-11-30 |
 | v2 | Distilled student and gold-label control | Around 2026-12-10 |
 | v3 | Quantized student | Around 2026-12-10 |
