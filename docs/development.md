@@ -99,6 +99,16 @@ We use [uv](https://docs.astral.sh/uv/). `uv run <command>` runs a command insid
 
 `uv add` and `uv remove` also update `uv.lock`. Commit both `pyproject.toml` and `uv.lock`.
 
+### The baselines group
+
+The off-the-shelf detectors of [baselines.md](baselines.md) (Presidio, GLiNER2-PII) need heavy libraries, so they live in a separate dependency group, `baselines`. `uv sync` and the CI do not install it. To install it:
+
+```sh
+uv sync --group baselines
+```
+
+It downloads about 2.5 GB: PyTorch (CPU only), Transformers, Presidio, Hugging Face `datasets`, and the four large spaCy models for English, French, German and Italian (400 to 570 MB each). The environment then takes about 3.3 GB on disk. The first GLiNER2 run downloads the model from Hugging Face, 1.2 GB more. A plain `uv sync` removes the group again.
+
 ## Checks
 
 The same checks run on every pull request (`.github/workflows/ci.yml`). Run them before you push:
