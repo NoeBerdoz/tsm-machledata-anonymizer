@@ -10,6 +10,7 @@ report/*.pdf
 
 ## Slides
 slides/node_modules/
+slides/*/node_modules/
 slides/dist/
 slides/*.pdf
 

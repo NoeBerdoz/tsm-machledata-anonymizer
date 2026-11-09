@@ -1,0 +1,412 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Fragment+Mono&display=block');
+
+/*
+  Palette, type and grid. Every colour and size in the deck comes from these tokens.
+  Canvas 1280 x 720, 12 columns, 72 px margins, 24 px gutters, 8 px rhythm.
+*/
+:root {
+  --paper: #f6f5f1;
+  --ink: #161616;
+  --red: #da291c;
+  --graphite: #666660;
+  --hairline: #d4d1c8;
+
+  --sans: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'Fragment Mono', 'Menlo', monospace;
+
+  /* The five sizes */
+  --fs-cover: 58px;
+  --fs-head: 42px;
+  --fs-body: 24px;
+  --fs-label: 18px;
+  --fs-caption: 15px;
+
+  --margin: 72px;
+  --gutter: 24px;
+  --col: calc((1136px - 11 * 24px) / 12);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --t-fast: 250ms;
+  --t-mid: 350ms;
+  --t-slow: 450ms;
+}
+
+.slidev-layout {
+  font-family: var(--sans);
+  font-variation-settings: 'wdth' 100;
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.33;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+.slidev-layout h1,
+.slidev-layout h2,
+.slidev-layout h3 {
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+
+.slidev-layout h1 {
+  font-size: var(--fs-head);
+  line-height: 1.14;
+  max-width: 1136px;
+}
+
+.slidev-layout p {
+  margin: 0;
+}
+
+.slidev-layout h1 + p {
+  opacity: 1;
+}
+
+.slidev-layout code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.label {
+  font-size: var(--fs-label);
+  line-height: 1.33;
+}
+
+.caption {
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  color: var(--graphite);
+}
+
+.muted {
+  color: var(--graphite);
+}
+
+.red {
+  color: var(--red);
+}
+
+.lede {
+  font-size: var(--fs-body);
+  line-height: 1.33;
+}
+
+/* 12-column grid helper */
+.grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, var(--col));
+  column-gap: var(--gutter);
+}
+
+/* Click reveal used in slides.md: class="step" :class="{ on: $clicks >= n }" */
+.step {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--t-fast) var(--ease),
+    transform var(--t-mid) var(--ease);
+}
+
+.step.on {
+  opacity: 1;
+  transform: none;
+}
+
+/* The replaced mark, for inline use */
+.chip-inline {
+  font-family: var(--mono);
+  font-size: 0.78em;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.06em 0.36em 0.08em;
+  white-space: nowrap;
+}
+
+/* KaTeX inside the deck */
+.slidev-layout .katex {
+  font-size: 1.05em;
+  color: var(--ink);
+}
+
+/* Slide transition: a short fade */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 300ms var(--ease);
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* Reader appendix: plain text in two columns */
+.appx {
+  margin-top: 32px;
+  font-size: var(--fs-label);
+  line-height: 1.42;
+}
+
+.appx.cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: calc(2 * var(--gutter));
+}
+
+.appx p + p,
+.appx ul + p,
+.appx p + ul {
+  margin-top: 10px;
+}
+
+.appx h3 {
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: 1.33;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+  margin: 0 0 8px;
+}
+
+.appx * + h3 {
+  margin-top: 20px;
+}
+
+.appx ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.appx li + li {
+  margin-top: 4px;
+}
+
+.appx .katex-display {
+  margin: 10px 0;
+  text-align: left;
+}
+
+.appx .katex-display > .katex {
+  text-align: left;
+}
+
+.appx.small {
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+}
+
+.appx.small h3 {
+  font-size: var(--fs-caption);
+}
+
+.appx .note {
+  font-size: var(--fs-caption);
+  color: var(--graphite);
+}
+
+/* Cover */
+.slidev-layout .cover-course {
+  line-height: 1.2;
+}
+.slidev-layout .cover-head {
+  margin-top: 40px;
+  align-items: start;
+}
+.slidev-layout .cover-main {
+  grid-column: 1 / span 9;
+}
+.slidev-layout .cover-project {
+  font-size: var(--fs-body);
+  color: var(--graphite);
+}
+.slidev-layout h1.cover-title {
+  margin-top: 16px;
+  font-size: var(--fs-cover);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  max-width: none;
+}
+.slidev-layout .cover-tagline {
+  margin-top: 24px;
+  font-size: var(--fs-body);
+}
+.slidev-layout .cover-team {
+  grid-column: 10 / span 3;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 0;
+}
+.slidev-layout .cover-team li {
+  margin: 0;
+  padding: 0;
+}
+.slidev-layout .cover-art {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+/* Hook */
+.slidev-layout .hook {
+  margin-top: 136px;
+}
+
+/* Setting */
+.slidev-layout .setting-fig {
+  margin-top: 40px;
+}
+.slidev-layout .gdpr {
+  margin-top: 24px;
+}
+
+/* Distillation */
+.slidev-layout .distil-a {
+  margin-top: 48px;
+}
+.slidev-layout .vignette {
+  grid-column: 1 / span 3;
+}
+.slidev-layout .soft-wrap {
+  grid-column: 4 / span 9;
+}
+.slidev-layout .takeaway {
+  margin-top: 32px;
+  margin-left: calc(3 * var(--col) + 3 * var(--gutter));
+}
+
+/* Quantization */
+.slidev-layout .quant {
+  margin-top: 48px;
+}
+.slidev-layout .clock-cap {
+  margin-top: 16px;
+  max-width: 200px;
+}
+.slidev-layout .quant-fig {
+  grid-column: 4 / span 9;
+}
+.slidev-layout .quant-eq {
+  display: flex;
+  align-items: baseline;
+  gap: 48px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.slidev-layout .quant-eq .legend {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.slidev-layout .quant-eq .sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+.slidev-layout .quant-eq .sw.ghost {
+  border: 1px solid var(--graphite);
+}
+.slidev-layout .quant-eq .sw.stored {
+  background: var(--graphite);
+}
+.slidev-layout .quant-eq .sw.err {
+  width: 16px;
+  height: 2px;
+  border-radius: 0;
+  background: var(--ink);
+}
+.slidev-layout .ptq {
+  margin: 40px 0 40px;
+}
+.slidev-layout .ptq p:first-child {
+  grid-column: 1 / span 6;
+}
+.slidev-layout .ptq p:last-child {
+  grid-column: 7 / span 6;
+}
+.slidev-layout .ptq .mono {
+  color: var(--graphite);
+}
+
+/* Evaluation */
+.slidev-layout .sub {
+  margin-top: 16px;
+}
+
+/* Pipeline */
+.slidev-layout .gate-cap {
+  margin-top: 8px;
+}
+
+/* Roadmap */
+.slidev-layout .route-fig {
+  margin-top: 40px;
+}
+
+/* Closing */
+.slidev-layout .questions {
+  margin-top: 64px;
+  font-size: var(--fs-cover);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.08;
+}
+.slidev-layout .close-sentence {
+  margin-top: 40px;
+}
+.slidev-layout .close-art {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+/* Appendix extras */
+.slidev-layout .appx .cols3,
+.slidev-layout .appx.cols3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: calc(2 * var(--gutter));
+}
+.slidev-layout .size-table {
+  display: grid;
+  grid-template-columns: calc(3 * var(--col) + 2 * var(--gutter)) calc(2 * var(--col) + var(--gutter)) 1fr;
+  column-gap: var(--gutter);
+}
+.slidev-layout .size-table > div {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.slidev-layout .size-table > .caption {
+  border-bottom-color: var(--ink);
+}
+.slidev-layout .size-notes {
+  margin-top: 32px;
+}
+.slidev-layout .refs {
+  margin-top: 32px;
+  max-width: calc(9 * var(--col) + 8 * var(--gutter));
+}
+.slidev-layout .refs p {
+  padding: 12px 0;
+  border-top: 1px solid var(--hairline);
+}
+.slidev-layout .appx .cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: calc(2 * var(--gutter));
+}
