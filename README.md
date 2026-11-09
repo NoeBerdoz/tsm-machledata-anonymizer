@@ -66,6 +66,19 @@ uv run ruff check        # checks the code style
 
 DVC comes with `uv sync`. To get the data, log in once per machine with the group's dedicated Google account (`gcloud auth application-default login`) and run `uv run dvc pull`. See [docs/development.md](docs/development.md) for the details, the project layout, the parameters and the daily commands.
 
+## Run the local interface
+
+You need [Ollama](https://ollama.com) with the model `qwen3:4b`, which stands in for our own model until it is trained. From the repository root:
+
+```sh
+ollama pull qwen3:4b             # first time only
+uv run python -m pii_anonymizer  # opens the interface in your browser
+```
+
+Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response of the model with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
+
+For now `qwen3:4b` also writes the response, so nothing is sent to the cloud, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
+
 ## Build the report
 
 You need [Typst](https://typst.app). From the repository root:
