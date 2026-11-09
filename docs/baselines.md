@@ -1,6 +1,6 @@
 # Baselines
 
-What off-the-shelf detectors already reach, before we train anything (issue #6). We ran three detectors through the evaluation script of [evaluation.md](evaluation.md) on samples of the two candidate T1 validation splits named in [datasets.md](datasets.md).
+What off-the-shelf detectors already reach, before we train anything (issue #6). We ran four detectors through the evaluation script of [evaluation.md](evaluation.md) on samples of the two candidate T1 validation splits named in [datasets.md](datasets.md).
 
 These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), so the T2-dev rows, the latency and the two v0 thresholds of [smart-goals.md](smart-goals.md) come later. All rows below were measured on a development machine (Apple M5 Max), **not on the reference laptop**. Quality does not depend on the machine, but the wall times below only say how long a run takes here.
 
@@ -10,6 +10,8 @@ These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), s
 - **presidio**: Presidio's `AnalyzerEngine` 2.2.366 with the spaCy large models for English, French, German and Italian, the default recognizers and the default score threshold. The default configuration already gives the language-independent pattern recognizers (e-mail, IBAN, phone, IP, URL, date) to every language. We add the credit card recognizer to French and German, because the default lists it only for English and Italian. Presidio receives the true language of each text, which slightly favours it (see [evaluation.md](evaluation.md)).
 - **gliner2**: `fastino/gliner2-privacy-filter-PII-multi` as published, on the CPU, with the 42 labels of its model card and the card's threshold of 0.5. Texts go through `extract_entities_long`, the library's way to handle long texts. Our texts are short (at most 177 words), so each text fits in one chunk. On a long Gretel document, the library gave the last word an end one character past the text. We clip such a span to the text.
 - **regex+gliner2**: the two detectors together. It masks every span that either of them finds, because goal O1 measures the Swiss identifiers caught by the regex and the model together. Its size is the size of GLiNER2, since the regex has no files.
+- **privacy-filter**: `openai/privacy-filter` as published, on the CPU, in its published bfloat16 weights. We run it through the token-classification pipeline of transformers 5.22.2 with `aggregation_strategy="simple"`, the documented way to get spans with character offsets. This takes the most likely tag of each token. It does not run the constrained Viterbi decoder of OpenAI's own repo, so the operating points of the model card are not used. The pipeline only knows B- and I- tags, and the model writes B-, I-, E- and S- tags, so the last token of an entity comes back as a separate span. We join spans of the same type that touch, and we strip the space that the tokens carry before a word. We checked the offsets by hand on accented and multilingual texts: they point at the right characters.
+- **regex+privacy-filter**: the regex and Privacy Filter together, built like `regex+gliner2`.
 
 The code of the detectors is in `src/pii_anonymizer/baselines.py`. They need the `baselines` dependency group ([development.md](development.md)).
 
@@ -36,32 +38,36 @@ We checked every offset: for all 9,599 entities, `text[start:end]` equals the `v
 | gliner2 | 500k | 81.8 % | 96.7 % | 1,244 |
 | regex+gliner2 | OpenPII-1M | 80.7 % | 98.2 % | 1,244 |
 | regex+gliner2 | 500k | 81.8 % | 96.7 % | 1,244 |
+| privacy-filter | OpenPII-1M | 78.8 % | 97.3 % | 2,827 |
+| privacy-filter | 500k | 69.8 % | 96.6 % | 2,827 |
+| regex+privacy-filter | OpenPII-1M | 79.0 % | 97.3 % | 2,827 |
+| regex+privacy-filter | 500k | 70.0 % | 96.6 % | 2,827 |
 
-`regex+gliner2` gives the same numbers as GLiNER2 alone, rounded: the samples have almost no valid Swiss values for the regex to add. It protects 5 more entities on OpenPII-1M, among them 2 `SOCIALNUM` and 2 `EMAIL`, and 1 more `TELEPHONENUM` on 500k.
+`regex+gliner2` gives the same numbers as GLiNER2 alone, rounded: the samples have almost no valid Swiss values for the regex to add. It protects 5 more entities on OpenPII-1M, among them 2 `SOCIALNUM` and 2 `EMAIL`, and 1 more `TELEPHONENUM` on 500k. The regex adds a little more to Privacy Filter: 13 entities on OpenPII-1M and 5 on 500k, mostly e-mails.
 
-The size of Presidio is the four spaCy models. The size of GLiNER2 is its weights in fp32, its configs and its tokenizer. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
+The size of Presidio is the four spaCy models. The size of GLiNER2 is its weights in fp32, its configs and its tokenizer. The size of Privacy Filter is its weights in bfloat16, its config and its tokenizer. The repo also holds ONNX exports and a second copy of the weights, which we do not count because we do not use them. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
 
 Recall per type for the main types (OpenPII-1M first, then 500k):
 
-| Type | Gold (1M / 500k) | regex | presidio | gliner2 |
-|---|---|---|---|---|
-| GIVENNAME | 858 / 771 | 0 / 0 % | 79 / 79 % | 95 / 90 % |
-| SURNAME | 764 / 307 | 0 / 0 % | 78 / 78 % | 95 / 93 % |
-| DATE | 871 / 106 | 0 / 0 % | 46 / 58 % | 86 / 92 % |
-| EMAIL | 511 / 123 | 100 / 100 % | 100 / 100 % | 99 / 100 % |
-| CITY | 506 / 158 | 0 / 0 % | 83 / 87 % | 88 / 80 % |
-| TELEPHONENUM | 376 / 147 | 13 / 14 % | 45 / 48 % | 99 / 99 % |
-| STREET | 339 / 103 | 0 / 0 % | 59 / 55 % | 96 / 93 % |
-| BUILDINGNUM | 330 / 93 | 0 / 0 % | 12 / 16 % | 94 / 89 % |
-| ZIPCODE | 294 / 43 | 0 / 0 % | 19 / 19 % | 94 / 79 % |
-| IDCARDNUM | 241 / 89 | 0 / 0 % | 29 / 36 % | 92 / 81 % |
-| CREDITCARDNUMBER | 232 / 16 | 0 / 0 % | 24 / 12 % | 90 / 94 % |
-| SOCIALNUM | 168 / 17 | 5 / 12 % | 44 / 47 % | 67 / 88 % |
-| TITLE | 461 / 85 | 0 / 0 % | 51 / 47 % | 15 / 26 % |
-| AGE | 379 / 50 | 0 / 0 % | 15 / 14 % | 5 / 14 % |
-| TIME | 0 / 98 | (none) / 0 % | (none) / 17 % | (none) / 0 % |
+| Type | Gold (1M / 500k) | regex | presidio | gliner2 | privacy-filter |
+|---|---|---|---|---|---|
+| GIVENNAME | 858 / 771 | 0 / 0 % | 79 / 79 % | 95 / 90 % | 85 / 73 % |
+| SURNAME | 764 / 307 | 0 / 0 % | 78 / 78 % | 95 / 93 % | 87 / 78 % |
+| DATE | 871 / 106 | 0 / 0 % | 46 / 58 % | 86 / 92 % | 96 / 92 % |
+| EMAIL | 511 / 123 | 100 / 100 % | 100 / 100 % | 99 / 100 % | 98 / 97 % |
+| CITY | 506 / 158 | 0 / 0 % | 83 / 87 % | 88 / 80 % | 68 / 49 % |
+| TELEPHONENUM | 376 / 147 | 13 / 14 % | 45 / 48 % | 99 / 99 % | 97 / 95 % |
+| STREET | 339 / 103 | 0 / 0 % | 59 / 55 % | 96 / 93 % | 80 / 72 % |
+| BUILDINGNUM | 330 / 93 | 0 / 0 % | 12 / 16 % | 94 / 89 % | 75 / 68 % |
+| ZIPCODE | 294 / 43 | 0 / 0 % | 19 / 19 % | 94 / 79 % | 84 / 65 % |
+| IDCARDNUM | 241 / 89 | 0 / 0 % | 29 / 36 % | 92 / 81 % | 97 / 89 % |
+| CREDITCARDNUMBER | 232 / 16 | 0 / 0 % | 24 / 12 % | 90 / 94 % | 94 / 100 % |
+| SOCIALNUM | 168 / 17 | 5 / 12 % | 44 / 47 % | 67 / 88 % | 96 / 76 % |
+| TITLE | 461 / 85 | 0 / 0 % | 51 / 47 % | 15 / 26 % | 70 / 51 % |
+| AGE | 379 / 50 | 0 / 0 % | 15 / 14 % | 5 / 14 % | 4 / 2 % |
+| TIME | 0 / 98 | (none) / 0 % | (none) / 17 % | (none) / 0 % | (none) / 5 % |
 
-Wall time for one run of 1,000 texts on this machine, loading included: regex about 1 s, Presidio 16 s (OpenPII-1M) and 12 s (500k), GLiNER2 134 s and 105 s.
+Wall time for one run of 1,000 texts on this machine, loading included: regex about 1 s, Presidio 16 s (OpenPII-1M) and 12 s (500k), GLiNER2 134 s and 105 s, Privacy Filter 184 s and 92 s (`regex+privacy-filter` 182 s and 92 s).
 
 ## The main misses
 
@@ -97,6 +103,29 @@ GLiNER2 reaches 81 % and 82 %, with a precision of 97 to 98 %. It finds almost e
 - **Long city names**: only part of `Linz Urfahr` or `Swansea Three Crosses` is masked, so the entity counts as a leak.
 - **False positives**: few. Common nouns as last names (`women`, `famiglia`), and words such as `credit card` tagged as `payment_card`.
 
+### privacy-filter
+
+OpenAI Privacy Filter is a model that OpenAI published under the Apache 2.0 license. It has 1.5 billion parameters, but it is a sparse mixture of experts: only about 50 million of them work on each token. So it is fast for its size, but it is not small on disk (2.8 GB). It knows 8 types: people, addresses, e-mails, phones, URLs, dates, account numbers and secrets. Its model card says it is primarily English.
+
+It reaches 79 % on OpenPII-1M and 70 % on 500k, with a precision of 97 %. That is below GLiNER2 on both samples, and the gap is larger on 500k, where a third of the entities are given names. Without the five attribute types that neither model looks for (titles, ages, sex, gender, times), it reaches 88 % on OpenPII-1M and 77 % on 500k, against 92 % and 91 % for GLiNER2.
+
+| Language | OpenPII-1M | 500k |
+|---|---|---|
+| FR | 82.1 % | 69.9 % |
+| DE | 77.1 % | 70.5 % |
+| IT | 78.9 % | 75.3 % |
+| EN | 76.9 % | 64.5 % |
+
+English is not its best language here, even though the card says it is primarily English. Without the five attribute types, English stays the lowest (85.2 % on OpenPII-1M, against 92.2 % in French, 89.4 % in Italian and 86.6 % in German). We have not found why yet.
+
+- **Numbers and IDs**: it is better than GLiNER2 on structured values. It finds 96 % of the dates, 96 % of the `SOCIALNUM` values on OpenPII-1M (GLiNER2 67 %), and 94 to 97 % of the ID, passport, licence and card numbers. It labels almost all of them `account_number`.
+- **Names and places**: it misses more names than GLiNER2 (85 % of given names against 95 %), and many cities, streets and building numbers (68 %, 80 % and 75 % on OpenPII-1M). Its card says the model keeps context that is not strongly linked to a person, which may explain part of these misses.
+- **Titles**: it masks 70 % of them, against 15 % for GLiNER2, because it puts the title inside the person span (`Dr Nongluk Salihodzic`, `Mlle Marialucia Hivin Magagna`).
+- **Attributes**: ages (4 %), sex (3 %), gender (11 %) and times (5 %) are almost never found. It has no type for them.
+- **Spans**: the token-by-token choice sometimes cuts an entity. An e-mail can lose its `.com`, or a phone its `+41`. In one Italian text the span of `B@hotmail.com` starts one word too early and stops before `.com`. The constrained decoder of OpenAI's repo is meant to fix such boundaries, and we do not run it.
+
+We also ran it in float32 on OpenPII-1M and on the Swiss set. The recall moved by less than 0.2 points, and the run was faster on this machine (134 s against 184 s on OpenPII-1M). We keep the published bfloat16 weights in the table.
+
 ## Which split for T1
 
 Both splits give GLiNER2 the same recall (81 % and 82 %). Presidio does better on 500k (64 % against 54 %), because 500k is mostly short texts full of names: a third of its entities are given names. OpenPII-1M is harder and more varied. Its texts are longer, they hold three times as many entities per text, and its types are more balanced (dates, addresses, ID numbers, cards).
@@ -107,10 +136,10 @@ So the numbers support the recommendation of [datasets.md](datasets.md): OpenPII
 
 ## Swiss identifiers
 
-These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and almost no valid AVS number. So we built a Swiss test set, `t1-swiss.jsonl`, by putting valid fake AVS numbers, IBANs and phone numbers into public rows from validation and test splits. On it, the regex alone reaches 95.4 % on the three Swiss types, GLiNER2 alone 84.8 %, and `regex+gliner2` 99.2 %. See [swiss-identifiers.md](swiss-identifiers.md).
+These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and almost no valid AVS number. So we built a Swiss test set, `t1-swiss.jsonl`, by putting valid fake AVS numbers, IBANs and phone numbers into public rows from validation and test splits. On it, the regex alone reaches 95.4 % on the three Swiss types, GLiNER2 alone 84.8 %, Privacy Filter alone 92.6 %, `regex+gliner2` 99.2 % and `regex+privacy-filter` 99.5 %. See [swiss-identifiers.md](swiss-identifiers.md).
 
 ## Next steps
 
-- Run the three detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
+- Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
 - Measure the latency on the reference laptop.
 - Compute the two v0 thresholds on T2-dev.

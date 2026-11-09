@@ -1,9 +1,9 @@
-"""The off-the-shelf detectors of the baselines (issue #6): regex, Presidio and GLiNER2-PII,
-and `regex+gliner2`, the two together.
+"""The off-the-shelf detectors of the baselines (issue #6): regex, Presidio, GLiNER2-PII and
+OpenAI Privacy Filter, and `regex+gliner2` and `regex+privacy-filter`, the regex with a model.
 
 Each `load_*` function imports its libraries itself, so that importing this module stays
 light and the evaluation script can set the thread variables before a runtime starts.
-Presidio and GLiNER2 need the `baselines` dependency group (`uv sync --group baselines`).
+Presidio and the two models need the `baselines` dependency group (`uv sync --group baselines`).
 See docs/baselines.md.
 """
 
@@ -80,10 +80,31 @@ GLINER2_THRESHOLD = 0.5
 # The files the model needs to run: weights, configs and tokenizer (not the card or images).
 GLINER2_FILES = ["*.json", "*.safetensors"]
 
+PRIVACY_FILTER_MODEL = "openai/privacy-filter"
+# The files the transformers route needs: the weights, the config and the tokenizer. The repo
+# also holds ONNX exports and an `original/` copy of the weights, which we do not use.
+PRIVACY_FILTER_FILES = [
+    "config.json",
+    "model.safetensors",
+    "tokenizer.json",
+    "tokenizer_config.json",
+]
+
 
 def disable_hf_telemetry() -> None:
     """Turn off Hugging Face telemetry. Call it before any Hugging Face import."""
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
+
+def set_torch_threads(torch) -> None:
+    """Apply the protocol's thread counts (docs/benchmark-protocol.md).
+
+    torch accepts the inter-op count only once per process, so a second model loaded in the
+    same process (as in the tests) skips it when it is already right.
+    """
+    torch.set_num_threads(4)
+    if torch.get_num_interop_threads() != 1:
+        torch.set_num_interop_threads(1)
 
 
 def load_regex():
@@ -160,9 +181,7 @@ class Gliner2Detector:
         from gliner2 import GLiNER2
         from huggingface_hub import snapshot_download
 
-        # The protocol's thread counts (docs/benchmark-protocol.md).
-        torch.set_num_threads(4)
-        torch.set_num_interop_threads(1)
+        set_torch_threads(torch)
 
         local_dir = Path(snapshot_download(GLINER2_MODEL, allow_patterns=GLINER2_FILES))
         self.model = GLiNER2.from_pretrained(str(local_dir))
@@ -192,6 +211,74 @@ def load_gliner2():
     return Gliner2Detector()
 
 
+def privacy_filter_spans(entities, text: str) -> list[Span]:
+    """Turn the grouped output of the token-classification pipeline into clean spans.
+
+    The pipeline's "simple" grouping knows the B- and I- tags only. The model writes BIOES
+    tags, so the E- token of an entity comes out as a group of its own, right after the rest
+    (" Harry" then " Potter"). We join groups of the same label that touch. The tokens also
+    carry the space before a word, so we strip the spaces at both ends, and we clip the
+    span to the text.
+    """
+    merged: list[list] = []
+    for entity in sorted(entities, key=lambda e: (e["start"], e["end"])):
+        start, end = int(entity["start"]), min(int(entity["end"]), len(text))
+        label = entity["entity_group"]
+        if merged and merged[-1][2] == label and merged[-1][1] == start:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end, label])
+    spans = []
+    for start, end, label in merged:
+        while start < end and text[start].isspace():
+            start += 1
+        while end > start and text[end - 1].isspace():
+            end -= 1
+        if start < end:
+            spans.append(Span(start, end, label))
+    return spans
+
+
+class PrivacyFilterDetector:
+    """OpenAI Privacy Filter as published, on the CPU, through the transformers pipeline.
+
+    We use the documented token-classification pipeline with `aggregation_strategy="simple"`:
+    it takes the most likely tag of each token and groups the tokens into spans with
+    character offsets. It does not run the constrained Viterbi decoder of OpenAI's own repo,
+    so the operating points of the model card are not available here.
+    """
+
+    def __init__(self) -> None:
+        disable_hf_telemetry()
+        import torch
+        import transformers
+        from huggingface_hub import snapshot_download
+        from transformers import pipeline
+
+        set_torch_threads(torch)
+
+        local_dir = Path(
+            snapshot_download(PRIVACY_FILTER_MODEL, allow_patterns=PRIVACY_FILTER_FILES)
+        )
+        self.pipeline = pipeline(
+            "token-classification",
+            model=str(local_dir),
+            device="cpu",
+            aggregation_strategy="simple",
+        )
+        self.runtime = f"transformers {transformers.__version__}"
+        self.files = [local_dir / name for name in PRIVACY_FILTER_FILES]
+
+    def detect(self, text: str, lang: str | None = None) -> list[Span]:
+        if not text.strip():
+            return []
+        return privacy_filter_spans(self.pipeline(text), text)
+
+
+def load_privacy_filter():
+    return PrivacyFilterDetector()
+
+
 class UnionDetector:
     """Several detectors run one after the other. It masks every span that any of them finds.
 
@@ -215,3 +302,8 @@ class UnionDetector:
 def load_regex_gliner2():
     gliner2 = load_gliner2()
     return UnionDetector([load_regex(), gliner2], files_from=gliner2)
+
+
+def load_regex_privacy_filter():
+    privacy_filter = load_privacy_filter()
+    return UnionDetector([load_regex(), privacy_filter], files_from=privacy_filter)

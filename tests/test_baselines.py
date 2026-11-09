@@ -3,7 +3,7 @@ import json
 import pytest
 
 import pii_anonymizer.evaluate
-from pii_anonymizer.baselines import GLINER2_LABELS
+from pii_anonymizer.baselines import GLINER2_LABELS, privacy_filter_spans
 from pii_anonymizer.evaluate import DETECTORS, evaluate
 from pii_anonymizer.public_data import LANGUAGES, convert_row, sample_rows
 from pii_anonymizer.spans import Span, load_dataset
@@ -37,6 +37,42 @@ ROWS = [
 
 def test_registry_has_the_three_baselines():
     assert {"regex", "presidio", "gliner2"} <= set(DETECTORS)
+
+
+def test_registry_has_privacy_filter_and_its_union():
+    assert {"privacy-filter", "regex+privacy-filter"} <= set(DETECTORS)
+
+
+def test_privacy_filter_spans_join_strip_and_clip():
+    # The shape of the pipeline output with aggregation_strategy="simple": the E- token of a
+    # BIOES entity comes out as a group of its own, and tokens carry the space before them.
+    text = "My name is Harry Potter, call +41 79 123 45 67"
+    entities = [
+        {"entity_group": "private_person", "start": 10, "end": 16, "word": " Harry"},
+        {"entity_group": "private_person", "start": 16, "end": 23, "word": " Potter"},
+        {"entity_group": "private_phone", "start": 29, "end": 43, "word": " +41 79 123 45 "},
+        {"entity_group": "private_phone", "start": 43, "end": 47, "word": "67"},
+        {"entity_group": "secret", "start": 10, "end": 11, "word": " "},
+    ]
+    spans = privacy_filter_spans(entities, text)
+    assert [(s.label, text[s.start : s.end]) for s in spans] == [
+        ("private_person", "Harry Potter"),
+        ("private_phone", "+41 79 123 45 67"),
+    ]
+    # The last group ends one past the text: it is clipped.
+    assert spans[-1].end == len(text)
+
+
+def test_privacy_filter_spans_keep_different_labels_apart():
+    text = "Anna 1990"
+    entities = [
+        {"entity_group": "private_person", "start": 0, "end": 4},
+        {"entity_group": "private_date", "start": 4, "end": 9},
+    ]
+    assert privacy_filter_spans(entities, text) == [
+        Span(0, 4, "private_person"),
+        Span(5, 9, "private_date"),
+    ]
 
 
 def test_gliner2_uses_the_42_card_labels():
@@ -132,3 +168,17 @@ def test_gliner2_offsets_point_to_the_entity():
     text = "Please write to anna.meier@example.ch before Friday."
     spans = detector.detect(text)
     assert ("email", "anna.meier@example.ch") in [(s.label, text[s.start : s.end]) for s in spans]
+
+
+def test_privacy_filter_offsets_point_to_the_entity():
+    pytest.importorskip("transformers")
+    hub = pytest.importorskip("huggingface_hub")
+    from pii_anonymizer.baselines import PRIVACY_FILTER_MODEL
+
+    if not isinstance(hub.try_to_load_from_cache(PRIVACY_FILTER_MODEL, "model.safetensors"), str):
+        pytest.skip("OpenAI Privacy Filter is not downloaded")
+    detector = DETECTORS["privacy-filter"]()
+    text = "Please write to Noémie Müller at anna.meier@example.ch before Friday."
+    found = [(s.label, text[s.start : s.end]) for s in detector.detect(text)]
+    assert ("private_email", "anna.meier@example.ch") in found
+    assert ("private_person", "Noémie Müller") in found

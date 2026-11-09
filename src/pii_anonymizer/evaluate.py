@@ -17,8 +17,10 @@ from pathlib import Path
 from pii_anonymizer.baselines import (
     load_gliner2,
     load_presidio,
+    load_privacy_filter,
     load_regex,
     load_regex_gliner2,
+    load_regex_privacy_filter,
 )
 from pii_anonymizer.benchmark import (
     RUNS_PER_INPUT,
@@ -46,6 +48,8 @@ DETECTORS: dict[str, Callable[[], Detector]] = {
     "presidio": load_presidio,
     "gliner2": load_gliner2,
     "regex+gliner2": load_regex_gliner2,
+    "privacy-filter": load_privacy_filter,
+    "regex+privacy-filter": load_regex_privacy_filter,
 }
 
 LATENCY_IDS = Path(__file__).with_name("latency_ids.txt")

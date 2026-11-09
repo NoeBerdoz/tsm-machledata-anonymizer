@@ -88,7 +88,7 @@ The Gretel sample has 176 documents: 16 FR, 34 DE, 26 IT and 100 EN. One English
 
 ## Results
 
-We ran the four detectors with `uv run python -m pii_anonymizer.evaluate <detector> data/test/t1-swiss.jsonl results/`, on the same development machine as [baselines.md](baselines.md). `regex+gliner2` masks every span that either of the two finds, because O1 measures the regex and the model together.
+We ran the detectors with `uv run python -m pii_anonymizer.evaluate <detector> data/test/t1-swiss.jsonl results/`, on the same development machine as [baselines.md](baselines.md). `regex+gliner2` and `regex+privacy-filter` mask every span that either of the two finds, because O1 measures the regex and the model together.
 
 Recall on the three Swiss types:
 
@@ -98,8 +98,10 @@ Recall on the three Swiss types:
 | presidio | 7.7 % | 99.1 % | 100 % | 79.9 % |
 | gliner2 | 75.6 % | 79.9 % | 91.2 % | 84.8 % |
 | regex+gliner2 | 97.6 % | 99.1 % | 100 % | **99.2 %** |
+| privacy-filter | 99.4 % | 79.4 % | 96.7 % | 92.6 % |
+| regex+privacy-filter | 100 % | 98.1 % | 100 % | **99.5 %** |
 
-Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.2 % for GLiNER2 and 80.3 % for `regex+gliner2`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
+Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.2 % for GLiNER2, 80.3 % for `regex+gliner2`, 76.7 % for Privacy Filter and 78.1 % for `regex+privacy-filter`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
 
 What each detector misses:
 
@@ -107,10 +109,14 @@ What each detector misses:
 - **presidio**: almost every AVS number (it has no Swiss recognizer). It finds the 12 of 28 compact ones only, as other numbers. Its IBAN recognizer finds the lowercase IBANs too, and misses the same 2 glued ones as the regex. It finds every phone number.
 - **gliner2**: about a quarter of the AVS numbers in every format, and a fifth of the IBANs, mostly inside SWIFT messages (`:25:CH29 2205 ...`) and XML (`<identifier>CH52...</identifier>`). It misses every phone number written `+41 (0)55 923 54 99` (0 of 35), and finds all the other phone formats.
 - **regex+gliner2**: 6 values left, 4 AVS numbers with dashes and 2 glued IBANs. The two detectors cover each other's gaps: the regex finds what GLiNER2 misses in every other format, and GLiNER2 finds 8 of the 12 dashed AVS numbers and all lowercase IBANs.
+- **privacy-filter**: one AVS number, a compact one of which it masks only the middle digits. It misses a fifth of the IBANs (44 of 214), all in Gretel's documents, mostly inside SWIFT messages (19) and XML (13), and a few glued to other text. It finds 33 of the 35 phone numbers written `+41 (0)55 923 54 99`, which GLiNER2 misses, and misses 13 phone numbers in all, in no single format.
+- **regex+privacy-filter**: 4 values left, all IBANs: 2 lowercase ones and the 2 glued ones that the regex also misses. Every AVS number and every phone number is masked.
 
-With 99.2 %, the combined detector just reaches the 99 % of O1 on this set. Adding dashes to the AVS rule would close most of the gap. That is a change to `rules.py`, outside this issue.
+With 99.2 %, the combined detector just reaches the 99 % of O1 on this set. `regex+privacy-filter` reaches 99.5 %. Adding dashes to the AVS rule would close most of the gap. That is a change to `rules.py`, outside this issue.
 
-On the two T1 samples, `regex+gliner2` gives the same strict recall as GLiNER2 alone (80.7 % on OpenPII-1M, 81.8 % on 500k), because those samples have almost no valid Swiss values for the regex to add.
+On the two T1 samples, `regex+gliner2` gives the same strict recall as GLiNER2 alone (80.7 % on OpenPII-1M, 81.8 % on 500k), because those samples have almost no valid Swiss values for the regex to add. `regex+privacy-filter` adds 0.2 points to Privacy Filter (79.0 % against 78.8 % on OpenPII-1M, 70.0 % against 69.8 % on 500k).
+
+Privacy Filter's recall on this set by language, over all entities: 84.0 % in French, 75.7 % in German, 78.1 % in Italian and 71.5 % in English. The English rows include most of the Gretel documents, where it misses the IBANs in SWIFT and XML and many company names.
 
 ## Limits
 
