@@ -9,6 +9,8 @@ import re
 import urllib.request
 from collections import Counter
 
+from pii_anonymizer.spans import Span
+
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 # shortcut: stands in for our distilled student, replace it when the registry delivers one
 MODEL = "qwen3:4b"
@@ -201,12 +203,11 @@ def _spans(text: str, patterns: dict[str, tuple[re.Pattern, str]]) -> list[tuple
     return spans
 
 
-def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]]:
-    """Return the texts with their personal data replaced, {placeholder: real value}, and the
-    values that the model found but that are not in the texts as it wrote them.
+def _detect(texts: list[str]) -> tuple[list[list[Span]], list[str]]:
+    """Return the spans to hide in each text, and the values that the model found but that are
+    not in the texts as it wrote them.
 
-    The texts share one mapping, so a value gets the same placeholder in all of them, and a
-    value that the model finds in one text is also hidden in the others.
+    A value that the model finds in one text is also searched in the others.
     """
     found = [
         pair
@@ -233,6 +234,38 @@ def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]
         and not any(value.lower() in other.lower() for other in matched)
     ]
 
+    detected = []
+    for text in texts:
+        merged: list[list] = []
+        for start, end, label in sorted(_spans(text, patterns), key=lambda s: (s[0], -s[1])):
+            if merged and start < merged[-1][1]:
+                # A partly masked value is a leak, so overlapping spans become one.
+                merged[-1][1] = max(merged[-1][1], end)
+            else:
+                merged.append([start, end, label])
+        detected.append([Span(*span) for span in merged])
+    return detected, missed
+
+
+def detect(text: str, lang: str | None = None) -> list[Span]:
+    """Return the spans of personal data in one text, sorted and without overlaps, found by the
+    model and the rules exactly as pseudonymize() finds them.
+
+    `lang` is ignored. It is there so that the evaluation script can call the engine like the
+    other detectors.
+    """
+    return _detect([text])[0][0]
+
+
+def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]]:
+    """Return the texts with their personal data replaced, {placeholder: real value}, and the
+    values that the model found but that are not in the texts as it wrote them.
+
+    The texts share one mapping, so a value gets the same placeholder in all of them, and a
+    value that the model finds in one text is also hidden in the others.
+    """
+    detected, missed = _detect(texts)
+
     # A text about this project can already contain <PERSON_1>: that number is skipped, so
     # the restoration never swaps the literal text for a real value.
     taken = {
@@ -242,17 +275,9 @@ def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]
     placeholders: dict[str, str] = {}
     counts: Counter[str] = Counter()
     results = []
-    for text in texts:
-        merged: list[list] = []
-        for start, end, label in sorted(_spans(text, patterns), key=lambda s: (s[0], -s[1])):
-            if merged and start < merged[-1][1]:
-                # A partly masked value is a leak, so overlapping spans become one.
-                merged[-1][1] = max(merged[-1][1], end)
-            else:
-                merged.append([start, end, label])
-
+    for text, spans in zip(texts, detected, strict=True):
         parts, position = [], 0
-        for start, end, label in merged:
+        for start, end, label in ((span.start, span.end, span.label) for span in spans):
             value = " ".join(text[start:end].split())
             if value not in placeholders:
                 counts[label] += 1

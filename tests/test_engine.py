@@ -1,7 +1,8 @@
 import pytest
 
 from pii_anonymizer import engine
-from pii_anonymizer.engine import CHUNK_SIZE, pseudonymize, restore
+from pii_anonymizer.engine import CHUNK_SIZE, detect, pseudonymize, restore
+from pii_anonymizer.spans import Span
 
 
 @pytest.fixture
@@ -176,6 +177,96 @@ def test_placeholder_already_in_the_input_is_never_given_to_a_value(model):
     results, mapping, _ = pseudonymize([text])
     assert results == ["<PERSON_3> a lu la note sur <PERSON_1> et person_2."]
     assert mapping == {"<PERSON_3>": "Marie Dupont"}
+
+
+def test_detect_returns_the_spans_of_the_model_and_the_rules(model):
+    model(("PERSON", "Marie Dupont"))
+    text = "Marie Dupont, marie@example.ch, 079 123 45 67"
+    spans = detect(text, lang="fr")
+    assert spans == [Span(0, 12, "PERSON"), Span(14, 30, "EMAIL"), Span(32, 45, "PHONE")]
+    assert [text[s.start : s.end] for s in spans] == [
+        "Marie Dupont",
+        "marie@example.ch",
+        "079 123 45 67",
+    ]
+
+
+def test_detect_merges_overlapping_values_into_one_span(model):
+    model(("PERSON", "Marie Dupont"), ("ADDRESS", "Dupont marie"))
+    assert detect("Marie Dupont marie@example.ch") == [Span(0, 29, "PERSON")]
+
+
+# Outputs of pseudonymize() recorded before detect() was split from it: they must not change.
+LONG = "x " * CHUNK_SIZE + "Marie Dupont prend de l'insuline. " + "y " * CHUNK_SIZE
+FIXED_CASES = [
+    (
+        [("PERSON", "Marie Dupont"), ("PERSON", "Hans Müller")],
+        [
+            "Marie Dupont a écrit à Hans Müller, puis Marie Dupont a rappelé.",
+            "MARIE DUPONT et Hans Müller, encore Hans Müller.",
+        ],
+        (
+            [
+                "<PERSON_1> a écrit à <PERSON_2>, puis <PERSON_1> a rappelé.",
+                "<PERSON_3> et <PERSON_2>, encore <PERSON_2>.",
+            ],
+            {
+                "<PERSON_1>": "Marie Dupont",
+                "<PERSON_2>": "Hans Müller",
+                "<PERSON_3>": "MARIE DUPONT",
+            },
+            [],
+        ),
+    ),
+    (
+        [("PERSON", "Marie Dupont"), ("ADDRESS", "Dupont marie")],
+        ["Contact: Marie Dupont marie@example.ch, 079 123 45 67 Marie Dupont."],
+        (
+            ["Contact: <PERSON_1>, <PHONE_1> <PERSON_2>."],
+            {
+                "<PERSON_1>": "Marie Dupont marie@example.ch",
+                "<PHONE_1>": "079 123 45 67",
+                "<PERSON_2>": "Marie Dupont",
+            },
+            [],
+        ),
+    ),
+    (
+        [("PERSON", "Marie Dupont"), ("HEALTH", "insuline")],
+        [LONG + "Marie Dupont, +41 79 123 45 67."],
+        (
+            [
+                "x " * CHUNK_SIZE
+                + "<PERSON_1> prend de l'<HEALTH_1>. "
+                + "y " * CHUNK_SIZE
+                + "<PERSON_1>, <PHONE_1>."
+            ],
+            {
+                "<PERSON_1>": "Marie Dupont",
+                "<HEALTH_1>": "insuline",
+                "<PHONE_1>": "+41 79 123 45 67",
+            },
+            [],
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(("pairs", "texts", "expected"), FIXED_CASES)
+def test_pseudonymize_output_is_unchanged_on_fixed_examples(model, pairs, texts, expected):
+    model(*pairs)
+    assert pseudonymize(texts) == expected
+
+
+def test_pseudonymize_output_is_unchanged_when_a_value_is_not_in_the_text(monkeypatch):
+    monkeypatch.setattr(
+        engine, "ask_model", lambda _: [("PERSON", "Claire Favre"), ("DATE_OF_BIRTH", "3.7.1990")]
+    )
+    assert pseudonymize(["Favre Claire, née le 3.7.1990, IBAN CH93 0076 2011 6238 5295 7."]) == (
+        ["Favre Claire, née le <DATE_OF_BIRTH_1>, IBAN <IBAN_1>."],
+        {"<DATE_OF_BIRTH_1>": "3.7.1990", "<IBAN_1>": "CH93 0076 2011 6238 5295 7"},
+        ["Claire Favre"],
+    )
 
 
 MAPPING = {"<PERSON_1>": "Marie Dupont", "<PERSON_2>": "Hans Müller", "<EMAIL_1>": "m@example.ch"}
