@@ -33,6 +33,7 @@ To make the model small and fast, we will use two techniques:
 ├── docs/
 │   ├── smart-goals.md           our goals, thresholds and test sets
 │   ├── datasets.md              the datasets we plan to use, with their licences
+│   ├── test-set-decision.md     why we build our own test set T2, and its format
 │   ├── benchmark-protocol.md    how we will measure model size and speed
 │   ├── development.md           how the code is organised, and why
 │   └── project-management.md    how we plan and share the work
