@@ -14,6 +14,12 @@ import platform
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from pii_anonymizer.baselines import (
+    load_gliner2,
+    load_presidio,
+    load_regex,
+    load_regex_gliner2,
+)
 from pii_anonymizer.benchmark import (
     RUNS_PER_INPUT,
     THREADS,
@@ -34,7 +40,13 @@ from pii_anonymizer.results import (
 from pii_anonymizer.spans import Detector, Example, load_dataset
 
 # Detector name -> function that loads it. Loading happens here, outside the timed part.
-DETECTORS: dict[str, Callable[[], Detector]] = {}
+# Each loader imports its heavy libraries itself, after main() has set the thread variables.
+DETECTORS: dict[str, Callable[[], Detector]] = {
+    "regex": load_regex,
+    "presidio": load_presidio,
+    "gliner2": load_gliner2,
+    "regex+gliner2": load_regex_gliner2,
+}
 
 LATENCY_IDS = Path(__file__).with_name("latency_ids.txt")
 
@@ -43,6 +55,13 @@ def read_ids(path: Path) -> list[str]:
     """One snippet ID per line. Blank lines and lines starting with # are ignored."""
     lines = path.read_text(encoding="utf-8").splitlines()
     return [line.strip() for line in lines if line.strip() and not line.startswith("#")]
+
+
+def detect_example(detector: Detector, text: str, lang: str | None) -> list:
+    """Call the detector, with the language only when the test set gives one."""
+    if lang is None:
+        return detector.detect(text)
+    return detector.detect(text, lang=lang)
 
 
 def latency_texts(examples: Sequence[Example], ids_path: Path) -> list[str]:
@@ -72,12 +91,17 @@ def evaluate(
 ) -> dict[str, str]:
     """Score the detector, measure its size and latency, and write the results files."""
     examples = load_dataset(dataset_path)
-    predictions = [detector.detect(example.text) for example in examples]
+    predictions = [detect_example(detector, e.text, e.lang) for e in examples]
     scores = score(examples, predictions)
 
     size = size_on_disk(detector.files) if detector.files else None
     texts = latency_texts(examples, latency_ids)
-    latency = measure_latency(detector.detect, texts) if texts else None
+    lang_of_text = {e.text: e.lang for e in examples}
+    latency = (
+        measure_latency(lambda t: detect_example(detector, t, lang_of_text[t]), texts)
+        if texts
+        else None
+    )
 
     dataset = dataset_path.stem
     row = {

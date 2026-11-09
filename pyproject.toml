@@ -16,6 +16,34 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
+# The off-the-shelf detectors of the baselines (issue #6). Not installed by default:
+# uv sync --group baselines
+baselines = [
+    "datasets>=4.0.0",
+    "gliner2[local]>=2.1.0",
+    "presidio-analyzer>=2.2.366",
+    "torch>=2.9.0",
+    "en-core-web-lg",
+    "fr-core-news-lg",
+    "de-core-news-lg",
+    "it-core-news-lg",
+]
+
+[tool.uv.sources]
+# CPU-only PyTorch wheels on Linux and Windows. macOS has no CUDA builds, so it uses PyPI.
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+# spaCy models for Presidio. Version 3.8.0 matches spaCy 3.8.
+en-core-web-lg = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl" }
+fr-core-news-lg = { url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_lg-3.8.0/fr_core_news_lg-3.8.0-py3-none-any.whl" }
+de-core-news-lg = { url = "https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl" }
+it-core-news-lg = { url = "https://github.com/explosion/spacy-models/releases/download/it_core_news_lg-3.8.0/it_core_news_lg-3.8.0-py3-none-any.whl" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100
