@@ -12,8 +12,8 @@ A test set is a JSONL file: one JSON record per line.
 
 - `id` is unique in the file.
 - `start` and `end` are Python string indices, so they count code points, not bytes. `end` is exclusive: `text[start:end]` is the entity.
-- `label` is the type as the dataset writes it. The harness does not map labels between datasets and detectors. The converters of each dataset do that.
-- Other keys, such as `lang`, `source` or `group`, are allowed. The harness ignores them.
+- `label` is the type as the dataset writes it. The evaluation script does not map labels between datasets and detectors. The converters of each dataset do that.
+- Other keys, such as `lang`, `source` or `group`, are allowed. The evaluation script ignores them.
 
 The loader refuses a file with a duplicate `id` or an entity that does not fit inside its text, and it gives the line number.
 
