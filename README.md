@@ -1,4 +1,4 @@
-# On-device PII anonymizer for AI agents
+# On-device PII pseudonymizer for cloud LLMs
 
 Group project for the course TSM_MachLeData (MLOps), MSE HES-SO, autumn 2026.
 
@@ -8,9 +8,13 @@ PII means *Personally Identifiable Information*: any data that can tell who a pe
 
 ## Project idea
 
-AI agents are used more and more to automate work. These agents read documents, files and tool outputs, and they send them to a model provider in the cloud. This often includes personal data: names, AVS numbers, IBANs, phone numbers, health information.
+People send more and more prompts and documents to LLMs in the cloud. These prompts and files often hold personal data: names, AVS numbers, IBANs, phone numbers, health information.
 
-We are building a small model that runs locally, on the machine where the data lives. It finds the personal data and hides it behind placeholders, such as `<PERSON_1>`, before anything leaves the machine. When the answer comes back, it puts the real values back. The agent can still do its job, and the provider never sees the real data. We will test it first with Claude Code.
+We are building our own application. The user writes a prompt in our interface and can attach files (PDF, TXT, DOCX, CSV). A local engine finds the personal data in the prompt and in the files. It uses regex rules for structured identifiers and our own small ML model for the rest. It replaces each value, for example with a placeholder such as `<PERSON_1>` or with a fake name (we decide in issue #17), and it keeps the mapping table on the device only. Only the pseudonymized text goes to our backend (FastAPI), which calls the OpenAI Responses API. When the response comes back, the application puts the real values back on the device. OpenAI and our backend never see the real data. See [docs/architecture.md](docs/architecture.md).
+
+The mapping table lets us put the real values back. So we call it pseudonymization, not anonymization: the data can still be linked to a person with extra information, here the mapping table kept on the device. The GDPR draws the same line between the two (Art. 4(5) and Recital 26).
+
+The repository and the Python package keep their names (`tsm-machledata-anonymizer`, `pii_anonymizer`), while the method is pseudonymization. Renaming the package now would conflict with the open branches that add code to it, and the DVC bucket `tsm-machledata-anonymizer-dvc` cannot be renamed.
 
 To make the model small and fast, we will use two techniques:
 
@@ -25,16 +29,19 @@ To make the model small and fast, we will use two techniques:
 ├── .gitignore                   files that git does not track (PDFs, node_modules, ...)
 ├── pyproject.toml               the Python project and its dependencies
 ├── uv.lock                      the exact version of every dependency
-├── src/pii_anonymizer/          our code, as a Python package
+├── src/pii_anonymizer/          our code as a Python package: the app, the pseudonymization engine and the pipeline
 ├── tests/                       the tests
 ├── notebooks/                   explorations
 ├── data/                        the data, versioned with DVC
+├── results/                     evaluation results, one row per model, test set and machine
 ├── .github/workflows/ci.yml     lint and tests on every pull request
 ├── docs/
+│   ├── architecture.md          the app, the backend and the MLOps pipeline
 │   ├── smart-goals.md           our goals, thresholds and test sets
 │   ├── datasets.md              the datasets we plan to use, with their licences
 │   ├── test-set-decision.md     why we build our own test set T2, and its format
 │   ├── benchmark-protocol.md    how we will measure model size and speed
+│   ├── evaluation.md            the test set format, the metrics and the results files
 │   ├── development.md           how the code is organised, and why
 │   └── project-management.md    how we plan and share the work
 ├── report/
@@ -59,6 +66,19 @@ uv run ruff check        # checks the code style
 ```
 
 DVC comes with `uv sync`. To get the data, log in once per machine with the group's dedicated Google account (`gcloud auth application-default login`) and run `uv run dvc pull`. See [docs/development.md](docs/development.md) for the details, the project layout, the parameters and the daily commands.
+
+## Run the local interface
+
+You need [Ollama](https://ollama.com) with the model `qwen3:4b`, which stands in for our own model until it is trained. From the repository root:
+
+```sh
+ollama pull qwen3:4b             # first time only
+uv run python -m pii_anonymizer  # opens the interface in your browser
+```
+
+Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response of the model with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
+
+For now `qwen3:4b` also writes the response, so nothing is sent to the cloud, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
 
 ## Build the report
 

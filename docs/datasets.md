@@ -1,4 +1,4 @@
-# Datasets for the Anonymizer
+# Datasets for the Pseudonymizer
 
 Our sources are the Hugging Face dataset cards and dataset viewer, the Zenodo and GitHub pages, and the PrivAiTe page on PyPI. "Unverified" means that we could not confirm the point from a primary source. Counts come from the cards, or from the Hugging Face dataset viewer statistics (computed over the full split), not from our own downloads. Every "20 rows read" check below means the first 20 English rows, read by hand.
 
@@ -73,7 +73,7 @@ All the rows we read so far are English, but we train on FR, DE, and IT. We will
 | Set | Size | Languages | Entity types | License and access | Where |
 |---|---|---|---|---|---|
 | T1 | The validation split of the training dataset we choose at v0: 284,746 rows if OpenPII-1M (we sample FR, DE, IT, and EN from it), 116k rows if open-pii-masking-500k (FR, DE, IT, EN only) | FR, DE, IT, EN | The 19 ai4privacy types | The license of the source dataset. Never used for training. | see section 1 |
-| T2 | About 200 snippets of what users send through our app (prompts, e-mails, text extracted from PDF and DOCX files, CSV exports, pasted code and logs), split into dev and a frozen final test. Pilot of 30 in `data/raw/t2_pilot/t2_pilot.jsonl`, see [test-set-decision.md](test-set-decision.md) | Mostly FR, DE, IT, EN with Swiss identifiers | Planted values (AVS 756..., Swiss IBAN, +41 phone numbers, postal codes) and incidental entities | Ours. No public dataset has Swiss IBANs or valid AVS numbers. Synthetic, so it can be published. | to be built before v0 |
+| T2 | About 200 snippets of what users send through our app (prompts, e-mails, documents, CSV tables, pasted code or logs, and the text extracted from attached files), split into dev and a frozen final test. Pilot of 30 in `data/raw/t2_pilot/t2_pilot.jsonl`, see [test-set-decision.md](test-set-decision.md) | Mostly FR, DE, IT, EN with Swiss identifiers | Planted values (AVS 756..., Swiss IBAN, +41 phone numbers, postal codes) and incidental entities | Ours. No public dataset has Swiss IBANs or valid AVS numbers. Synthetic, so it can be published. | to be built before v0 |
 
 ## 5. What to watch
 

@@ -1,0 +1,22 @@
+# Agent Platform custom job: one n1-standard-4 with one NVIDIA T4, in europe-west4.
+# Launched with: gcloud ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
+# Cloud Storage is mounted at /gcs/ in the job: the script is read from the bucket,
+# and the model and summary.json are written back to it.
+workerPoolSpecs:
+  - machineSpec:
+      machineType: n1-standard-4
+      acceleratorType: NVIDIA_TESLA_T4
+      acceleratorCount: 1
+    replicaCount: 1
+    containerSpec:
+      # Google's prebuilt PyTorch GPU image. Check it is still available, and take the most
+      # recent "PyTorch GPU" europe-docker.pkg.dev URI from:
+      # https://cloud.google.com/vertex-ai/docs/training/pre-built-containers
+      imageUri: europe-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
+      command: ["bash", "-c"]
+      args:
+        - >-
+          pip install --quiet torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 &&
+          pip install --quiet "gliner2[train]" datasets &&
+          python /gcs/tsm-machledata-anonymizer-training/smoke/train.py
+          /gcs/tsm-machledata-anonymizer-training/smoke/output

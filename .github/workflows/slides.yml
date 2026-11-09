@@ -1,0 +1,67 @@
+name: Slides
+
+# Builds the seminar deck and publishes it on GitHub Pages.
+# Address: https://<owner>.github.io/<repository>/seminar/
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "slides/**"
+      - ".github/workflows/slides.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: slides
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: slides/package-lock.json
+
+      - name: Install
+        run: npm ci
+        env:
+          # The browser is only needed for the PDF export, not for the website.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Build the seminar deck
+        run: npx slidev build seminar/slides.md --base "/${{ github.event.repository.name }}/seminar/" --out "$GITHUB_WORKSPACE/site/seminar"
+
+      - name: Add the site root
+        run: |
+          # The root 404 page lets links to a single slide, such as /seminar/5, open the deck.
+          cp "$GITHUB_WORKSPACE/site/seminar/404.html" "$GITHUB_WORKSPACE/site/404.html"
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=seminar/"><title>Slides</title><a href="seminar/">Seminar talk</a>' > "$GITHUB_WORKSPACE/site/index.html"
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}seminar/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
