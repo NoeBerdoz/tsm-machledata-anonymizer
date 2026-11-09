@@ -42,7 +42,7 @@ Keep "In progress" short: at most two cards per person.
 - Create issues with the "Task" template. It asks for the goal, a "Done when" checklist that anyone can verify, the output, and the issues it depends on.
 - Every issue has exactly one owner (the assignee), a start date and a target date. An issue in "Ready" may have no owner yet: whoever takes it assigns themselves.
 - Every issue belongs to one milestone: `v0`, `v1`, `v2`, `v3` or `final`.
-- Labels give the area: `data`, `model`, `hooks`, `pipeline`, `bench`, `report`, `slides`.
+- Labels give the area: `data`, `model`, `app`, `pipeline`, `bench`, `report`, `slides`.
 - An issue should take about two days of work at most. If it is bigger, split it.
 - We only detail the current milestone. The next one is split into issues when it starts, because the results of the previous one change the plan.
 
@@ -74,7 +74,7 @@ Data and models never go into git: they are versioned with DVC. Automatic checks
 We follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). A message starts with a type, an optional scope in parentheses, a colon, and a short description:
 
 ```
-feat(hooks): replace names with placeholders before sending
+feat(app): replace names with placeholders before sending
 fix: keep the IBAN checksum when restoring values
 docs: add the dataset licences
 ```
@@ -90,7 +90,7 @@ docs: add the dataset licences
 | `ci` | The GitHub Actions workflows |
 | `chore` | Anything else that does not touch the code |
 
-The scope is free, but the issue labels (`data`, `model`, `hooks`, `pipeline`, `bench`) are a good choice.
+The scope is free, but the issue labels (`data`, `model`, `app`, `pipeline`, `bench`) are a good choice.
 
 We squash-merge, so the title of the pull request becomes the commit message on `main`. That is why the pull request title must follow the convention too.
 

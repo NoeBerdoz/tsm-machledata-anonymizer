@@ -22,7 +22,7 @@ How the code is organised, and the commands we use every day. The README has the
 
 In the MLOps guide of homework 1, the code was a few scripts called directly: `python src/train.py data/prepared model`. Here the code is a package, `src/pii_anonymizer/`, and a stage runs it as a module: `uv run python -m pii_anonymizer.train data/prepared model`.
 
-The reason is that our code is shared. The same pieces (the list of PII labels, the placeholders such as `<PERSON_1>`, the code that puts the real values back) are used by several pipeline stages, by the tests, by the notebooks and by the Claude Code hook. With a package, all of them write `from pii_anonymizer.labels import LABELS` and it works from any folder. With plain scripts, Python only finds the other files if you start it from the right folder, so the tests and the notebooks need path tricks.
+The reason is that our code is shared. The same pieces (the list of PII labels, the placeholders such as `<PERSON_1>`, the code that puts the real values back) are used by several pipeline stages, by the tests, by the notebooks and by the app. With a package, all of them write `from pii_anonymizer.labels import LABELS` and it works from any folder. With plain scripts, Python only finds the other files if you start it from the right folder, so the tests and the notebooks need path tricks.
 
 What stays the same as in the guide: one file per stage (`prepare.py`, `train.py`, `evaluate.py`, ...), and each stage takes its input and output folders as arguments.
 
