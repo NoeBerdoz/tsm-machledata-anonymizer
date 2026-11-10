@@ -1,0 +1,33 @@
+# Temporary latency sample: 30 texts of t1-openpii-1m-200.jsonl, seed 0.
+# The protocol times 30 T2-dev snippets (latency_ids.txt). T2-dev does not exist
+# yet, so we time these T1 texts until it does. Written by pii_anonymizer.subset.
+t1-openpii-1m-21436373
+t1-openpii-1m-21443232
+t1-openpii-1m-21379000
+t1-openpii-1m-21427058
+t1-openpii-1m-21444255
+t1-openpii-1m-21406767
+t1-openpii-1m-20784198
+t1-openpii-1m-20756774
+t1-openpii-1m-20729770
+t1-openpii-1m-20704167
+t1-openpii-1m-20833684
+t1-openpii-1m-20816376
+t1-openpii-1m-20725774
+t1-openpii-1m-20845297
+t1-openpii-1m-20783349
+t1-openpii-1m-21627685
+t1-openpii-1m-21597089
+t1-openpii-1m-21622428
+t1-openpii-1m-21622093
+t1-openpii-1m-21636082
+t1-openpii-1m-21579149
+t1-openpii-1m-21631831
+t1-openpii-1m-21676169
+t1-openpii-1m-21622097
+t1-openpii-1m-21671239
+t1-openpii-1m-21091442
+t1-openpii-1m-21089545
+t1-openpii-1m-21082550
+t1-openpii-1m-21090508
+t1-openpii-1m-21079095
