@@ -22,6 +22,8 @@ The idea is simple: personal data never leaves the user's device. Only pseudonym
 2. **Local pseudonymization engine.** The engine finds personal data in the prompt and in the files. It has two parts that work together:
    - **Regex rules** for structured identifiers, which follow a fixed format.
    - **Our ML model** for contextual entities, such as names or addresses, which need context to be found. This is the model we train ourselves: a student distilled from a larger teacher and quantized, produced by the pipeline in part 2.
+
+   The engine first finds the values (`detect()` in `engine.py`), then replaces them. The replacement (step 3) and the model can therefore change separately, and the evaluation script can measure `detect()` like any other detector.
 3. **Replacement.** Each value that the engine finds is replaced. The same value always gets the same replacement. We hesitate between two options, to be decided in a separate issue:
    - **Placeholders**, such as `<PERSON_1>` or `<IBAN_1>`. They are easy to find and restore exactly.
    - **Fake values**, such as a fake name (`Jean Martin`) in place of the real one. LLMs tend to work better with realistic text than with placeholders, but the restoration is harder: the LLM may change the fake value slightly, or the same fake value may already appear in the text.
