@@ -46,7 +46,7 @@ The quantized student keeps at least 95 % of the fine-tuned teacher's recall on 
 
 The pseudonymization does not mask so much that the answers get worse.
 
-- **S.** We measure the student's character precision on T2-final. We also run 20 scripted utility tasks through our app (engine, backend, OpenAI, restoration), once with pseudonymization and once without, with the same OpenAI model and settings. Each task has an oracle fixed in advance, for example an exact value, expected fields in a JSON answer, or a label. We measure the replacement chosen in issue #17 (placeholders or fake names).
+- **S.** We measure the student's character precision on T2-final. We also run 20 scripted utility tasks through our app (engine, backend, OpenAI, restoration), once with pseudonymization and once without, with the same OpenAI model and settings. Each task has an oracle fixed in advance, for example an exact value, expected fields in a JSON answer, or a label. The replacement is a placeholder such as `<PERSON_1>` (issue #17), so the gap between the two runs also shows what placeholders cost.
 - **M.** The precision threshold is **decided at v0**: it is the character precision GLiNER2-PII reaches on T2-dev. Utility is the number of tasks solved in both conditions divided by the number solved without pseudonymization, and it must be at least 90 %.
 - **A.** The 20 tasks are small enough to run on every model version.
 - **R.** O1 and O2 pull in opposite directions. The central result of the talk is where each compressed model sits between these two goals.
