@@ -34,6 +34,7 @@ class Detector(Protocol):
     """What a model must provide to be evaluated.
 
     - `runtime`: the runtime and its version, for example "torch 2.9.1" or "python-re 3.13".
+      A downloaded model adds the commit we score, for example "torch 2.9.1 model@1cb4166".
     - `files`: every file or folder the model needs to run (weights, tokenizer, config).
       Empty for pure rules.
     - `detect`: the spans to mask in one text, of any type. `lang` is the language code of

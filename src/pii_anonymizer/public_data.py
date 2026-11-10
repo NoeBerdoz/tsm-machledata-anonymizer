@@ -31,9 +31,16 @@ SOURCES = {
     "t1-openpii-1m": "ai4privacy/pii-masking-openpii-1m",
     "t1-open-pii-500k": "ai4privacy/open-pii-masking-500k-ai4privacy",
 }
-# The Hub converts every dataset to parquet on this branch, so we read only the columns we
-# need instead of the full JSONL files (the OpenPII-1M validation file alone is 920 MB).
-PARQUET_REVISION = "refs/convert/parquet"
+# The Hub converts every dataset to parquet on its `refs/convert/parquet` branch, so we read
+# only the columns we need instead of the full JSONL files (the OpenPII-1M validation file
+# alone is 920 MB). The Hub rewrites that branch when a dataset changes, so we pin the commit
+# we sampled from. If a pinned commit disappears, the download fails instead of silently
+# giving other rows, and the `dataset_sha256` column of results.csv shows any change.
+PARQUET_REVISIONS = {
+    "ai4privacy/pii-masking-openpii-1m": "c064392b9d3ddccc3a2997d41630631f9be465f0",
+    "ai4privacy/open-pii-masking-500k-ai4privacy": "1b151200bdc469f9a70f4efa25c57b28b50edeb2",
+    "gretelai/synthetic_pii_finance_multilingual": "0d815fcd7f2077abb724dbb5e378ad5e8bf1acb6",
+}
 COLUMNS = ["uid", "source_text", "privacy_mask", "language", "region"]
 
 # Gretel: only its test split, because its train split is a candidate training set
@@ -108,7 +115,7 @@ def load_validation(dataset_id: str) -> Iterable[Mapping]:
 
     return load_dataset(
         dataset_id,
-        revision=PARQUET_REVISION,
+        revision=PARQUET_REVISIONS[dataset_id],
         data_files={"validation": "default/validation/*.parquet"},
         split="validation",
         columns=COLUMNS,
@@ -175,7 +182,7 @@ def load_gretel_test() -> Iterable[Mapping]:
 
     return load_dataset(
         GRETEL_ID,
-        revision=PARQUET_REVISION,
+        revision=PARQUET_REVISIONS[GRETEL_ID],
         data_files={"test": "default/test/*.parquet"},
         split="test",
         columns=GRETEL_COLUMNS,

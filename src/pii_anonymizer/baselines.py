@@ -22,6 +22,9 @@ SPACY_MODELS = {
 }
 
 GLINER2_MODEL = "fastino/gliner2-privacy-filter-PII-multi"
+# The commit of the model repo we score. Without it, `snapshot_download` takes the latest
+# `main`, and an update of the model would change the numbers in results/ without a trace.
+GLINER2_REVISION = "1cb4166094dc58fa8d836429f060d6c95f62b495"
 # The 42 labels listed on the model card, in its order. The model only looks for the labels
 # it receives, so we give it all of them.
 GLINER2_LABELS = [
@@ -81,6 +84,8 @@ GLINER2_THRESHOLD = 0.5
 GLINER2_FILES = ["*.json", "*.safetensors"]
 
 PRIVACY_FILTER_MODEL = "openai/privacy-filter"
+# The commit of the model repo we score, pinned for the same reason as GLINER2_REVISION.
+PRIVACY_FILTER_REVISION = "7ffa9a043d54d1be65afb281eddf0ffbe629385b"
 # The files the transformers route needs: the weights, the config and the tokenizer. The repo
 # also holds ONNX exports and an `original/` copy of the weights, which we do not use.
 PRIVACY_FILTER_FILES = [
@@ -183,11 +188,15 @@ class Gliner2Detector:
 
         set_torch_threads(torch)
 
-        local_dir = Path(snapshot_download(GLINER2_MODEL, allow_patterns=GLINER2_FILES))
+        local_dir = Path(
+            snapshot_download(
+                GLINER2_MODEL, revision=GLINER2_REVISION, allow_patterns=GLINER2_FILES
+            )
+        )
         self.model = GLiNER2.from_pretrained(str(local_dir))
         self.model.to("cpu")
         self.model.eval()
-        self.runtime = f"torch {torch.__version__}"
+        self.runtime = f"torch {torch.__version__} model@{GLINER2_REVISION[:7]}"
         self.files = sorted(p for p in local_dir.rglob("*") if p.is_file())
         self._no_grad = torch.inference_mode
 
@@ -258,7 +267,11 @@ class PrivacyFilterDetector:
         set_torch_threads(torch)
 
         local_dir = Path(
-            snapshot_download(PRIVACY_FILTER_MODEL, allow_patterns=PRIVACY_FILTER_FILES)
+            snapshot_download(
+                PRIVACY_FILTER_MODEL,
+                revision=PRIVACY_FILTER_REVISION,
+                allow_patterns=PRIVACY_FILTER_FILES,
+            )
         )
         self.pipeline = pipeline(
             "token-classification",
@@ -266,7 +279,9 @@ class PrivacyFilterDetector:
             device="cpu",
             aggregation_strategy="simple",
         )
-        self.runtime = f"transformers {transformers.__version__}"
+        self.runtime = (
+            f"transformers {transformers.__version__} model@{PRIVACY_FILTER_REVISION[:7]}"
+        )
         self.files = [local_dir / name for name in PRIVACY_FILTER_FILES]
 
     def detect(self, text: str, lang: str | None = None) -> list[Span]:

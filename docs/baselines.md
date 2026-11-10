@@ -17,7 +17,7 @@ The code of the detectors is in `src/pii_anonymizer/baselines.py`. They need the
 
 ## The samples
 
-`uv run python -m pii_anonymizer.public_data data/test/` writes two T1 files (and the Gretel sample of [swiss-identifiers.md](swiss-identifiers.md)). Each T1 file holds 250 rows per language (FR, DE, IT, EN) of a validation split, drawn with a fixed seed (42). The labels stay as the datasets write them.
+`uv run python -m pii_anonymizer.public_data data/test/` writes two T1 files (and the Gretel sample of [swiss-identifiers.md](swiss-identifiers.md)). Each T1 file holds 250 rows per language (FR, DE, IT, EN) of a validation split, drawn with a fixed seed (42). The labels stay as the datasets write them. The script reads a pinned commit of each dataset (`PARQUET_REVISIONS` in `public_data.py`), so it rebuilds the same files byte for byte. The models are pinned the same way (`GLINER2_REVISION` and `PRIVACY_FILTER_REVISION` in `baselines.py`), and the `runtime` column of `results/results.csv` names the model commit that was scored.
 
 | File | Source | Texts | Entities | Words per text (median, max) |
 |---|---|---|---|---|
