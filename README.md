@@ -39,6 +39,7 @@ To make the model small and fast, we will use two techniques:
 │   ├── architecture.md          the app, the backend and the MLOps pipeline
 │   ├── smart-goals.md           our goals, thresholds and test sets
 │   ├── datasets.md              the datasets we plan to use, with their licences
+│   ├── test-set-decision.md     why we build our own test set T2, and its format
 │   ├── benchmark-protocol.md    how we will measure model size and speed
 │   ├── evaluation.md            the test set format, the metrics and the results files
 │   ├── baselines.md             what off-the-shelf detectors reach on the T1 candidates
