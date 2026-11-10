@@ -1,9 +1,17 @@
+import io
 import json
 
 import pytest
 
+import pii_anonymizer.baselines
 import pii_anonymizer.evaluate
-from pii_anonymizer.baselines import GLINER2_LABELS, privacy_filter_spans
+from pii_anonymizer import engine
+from pii_anonymizer.baselines import (
+    GLINER2_LABELS,
+    EngineDetector,
+    ollama_model_files,
+    privacy_filter_spans,
+)
 from pii_anonymizer.evaluate import DETECTORS, evaluate
 from pii_anonymizer.public_data import LANGUAGES, convert_row, sample_rows
 from pii_anonymizer.spans import Span, load_dataset
@@ -41,6 +49,85 @@ def test_registry_has_the_three_baselines():
 
 def test_registry_has_privacy_filter_and_its_union():
     assert {"privacy-filter", "regex+privacy-filter"} <= set(DETECTORS)
+
+
+def test_registry_has_the_app_engine_and_its_cpu_run():
+    assert {"engine", "engine-cpu"} <= set(DETECTORS)
+
+
+def fake_ollama_store(tmp_path):
+    manifest = tmp_path / "manifests" / "registry.ollama.ai" / "library" / "qwen3" / "4b"
+    manifest.parent.mkdir(parents=True)
+    layers = [
+        {"mediaType": "application/vnd.ollama.image.model", "digest": "sha256:3e4cb14abc"},
+        {"mediaType": "application/vnd.ollama.image.params", "digest": "sha256:cff3f39def"},
+    ]
+    manifest.write_text(json.dumps({"layers": layers}))
+    return tmp_path
+
+
+def test_ollama_model_files_come_from_the_manifest(tmp_path):
+    files, weights = ollama_model_files("qwen3:4b", fake_ollama_store(tmp_path))
+    assert files == [
+        tmp_path / "blobs" / "sha256-3e4cb14abc",
+        tmp_path / "blobs" / "sha256-cff3f39def",
+    ]
+    assert weights == "3e4cb14abc"
+
+
+@pytest.fixture
+def engine_detector(tmp_path, monkeypatch):
+    """The engine detector with a fake Ollama store, version and server."""
+    monkeypatch.setattr(engine, "OLLAMA_OPTIONS", {})
+    monkeypatch.setattr(engine, "MODEL", "qwen3:4b")
+    monkeypatch.setattr(pii_anonymizer.baselines, "ollama_version", lambda: "0.0.0")
+    return lambda cpu: EngineDetector(cpu=cpu, models_dir=fake_ollama_store(tmp_path))
+
+
+@pytest.fixture
+def ollama_bodies(monkeypatch):
+    """Replace the Ollama server: it finds Marie Dupont and records each request body."""
+    bodies = []
+
+    def fake_open(request, timeout):
+        bodies.append(json.loads(request.data))
+        content = json.dumps({"entities": [{"label": "PERSON", "text": "Marie Dupont"}]})
+        return io.BytesIO(json.dumps({"message": {"content": content}}).encode())
+
+    monkeypatch.setattr(engine._opener, "open", fake_open)
+    return bodies
+
+
+def test_engine_cpu_runs_ollama_on_the_cpu_with_the_protocol_threads(
+    engine_detector, ollama_bodies
+):
+    detector = engine_detector(cpu=True)
+    text = "Bonjour, je suis Marie Dupont."
+    spans = detector.detect(text, lang="fr")
+    assert [text[s.start : s.end] for s in spans] == ["Marie Dupont"]
+    options = ollama_bodies[0]["options"]
+    assert options["num_gpu"] == 0 and options["num_thread"] == 4
+    # The engine's own options are kept.
+    assert options["temperature"] == 0 and "num_ctx" in options
+    assert detector.runtime == "ollama 0.0.0 model@3e4cb14 cpu"
+
+
+def test_engine_runs_as_the_app_does(engine_detector, ollama_bodies):
+    detector = engine_detector(cpu=False)
+    detector.detect("Bonjour, je suis Marie Dupont.")
+    options = ollama_bodies[0]["options"]
+    assert "num_gpu" not in options and "num_thread" not in options
+    assert detector.runtime.endswith("device chosen by ollama")
+
+
+def test_engine_failure_counts_as_no_detection(engine_detector, monkeypatch):
+    def ask_model(_):
+        raise ValueError("the answer is cut")
+
+    monkeypatch.setattr(engine, "ask_model", ask_model)
+    detector = engine_detector(cpu=False)
+    assert detector.detect("Marie Dupont") == []
+    assert detector.failures == 1
 
 
 def test_privacy_filter_spans_join_strip_and_clip():
