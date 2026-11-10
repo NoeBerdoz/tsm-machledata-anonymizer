@@ -24,21 +24,24 @@ The idea is simple: personal data never leaves the user's device. Only pseudonym
    - **Our ML model** for contextual entities, such as names or addresses, which need context to be found. This is the model we train ourselves: a student distilled from a larger teacher and quantized, produced by the pipeline in part 2.
 
    The engine first finds the values (`detect()` in `engine.py`), then replaces them. The replacement (step 3) and the model can therefore change separately, and the evaluation script can measure `detect()` like any other detector.
-3. **Replacement.** Each value that the engine finds is replaced. The same value always gets the same replacement. We hesitate between two options, to be decided in a separate issue:
-   - **Placeholders**, such as `<PERSON_1>` or `<IBAN_1>`. They are easy to find and restore exactly.
-   - **Fake values**, such as a fake name (`Jean Martin`) in place of the real one. LLMs tend to work better with realistic text than with placeholders, but the restoration is harder: the LLM may change the fake value slightly, or the same fake value may already appear in the text.
+3. **Replacement.** Each value that the engine finds is replaced by a placeholder, such as `<PERSON_1>` or `<IBAN_1>`. The same value always gets the same placeholder. We chose placeholders over fake values (a fake name such as `Jean Martin` in place of the real one) in issue #17, for three reasons:
+   - They work the same way for every type. Fake values would need a generator for each type (names, AVS numbers, IBANs, phone numbers).
+   - The restoration is exact. The LLM copies `<PERSON_1>` as it is, while it may shorten or change a fake name.
+   - A miss stays visible. A placeholder left in an answer is obvious, while a fake name left in an answer looks real.
 
-   In both cases, the engine records each pair in a **mapping table** (replacement ↔ real value), which is kept on the device only.
+   The price is that LLMs tend to write better answers from realistic text, and a placeholder does not tell the LLM whether to write "he" or "she". Goal O2 measures this cost, because its 20 app tasks run with and without pseudonymization ([smart-goals.md](smart-goals.md)). Fake values remain a possible continuation of the project, and step 2 already keeps the replacement apart from detection.
+
+   The engine records each pair in a **mapping table** (placeholder ↔ real value), which is kept on the device only.
 4. **Privacy boundary.** Only the pseudonymized content goes past this point.
 
 ### In the cloud
 
 5. **Backend API (FastAPI).** It receives the pseudonymized request and handles authentication and request control.
-6. **OpenAI Responses API.** It processes the pseudonymized prompt and sends back a response. The response contains the replacements, never the real values.
+6. **OpenAI Responses API.** It processes the pseudonymized prompt and sends back a response. The response contains the placeholders, never the real values.
 
 ### Back on the device
 
-7. **Response restored locally.** The application reads the response, finds each replacement in it, and looks it up in the mapping table. It then swaps it back to the real value, for example `<PERSON_1>` or `Jean Martin` → `Marie Dupont`, and shows the restored response to the user.
+7. **Response restored locally.** The application reads the response, finds each placeholder in it, and looks it up in the mapping table. It then swaps it back to the real value, for example `<PERSON_1>` → `Marie Dupont`, and shows the restored response to the user.
 
 The restoration happens on the device because the mapping table never leaves it. Neither the backend nor OpenAI ever sees the real values.
 
@@ -105,7 +108,6 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 
 ## Still to decide
 
-- Placeholders or fake values for the replacement (separate issue).
 - The datasets, and the teacher and student models.
 - The metrics and the values of the quality-gate thresholds.
 - The tools marked "to decide" in the table above.

@@ -33,7 +33,7 @@ TODO (v2).
 == Quantization
 TODO (v3).
 == The app: pseudonymization engine, backend and restoration
-TODO: the interface (prompt and attached files), the local engine (regex rules and our model), the replacement and the mapping table on the device, the backend (FastAPI) and the OpenAI Responses API, the restoration on the device.
+TODO: the interface (prompt and attached files), the local engine (regex rules and our model), the replacement by placeholders and why (issue #17), the mapping table on the device, the backend (FastAPI) and the OpenAI Responses API, the restoration on the device.
 
 = Experiments
 TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark protocol.
@@ -56,6 +56,7 @@ TODO: DVC stages, CI gates, artifact publication, monitoring.
 TODO: synthetic training data, only requests through our app are protected, text only.
 
 = Conclusion
-TODO.
+TODO: what we reached against the SMART goals.
+TODO: future work. Fake values in place of placeholders (issue #17) are a possible continuation, above all if the O2 app tasks show that placeholders make the answers worse.
 
 #bibliography("refs.bib")
