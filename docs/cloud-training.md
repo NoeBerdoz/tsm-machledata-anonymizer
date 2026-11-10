@@ -148,7 +148,7 @@ Successful run on **2026-11-09**, job `4829106814958174208`:
 | Training loss, epoch 1 → epoch 2 | 66.7 → 32.1 |
 | GPU memory used (out of 16 GB) | 10.5 GB |
 | **Recall on the 100 test rows, before → after** | **0.765 → 0.954** |
-| Model saved | `gs://tsm-machledata-anonymizer-training/smoke/output/final/` (1.2 GB, 307M parameters) |
+| Model saved | `gs://tsm-machledata-anonymizer-training/smoke/output/final/` (1.2 GB, 307M parameters), deleted on 2026-11-10 |
 
 Log line printed at the end:
 
@@ -179,7 +179,11 @@ checked on 2026-11-09):
 | Successful run (about 13 min) | ≈ USD 0.13 |
 | Whole test, with the two failed attempts (about 10 min each) | ≈ USD 0.30 to 0.40 |
 | Storage of the saved model (1.2 GB) | ≈ USD 0.02 per month |
-| Real cost (*Billing* → *Reports*, service "Vertex AI", one day later) | `TODO` |
+| Real cost of the three jobs of 2026-11-09 (*Billing* -> *Reports*, project `tsmmachledata-projet`, before credits) | **USD 0.20** (T4 0.12, n1-standard-4 0.07, disk 0.01) |
+
+The real cost is lower than the estimate because only the running time of the jobs is billed
+(9 + 3 + 6 = 18 min of T4, about USD 0.19 at list price, plus the disk), not the time from
+submission to completion. The education credits covered all of it (USD 0.00 after credits).
 
 This is well within our USD 50 of credits. Delete the saved model when it is no longer needed:
 
