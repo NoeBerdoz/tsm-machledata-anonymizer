@@ -178,15 +178,18 @@ uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/
 
 Many of these tokens are rare. Keeping only the tokens seen at least 10 times leaves 42,073 tokens (32.3M parameters), which still cover 98.8 % of the text. A word that loses its token would be cut into smaller tokens that remain, so recall must be measured after any pruning.
 
-What this means for the size path, as estimates at one byte per parameter, with the GLiNER2 heads (29.5M) kept at full size:
+What this means for the size path, as estimates at one byte per parameter in int8 and half a byte in int4, with the GLiNER2 heads (29.5M) kept. O3 counts the tokenizer too, so the teacher weighs 1,244 MB with its 16 MB tokenizer. We assume that a pruned tokenizer shrinks with its vocabulary.
 
-| Model | Parameters | int8 | Smaller than 1,228 MB |
+| Model | Parameters | Size | Smaller than 1,244 MB |
 |---|---|---|---|
-| Teacher, 12 layers, pruned vocabulary | 174M | about 174 MB | 7.0 times |
-| Student, 6 layers, pruned vocabulary | 132M | about 132 MB | 9.3 times |
-| O3 target | | about 102 MB | 12 times |
+| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 179 MB | 7.0 times |
+| Student, 6 layers, pruned vocabulary, int8 | 132M | about 137 MB | 9.1 times |
+| Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
+| Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
+| Same student, both | 105M | about 91 MB | 13.6 times |
+| O3 target | | about 104 MB | 12 times |
 
-So int8, the pruned vocabulary and six layers are not enough for O3. One more step is needed, for example dropping the rare tokens, int4 for the embeddings, or a smaller student.
+So int8, the pruned vocabulary and six layers give about 9 times. O3 needs both extra steps, or a smaller student, and recall must be measured after each step.
 
 ## Next steps
 
