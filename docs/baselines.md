@@ -182,7 +182,7 @@ What this means for the size path, as estimates at one byte per parameter in int
 
 | Model | Parameters | Size | Smaller than 1,244 MB |
 |---|---|---|---|
-| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 179 MB | 7.0 times |
+| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 179 MB | 6.9 times |
 | Student, 6 layers, pruned vocabulary, int8 | 132M | about 137 MB | 9.1 times |
 | Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
 | Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
