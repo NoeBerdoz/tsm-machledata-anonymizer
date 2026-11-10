@@ -26,21 +26,26 @@ class Example:
     id: str
     text: str
     entities: tuple[Span, ...]
+    # The language code of the record (`lang` key), when the test set gives one.
+    lang: str | None = None
 
 
 class Detector(Protocol):
     """What a model must provide to be evaluated.
 
     - `runtime`: the runtime and its version, for example "torch 2.9.1" or "python-re 3.13".
+      A downloaded model adds the commit we score, for example "torch 2.9.1 model@1cb4166".
     - `files`: every file or folder the model needs to run (weights, tokenizer, config).
       Empty for pure rules.
-    - `detect`: the spans to mask in one text, of any type.
+    - `detect`: the spans to mask in one text, of any type. `lang` is the language code of
+      the text when the test set gives one (`"fr"`, `"de"`, ...), else None. Most detectors
+      ignore it. Presidio needs it.
     """
 
     runtime: str
     files: Sequence[Path]
 
-    def detect(self, text: str) -> list[Span]: ...
+    def detect(self, text: str, lang: str | None = None) -> list[Span]: ...
 
 
 def check_span(span: Span, text: str) -> None:
@@ -52,7 +57,7 @@ def check_span(span: Span, text: str) -> None:
 def load_dataset(path: Path) -> list[Example]:
     """Read a JSONL test set: one record per line with `id`, `text` and `entities`.
 
-    Other keys in a record are ignored.
+    `lang` is kept when present. Other keys in a record are ignored.
     """
     examples = []
     seen_ids = set()
@@ -63,7 +68,7 @@ def load_dataset(path: Path) -> list[Example]:
             record = json.loads(line)
             try:
                 entities = tuple(Span(e["start"], e["end"], e["label"]) for e in record["entities"])
-                example = Example(str(record["id"]), record["text"], entities)
+                example = Example(str(record["id"]), record["text"], entities, record.get("lang"))
                 for entity in entities:
                     check_span(entity, example.text)
             except (KeyError, ValueError) as error:

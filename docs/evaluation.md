@@ -13,7 +13,8 @@ A test set is a JSONL file: one JSON record per line.
 - `id` is unique in the file.
 - `start` and `end` are Python string indices, so they count code points, not bytes. `end` is exclusive: `text[start:end]` is the entity.
 - `label` is the type as the dataset writes it. The evaluation script does not map labels between datasets and detectors. The converters of each dataset do that.
-- Other keys, such as `lang`, `source` or `group`, are allowed. The evaluation script ignores them.
+- `lang` is optional: the language code of the text (`fr`, `de`, `it`, `en`). The evaluation script passes it to the detector.
+- Other keys, such as `source` or `group`, are allowed. The evaluation script ignores them.
 
 The loader refuses a file with a duplicate `id` or an entity that does not fit inside its text, and it gives the line number.
 
@@ -26,10 +27,12 @@ class Detector(Protocol):
     runtime: str
     files: Sequence[Path]
 
-    def detect(self, text: str) -> list[Span]: ...
+    def detect(self, text: str, lang: str | None = None) -> list[Span]: ...
 ```
 
-To make a detector available to the command line, add a function that loads it to the `DETECTORS` dict in `evaluate.py`. The script loads it once, before any timing.
+`lang` is the `lang` of the record. When a record has no `lang`, the script calls `detect(text)` and the detector gets `None`. The regex and GLiNER2 ignore the language. Presidio needs it, because it runs one spaCy model per language. So Presidio receives the true language of each text, which our app will not always know. This slightly favours Presidio in the comparison.
+
+To make a detector available to the command line, add a function that loads it to the `DETECTORS` dict in `evaluate.py`. The script loads it once, before any timing. The function imports the detector's heavy libraries itself, so that the script can set the thread variables first. The baselines (`regex`, `presidio`, `gliner2`, and `regex+gliner2`, the union of the two) are in `baselines.py` and `rules.py`, and [baselines.md](baselines.md) describes them.
 
 ## Metrics
 

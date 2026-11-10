@@ -33,7 +33,7 @@ class IbanOnly:
     runtime = "test"
     files = []
 
-    def detect(self, text):
+    def detect(self, text, lang=None):
         return [Span(5, 31, "IBAN")] if text.startswith("IBAN") else []
 
 
@@ -41,7 +41,7 @@ class MasksEverything:
     runtime = "test"
     files = []
 
-    def detect(self, text):
+    def detect(self, text, lang=None):
         return [Span(0, len(text), "X")]
 
 
@@ -106,7 +106,7 @@ def test_undefined_precision_leaves_an_empty_cell(tmp_path):
         runtime = "test"
         files = []
 
-        def detect(self, text):
+        def detect(self, text, lang=None):
             return []
 
     out = tmp_path / "results"

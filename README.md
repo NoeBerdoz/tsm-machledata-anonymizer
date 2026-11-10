@@ -41,6 +41,8 @@ To make the model small and fast, we will use two techniques:
 │   ├── datasets.md              the datasets we plan to use, with their licences
 │   ├── benchmark-protocol.md    how we will measure model size and speed
 │   ├── evaluation.md            the test set format, the metrics and the results files
+│   ├── baselines.md             what off-the-shelf detectors reach on the T1 candidates
+│   ├── swiss-identifiers.md     the Swiss test set: valid fake AVS, IBAN and phone values
 │   ├── development.md           how the code is organised, and why
 │   └── project-management.md    how we plan and share the work
 ├── report/
