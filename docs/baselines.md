@@ -141,7 +141,7 @@ These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and a
 
 ## The app's engine, on 200 texts per set
 
-A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it. Quality does not depend on the device: on a probe, a CPU call and a GPU call returned the same answer. No call failed.
+A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it, and no call failed. Forced on the CPU (`engine-cpu`, see the latency below), a few of its answers differ, and it scores 63.3 % / 86.6 % on OpenPII-1M.
 
 Strict recall / character precision on the two T1 samples, and recall on the three Swiss types (AVS, IBAN, PHONE) of the Swiss sample. The size counts every file the detector needs to run.
 
@@ -164,9 +164,26 @@ What the engine shows:
 
 200 texts is a small sample: one entity is 0.07 points on OpenPII-1M and 0.4 points of the Swiss column. The 1,000-text numbers above stay the reference for the other detectors.
 
-## Latency: not measured yet
+## Latency on an Apple M5 Max
 
-The protocol times 30 T2-dev snippets on a machine with no other heavy process running. Until T2-dev exists, `src/pii_anonymizer/latency_ids_t1.txt` holds a temporary sample: 30 texts of `t1-openpii-1m-200.jsonl`, seed 0, written by the same `subset` command with `--latency-ids`. `engine-cpu` passes `num_gpu` 0 and `num_thread` 4 to Ollama through `engine.OLLAMA_OPTIONS`, which the app leaves empty, so its latency compares with the CPU rows. A first probe on this Mac, with other heavy processes running, gave between 2 and 22 tokens per second for the same call. So we report no number until a run on a quiet machine:
+The protocol times 30 T2-dev snippets. Until T2-dev exists, `src/pii_anonymizer/latency_ids_t1.txt` holds a temporary sample of 30 texts of `t1-openpii-1m-200.jsonl` (seed 0, written by the same `subset` command with `--latency-ids`). They have 12 to 177 words, 34 in the median. Each detector made 5 warm-up calls and then 10 runs per text, so 300 timed calls, on 4 CPU threads.
+
+We measured on 2026-11-10 on an Apple M5 Max, a high-end laptop. A browser stayed open, and the load average stayed between 2 and 5, the run's own 4 threads included. GLiNER2, run twice, gave a p95 of 137.5 ms and then 138.3 ms. These numbers compare only with rows from the same machine. The official numbers for O3 will come from the reference laptop.
+
+| Detector | p50 | p95 | p95 per 100 words |
+|---|---|---|---|
+| regex | 0.01 ms | 0.04 ms | 0.04 ms |
+| presidio | 3 ms | 10 ms | 13 ms |
+| gliner2 | 77 ms | 138 ms | 426 ms |
+| privacy-filter | 137 ms | 360 ms | 512 ms |
+| regex+gliner2 | 76 ms | 137 ms | 425 ms |
+| regex+privacy-filter | 131 ms | 356 ms | 502 ms |
+| engine-cpu | 2,962 ms | 6,615 ms | 15,359 ms |
+| engine, on the GPU as in the app | 621 ms | 941 ms | 2,740 ms |
+
+`engine-cpu` passes `num_gpu` 0 and `num_thread` 4 to Ollama through `engine.OLLAMA_OPTIONS`, which the app leaves empty, so its latency compares with the other CPU rows. On the CPU, the engine takes 6.6 s at p95, 48 times GLiNER2's 138 ms. On the GPU, as the app runs it, it takes 0.94 s, still about 7 times GLiNER2 on the CPU. The regex adds nothing measurable to GLiNER2. The `engine-cpu` run, with its 200 texts scored, took 36 minutes on this Mac.
+
+The per-100-words values are higher than the per-call ones because most texts are shorter than 100 words.
 
 ```
 uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/t1-openpii-1m-200.jsonl results/ --latency-ids src/pii_anonymizer/latency_ids_t1.txt
@@ -194,6 +211,6 @@ So int8, the pruned vocabulary and six layers give about 9 times. O3 needs both 
 ## Next steps
 
 - Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
-- Measure the latency on a quiet machine with the temporary T1 sample, then on the reference laptop, `engine-cpu` included.
+- Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
 - Give `rules.py` the AVS numbers with dashes and the lowercase IBANs that the engine's rules already accept.
 - Compute the two v0 thresholds on T2-dev.
