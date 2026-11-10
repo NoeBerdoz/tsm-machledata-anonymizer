@@ -15,11 +15,13 @@ We searched the rows for AVS numbers, Swiss IBANs and +41 phone numbers, and che
 | Gretel finance (55,940) | 0 | 5, unlabelled (its 1,814 IBANs are foreign) | 40 |
 | Nemotron-PII (200,000) | 1 | 0 | 63 |
 
-So no public set can measure the 99 % recall on Swiss identifiers that O1 asks for. OpenPII-1M does have 25,448 Swiss rows (`region = CH`, FR/DE/IT), which are useful for training.
+So no public set can measure the 99 % recall on Swiss identifiers that O1 asks for.
+
+The scan reads only the validation splits. The 25,448 Swiss rows it finds in OpenPII-1M (`region = CH`) are validation rows, so with option A they are T1, and we never train on them. The train split has 102,406 Swiss rows (dataset viewer statistics, not scanned). These are the ones that are useful for training.
 
 ## What else is missing
 
-We wrote a pilot of 30 snippets with fake data, `data/raw/t2_pilot/t2_pilot.jsonl` (DVC), in the harness format (#3): 20 realistic inputs (prompts, e-mails, PDF and DOCX extracts, CSV exports, pasted code and logs) and 10 with planted Swiss values. Compared with the samples from #4, the public sets lack:
+We wrote a pilot of 30 snippets with fake data, `data/test/t2_pilot.jsonl` (DVC), in the harness format (#3), with `kind` (`realistic` or `planted`) and `group` keys. Each snippet has its own people, phone numbers, streets and birth dates, so each one is its own group. A surname inside a business name, such as "Cabinet Clerc" or "Fiduciaria Fontana SA", is personal data, because it points to the owner: we label only the surname, as `PERSON`. A large company whose name no longer refers to a living person is not labelled. The pilot holds 20 realistic inputs (prompts, e-mails, PDF and DOCX extracts, CSV exports, pasted code and logs) and 10 with planted Swiss values. Compared with the samples from #4, the public sets lack:
 
 - **Text extracted from files**: names cut across lines, merged columns, form labels, page footers.
 - **Prompts** that mix an instruction with the user's own data, often in two languages.
@@ -44,4 +46,12 @@ The pilot was written with Claude Code, so we have no human time yet. **Before c
 
 - **Training**: OpenPII-1M + Gretel. **T1**: OpenPII-1M validation. **Out-of-distribution**: Nemotron-PII, TAB, GraSCCo, SPY, BigCode PII.
 - **T2, ours**: 80 realistic and 120 planted snippets, about 260 Swiss values in each of the dev and final splits. The PDF and DOCX snippets must come from the app's own text extractor, so that the offsets match what the detector receives.
-- **Effort (estimate)**: half a day to set up a tool that computes offsets and check digits (an annotation tool or a small script), then 4 to 6 minutes per snippet, plus about 3 hours for PDF and DOCX files and 3 hours for a second person to re-check 20 %. That is about 2.5 to 3.5 person-days. We replace it with the measured review times before closing the issue.
+- **Planted snippets**: we write about 40 templates by hand, and `src/pii_anonymizer/swiss.py` (#28) makes 3 variants of each with seeds 0, 1 and 2. It writes valid AVS, IBAN and phone values in several formats and keeps the offsets right. So the hand work goes to the 80 realistic snippets.
+- **Effort (estimate)**: 4 to 6 minutes per hand-written snippet (80 realistic and 40 templates), about 2 hours for a small script that computes the offsets of the realistic snippets, 3 hours for PDF and DOCX files, and 2 hours for a second person to re-check 20 %. That is about 2 to 2.5 person-days. We replace it with the measured review times before closing the issue.
+
+## How we split T2
+
+- **Related snippets** share a `group` key in the JSONL file: all variants of a template, and snippets that share a person, a company, an address or a value. Apart from variants of one template, each snippet gets its own values, so most groups hold a single snippet.
+- **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by input kind (prompt, e-mail, file extract, CSV, code or log) and by language, with seed 42.
+- **When**: before any tuning. After the split, we never move a snippet between the two parts.
+- **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.
