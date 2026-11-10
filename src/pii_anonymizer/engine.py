@@ -247,12 +247,9 @@ def _detect(texts: list[str]) -> tuple[list[list[Span]], list[str]]:
     return detected, missed
 
 
-def detect(text: str, lang: str | None = None) -> list[Span]:
+def detect(text: str) -> list[Span]:
     """Return the spans of personal data in one text, sorted and without overlaps, found by the
     model and the rules exactly as pseudonymize() finds them.
-
-    `lang` is ignored. It is there so that the evaluation script can call the engine like the
-    other detectors.
     """
     return _detect([text])[0][0]
 

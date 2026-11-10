@@ -182,7 +182,7 @@ def test_placeholder_already_in_the_input_is_never_given_to_a_value(model):
 def test_detect_returns_the_spans_of_the_model_and_the_rules(model):
     model(("PERSON", "Marie Dupont"))
     text = "Marie Dupont, marie@example.ch, 079 123 45 67"
-    spans = detect(text, lang="fr")
+    spans = detect(text)
     assert spans == [Span(0, 12, "PERSON"), Span(14, 30, "EMAIL"), Span(32, 45, "PHONE")]
     assert [text[s.start : s.end] for s in spans] == [
         "Marie Dupont",
