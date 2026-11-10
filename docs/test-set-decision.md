@@ -32,26 +32,33 @@ Swiss values are rare even in realistic texts: none of our 20 realistic snippets
 
 ## Time per planted snippet
 
-The pilot was written with Claude Code, so we have no human time yet. **Before closing #5**, one of us reviews the 10 planted snippets with a timer.
+One of us reviewed each planted snippet with a timer: checked every label and looked for unlabelled PII. Times are rounded up to the whole minute.
 
-| Snippet | Review time (min) | Snippet | Review time (min) |
-|---|---|---|---|
-| t2-0021 Lohnausweis (PDF, DE) | | t2-0026 insured persons (CSV, DE) | |
-| t2-0022 invoice with QR bill (PDF, FR) | | t2-0027 pasted JSON (prompt, EN) | |
-| t2-0023 employment contract (DOCX, FR) | | t2-0028 pasted SQL (prompt, FR) | |
-| t2-0024 AHV form help (prompt, DE) | | t2-0029 claim form (PDF, IT) | |
-| t2-0025 IBAN change (e-mail, IT) | | t2-0030 letter to the AVS office (prompt, FR) | |
+| Snippet | Review time (min) |
+|---|---|
+| t2-0021 Lohnausweis (PDF, DE) | 10 |
+| t2-0022 invoice with QR bill (PDF, FR) | 8 |
+| t2-0023 employment contract (DOCX, FR) | 9 |
+| t2-0024 AHV form help (prompt, DE) | 12 |
+| t2-0025 IBAN change (e-mail, IT) | 15 |
+| t2-0026 insured persons (CSV, DE) | 11 |
+| t2-0027 pasted JSON (prompt, EN) | 7 |
+| t2-0028 pasted SQL (prompt, FR) | 6 |
+| t2-0029 claim form (PDF, IT) | 11 |
+| t2-0030 letter to the AVS office (prompt, FR) | 6 |
+
+The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 minutes. These snippets already existed, so writing a new one takes longer than this.
 
 ## Decision and cost
 
 - **Training**: OpenPII-1M + Gretel. **T1**: OpenPII-1M validation. **Out-of-distribution**: Nemotron-PII, TAB, GraSCCo, SPY, BigCode PII.
 - **T2, ours**: 80 realistic and 120 planted snippets, about 260 Swiss values in each of the dev and final splits. The PDF and DOCX snippets must come from the app's own text extractor, so that the offsets match what the detector receives.
 - **Planted snippets**: we write about 40 templates by hand, and `src/pii_anonymizer/swiss.py` (#28) makes 3 variants of each with seeds 0, 1 and 2. It writes valid AVS, IBAN and phone values in several formats and keeps the offsets right. So the hand work goes to the 80 realistic snippets.
-- **Effort (estimate)**: 4 to 6 minutes per hand-written snippet (80 realistic and 40 templates), about 2 hours for a small script that computes the offsets of the realistic snippets, 3 hours for PDF and DOCX files, and 2 hours for a second person to re-check 20 %. That is about 2 to 2.5 person-days. We replace it with the measured review times before closing the issue.
+- **Effort**: 9.5 minutes per hand-written snippet (measured, see above) for 80 realistic snippets and 40 templates, about 19 hours. Then about 4 hours for a second person to re-check 20 % (24 snippets), 2 hours for a small script that computes the offsets of the realistic snippets, and 3 hours for PDF and DOCX files. That is about 28 hours, so at least 3.5 person-days: we measured review, not writing.
 
 ## How we split T2
 
 - **Related snippets** share a `group` key in the JSONL file: all variants of a template, and snippets that share a person, a company, an address or a value. Apart from variants of one template, each snippet gets its own values, so most groups hold a single snippet.
-- **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by input kind (prompt, e-mail, file extract, CSV, code or log) and by language, with seed 42.
+- **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by `source` (`prompt`, `email`, `pdf`, `docx`, `csv`, `txt`), by `kind` (`realistic` or `planted`) and by language, with seed 42.
 - **When**: before any tuning. After the split, we never move a snippet between the two parts.
 - **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.
