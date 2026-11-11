@@ -26,6 +26,11 @@ CONTEXT_SIZE = 16384
 # leaves about 6000 tokens for the reasoning of the model and its response.
 MAX_ANSWER_CHARS = 14000
 
+# More Ollama options for every call. Empty in the app, so Ollama chooses where the model runs
+# (the GPU on a Mac). The evaluation script fills it to run on the CPU with the protocol's
+# thread count (docs/benchmark-protocol.md).
+OLLAMA_OPTIONS: dict = {}
+
 RULES = {
     "AVS": re.compile(r"\b756[. -]?\d{4}[. -]?\d{4}[. -]?\d{2}\b"),
     "IBAN": re.compile(
@@ -140,7 +145,7 @@ def _chat(messages: list[dict], options: dict | None = None, **fields) -> str:
         "stream": False,
         "think": False,
         "messages": messages,
-        "options": {"num_ctx": CONTEXT_SIZE, **(options or {})},
+        "options": {"num_ctx": CONTEXT_SIZE, **OLLAMA_OPTIONS, **(options or {})},
         **fields,
     }
     request = urllib.request.Request(OLLAMA_URL, json.dumps(body).encode())

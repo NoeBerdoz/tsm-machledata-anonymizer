@@ -12,6 +12,7 @@ These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), s
 - **regex+gliner2**: the two detectors together. It masks every span that either of them finds, because goal O1 measures the Swiss identifiers caught by the regex and the model together. Its size is the size of GLiNER2, since the regex has no files.
 - **privacy-filter**: `openai/privacy-filter` as published, on the CPU, in its published bfloat16 weights. We run it through the token-classification pipeline of transformers 5.22.2 with `aggregation_strategy="simple"`, the documented way to get spans with character offsets. This takes the most likely tag of each token. It does not run the constrained Viterbi decoder of OpenAI's own repo, so the operating points of the model card are not used. The pipeline only knows B- and I- tags, and the model writes B-, I-, E- and S- tags, so the last token of an entity comes back as a separate span. We join spans of the same type that touch, and we strip the space that the tokens carry before a word. We checked the offsets by hand on accented and multilingual texts: they point at the right characters.
 - **regex+privacy-filter**: the regex and Privacy Filter together, built like `regex+gliner2`.
+- **engine**: the detector of our app today (issue #29), `engine.detect()`. It has its own regex rules (AVS, IBAN, e-mail, phone) and asks qwen3:4b, through Ollama, for names, addresses, birth dates and health data. The model stands in for our student until the pipeline delivers one. It runs as in the app, so Ollama chooses the device (the GPU on a Mac). **engine-cpu** is the same detector on the CPU with the protocol's 4 threads, for the latency (see below).
 
 The code of the detectors is in `src/pii_anonymizer/baselines.py`. They need the `baselines` dependency group ([development.md](development.md)).
 
@@ -138,8 +139,78 @@ So the numbers support the recommendation of [datasets.md](datasets.md): OpenPII
 
 These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and almost no valid AVS number. So we built a Swiss test set, `t1-swiss.jsonl`, by putting valid fake AVS numbers, IBANs and phone numbers into public rows from validation and test splits. On it, the regex alone reaches 95.4 % on the three Swiss types, GLiNER2 alone 84.8 %, Privacy Filter alone 92.6 %, `regex+gliner2` 99.2 % and `regex+privacy-filter` 99.5 %. See [swiss-identifiers.md](swiss-identifiers.md).
 
+## The app's engine, on 200 texts per set
+
+A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it, and no call failed. Forced on the CPU (`engine-cpu`, see the latency below), a few of its answers differ, and it scores 63.3 % / 86.6 % on OpenPII-1M.
+
+Strict recall / character precision on the two T1 samples, and recall on the three Swiss types (AVS, IBAN, PHONE) of the Swiss sample. The size counts every file the detector needs to run.
+
+| Detector | OpenPII-1M, 200 texts | open-pii-500k, 200 texts | Swiss types, 251 values | Size |
+|---|---|---|---|---|
+| regex | 7.5 % / 100.0 % | 6.2 % / 99.8 % | 96.8 % | rules only |
+| presidio | 55.0 % / 87.0 % | 65.9 % / 89.7 % | 77.3 % | 2,357 MB |
+| gliner2 | 81.9 % / 98.5 % | 82.6 % / 98.1 % | 84.1 % | 1,244 MB |
+| privacy-filter | 79.4 % / 97.5 % | 73.2 % / 97.1 % | 94.4 % | 2,827 MB |
+| regex+gliner2 | 82.0 % / 98.5 % | 82.6 % / 98.1 % | 99.2 % | 1,244 MB |
+| regex+privacy-filter | 79.5 % / 97.5 % | 73.4 % / 97.1 % | 100.0 % | 2,827 MB |
+| engine | 62.4 % / 87.4 % | 63.5 % / 92.3 % | 100.0 % | 2,497 MB |
+
+What the engine shows:
+
+- It finds about 63 % of the entities, about 20 points below GLiNER2, and it masks more text that is not personal data (87.4 % character precision on OpenPII-1M against 98.5 %).
+- Most of its misses are types it does not look for. On OpenPII-1M it finds 11 % of the credit card numbers, 15 to 27 % of the ID, passport, tax and driving licence numbers and 13 % of the ages, where GLiNER2 finds 85 to 96 % of the numbers. It finds 54 % of the dates, which it only asks for as birth dates, against 88 %.
+- Its rules are its strength. They find all 251 Swiss values, more than our `rules.py` (96.8 %), because they already accept AVS numbers with dashes and lowercase IBANs (review of PR #19).
+- Its model is already quantized to 4 bits (Q4_K_M, 4.0B parameters), and its files still weigh twice GLiNER2's.
+
+200 texts is a small sample: one entity is 0.07 points on OpenPII-1M and 0.4 points of the Swiss column. The 1,000-text numbers above stay the reference for the other detectors.
+
+## Latency on an Apple M5 Max
+
+The protocol times 30 T2-dev snippets. Until T2-dev exists, `src/pii_anonymizer/latency_ids_t1.txt` holds a temporary sample of 30 texts of `t1-openpii-1m-200.jsonl` (seed 0, written by the same `subset` command with `--latency-ids`). They have 12 to 177 words, 34 in the median. Each detector made 5 warm-up calls and then 10 runs per text, so 300 timed calls, on 4 CPU threads.
+
+We measured on 2026-11-10 on an Apple M5 Max, a high-end laptop. A browser stayed open, and the load average stayed between 2 and 5, the run's own 4 threads included. GLiNER2, run twice, gave a p95 of 137.5 ms and then 138.3 ms. These numbers compare only with rows from the same machine. The official numbers for O3 will come from the reference laptop.
+
+| Detector | p50 | p95 | p95 per 100 words |
+|---|---|---|---|
+| regex | 0.01 ms | 0.04 ms | 0.04 ms |
+| presidio | 3 ms | 10 ms | 13 ms |
+| gliner2 | 77 ms | 138 ms | 426 ms |
+| privacy-filter | 137 ms | 360 ms | 512 ms |
+| regex+gliner2 | 76 ms | 137 ms | 425 ms |
+| regex+privacy-filter | 131 ms | 356 ms | 502 ms |
+| engine-cpu | 2,962 ms | 6,615 ms | 15,359 ms |
+| engine, on the GPU as in the app | 621 ms | 941 ms | 2,740 ms |
+
+`engine-cpu` passes `num_gpu` 0 and `num_thread` 4 to Ollama through `engine.OLLAMA_OPTIONS`, which the app leaves empty, so its latency compares with the other CPU rows. On the CPU, the engine takes 6.6 s at p95, 48 times GLiNER2's 138 ms. On the GPU, as the app runs it, it takes 0.94 s, still about 7 times GLiNER2 on the CPU. The regex adds nothing measurable to GLiNER2. The `engine-cpu` run, with its 200 texts scored, took 36 minutes on this Mac.
+
+The per-100-words values are higher than the per-call ones because most texts are shorter than 100 words.
+
+```
+uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/t1-openpii-1m-200.jsonl results/ --latency-ids src/pii_anonymizer/latency_ids_t1.txt
+```
+
+## The vocabulary of our four languages
+
+`uv run --group baselines python -m pii_anonymizer.vocab` tokenizes the 103,718 French, German, Italian and English texts of the OpenPII-1M validation split with GLiNER2-PII's tokenizer. They use 77,347 of its 250,112 tokens (30.9 %, special tokens included). Pruned to them, the word embeddings drop from 192.1M to 59.4M parameters, about 59 MB in int8. This is a lower bound: a real pruning also keeps the tokens of the training texts.
+
+Many of these tokens are rare. Keeping only the tokens seen at least 10 times leaves 42,073 tokens (32.3M parameters), which still cover 98.8 % of the text. A word that loses its token would be cut into smaller tokens that remain, so recall must be measured after any pruning.
+
+What this means for the size path, as estimates at one byte per parameter in int8 and half a byte in int4, with the GLiNER2 heads (29.5M) kept. O3 counts the tokenizer too, so the teacher weighs 1,244 MB with its 16 MB tokenizer. We assume that a pruned tokenizer shrinks with its vocabulary.
+
+| Model | Parameters | Size | Smaller than 1,244 MB |
+|---|---|---|---|
+| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 179 MB | 6.9 times |
+| Student, 6 layers, pruned vocabulary, int8 | 132M | about 137 MB | 9.1 times |
+| Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
+| Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
+| Same student, both | 105M | about 91 MB | 13.6 times |
+| O3 target | | about 104 MB | 12 times |
+
+So int8, the pruned vocabulary and six layers give about 9 times. O3 needs both extra steps, or a smaller student, and recall must be measured after each step.
+
 ## Next steps
 
 - Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
-- Measure the latency on the reference laptop.
+- Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
+- Give `rules.py` the AVS numbers with dashes and the lowercase IBANs that the engine's rules already accept.
 - Compute the two v0 thresholds on T2-dev.

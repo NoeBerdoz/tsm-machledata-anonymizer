@@ -1,5 +1,6 @@
 """The off-the-shelf detectors of the baselines (issue #6): regex, Presidio, GLiNER2-PII and
 OpenAI Privacy Filter, and `regex+gliner2` and `regex+privacy-filter`, the regex with a model.
+Also `engine`, the detector of our app today (issue #29).
 
 Each `load_*` function imports its libraries itself, so that importing this module stays
 light and the evaluation script can set the thread variables before a runtime starts.
@@ -7,10 +8,14 @@ Presidio and the two models need the `baselines` dependency group (`uv sync --gr
 See docs/baselines.md.
 """
 
+import json
 import os
+import sys
+import urllib.request
 from importlib.metadata import version
 from pathlib import Path
 
+from pii_anonymizer.benchmark import THREADS
 from pii_anonymizer.spans import Span
 
 # Presidio: one spaCy large model per language of our test sets.
@@ -322,3 +327,79 @@ def load_regex_gliner2():
 def load_regex_privacy_filter():
     privacy_filter = load_privacy_filter()
     return UnionDetector([load_regex(), privacy_filter], files_from=privacy_filter)
+
+
+# The app's engine runs its model through Ollama, a separate server that the thread variables
+# of the evaluation script do not reach. `engine-cpu` passes these options so that each call
+# follows the protocol: no layer on the GPU, and the same thread count as the other detectors.
+ENGINE_CPU_OPTIONS = {"num_gpu": 0, "num_thread": THREADS}
+OLLAMA_VERSION_URL = "http://127.0.0.1:11434/api/version"
+
+
+def ollama_models_dir() -> Path:
+    """Where Ollama keeps its models: $OLLAMA_MODELS, else ~/.ollama/models."""
+    return Path(os.environ.get("OLLAMA_MODELS") or Path.home() / ".ollama" / "models")
+
+
+def ollama_model_files(model: str, models_dir: Path) -> tuple[list[Path], str]:
+    """The files of a pulled Ollama model (weights, template, parameters, licence), and the
+    digest of its weights.
+
+    Raises FileNotFoundError if the model is not pulled.
+    """
+    name, _, tag = model.partition(":")
+    manifest = (
+        models_dir / "manifests" / "registry.ollama.ai" / "library" / name / (tag or "latest")
+    )
+    layers = json.loads(manifest.read_text(encoding="utf-8"))["layers"]
+    files = [models_dir / "blobs" / layer["digest"].replace(":", "-") for layer in layers]
+    weights = next(layer["digest"] for layer in layers if layer["mediaType"].endswith(".model"))
+    return files, weights.removeprefix("sha256:")
+
+
+def ollama_version() -> str:
+    """The version of the running Ollama server. Raises OSError if it does not answer."""
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(OLLAMA_VERSION_URL, timeout=10) as response:
+        return json.load(response)["version"]
+
+
+class EngineDetector:
+    """The detector of our app: `engine.detect()`, its regex rules and its model through Ollama.
+
+    `engine` runs it as the app does, so Ollama chooses the device (the GPU on a Mac). Its
+    quality is the app's, but its latency does not compare with the CPU rows. `engine-cpu`
+    runs it on the CPU with the protocol's threads, for the latency.
+
+    Needs `ollama serve` running and the model pulled. The size counts the model's files in
+    the Ollama store. An answer that is cut or malformed raises in the app. Here it counts as
+    no detection, the worst case for recall, and `failures` counts it.
+    """
+
+    def __init__(self, cpu: bool = False, models_dir: Path | None = None) -> None:
+        from pii_anonymizer import engine
+
+        engine.OLLAMA_OPTIONS = dict(ENGINE_CPU_OPTIONS) if cpu else {}
+        self._detect = engine.detect
+        self.files, weights = ollama_model_files(engine.MODEL, models_dir or ollama_models_dir())
+        device = "cpu" if cpu else "device chosen by ollama"
+        self.runtime = f"ollama {ollama_version()} model@{weights[:7]} {device}"
+        self.failures = 0
+
+    def detect(self, text: str, lang: str | None = None) -> list[Span]:
+        try:
+            return self._detect(text)
+        except ValueError as error:
+            self.failures += 1
+            print(
+                f"engine failure {self.failures}, counted as no detection: {error}", file=sys.stderr
+            )
+            return []
+
+
+def load_engine():
+    return EngineDetector()
+
+
+def load_engine_cpu():
+    return EngineDetector(cpu=True)
