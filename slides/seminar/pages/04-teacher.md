@@ -18,4 +18,6 @@ To build our small model, we start from a bigger one: GLiNER2-PII. It finds pers
 [click] It becomes our teacher. It teaches a small model, the student, that runs on the laptop.
 
 If asked: how fast is it? On our development Mac (Apple M5 Max, CPU, 4 threads), GLiNER2-PII takes 138 ms at p95 per call, on texts of 12 to 177 words. The official numbers will come from the reference laptop.
+
+If asked why not OpenAI's Privacy Filter: we measured it too. It finds fewer names and places, it knows 8 types instead of 42, and it is more than twice as big. The appendix compares them.
 -->

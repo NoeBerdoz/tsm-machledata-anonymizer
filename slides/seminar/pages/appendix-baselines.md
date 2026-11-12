@@ -2,7 +2,7 @@
 eyebrow: Appendix for readers
 ---
 
-# Baselines in full: the two T1 candidates and the Swiss set
+# All baselines on both T1 candidates and the Swiss set
 
 <BaselineTables view="full" />
 

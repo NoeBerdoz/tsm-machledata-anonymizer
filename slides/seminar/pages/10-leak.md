@@ -3,7 +3,7 @@ part: 4
 clicks: 3
 ---
 
-# Evaluation: a partly masked entity *is still a leak*
+# In our evaluation, a partly masked entity *is still a leak*
 
 <p class="lede sub">Protected means fully masked.</p>
 

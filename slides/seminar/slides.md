@@ -113,6 +113,10 @@ src: ./pages/appendix-baselines.md
 ---
 
 ---
+src: ./pages/appendix-teacher-choice.md
+---
+
+---
 src: ./pages/appendix-goals-o1-o3.md
 ---
 

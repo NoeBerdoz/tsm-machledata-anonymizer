@@ -25,4 +25,6 @@ The teacher has 307 million parameters. Most of them, 63 percent, are its dictio
 [click] This dictionary has tokens for many languages.
 [click] Our model targets Switzerland. We need only French, German, Italian and English. They use under a third of the tokens.
 [click] If time allows, we drop the other tokens. The model would fall to about 174 million parameters.
+
+If asked: the four slices are only a picture. Many tokens serve several languages, and 77,347 counts each token once.
 -->

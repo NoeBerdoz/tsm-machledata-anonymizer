@@ -4,7 +4,7 @@ clicks: 4
 source: 'Size estimates at 1 byte per weight in int8 and half a byte in int4, tokenizer counted. Assumptions in the appendix.'
 ---
 
-# 12 times smaller takes *more than int8*
+# Int8 is not enough to make our model *12 times smaller*
 
 <SizePath />
 

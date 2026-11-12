@@ -162,7 +162,6 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
         <path :d="`M 1 0 V 7 H ${FOUR_W - 3} V 0`" class="brace-line" />
       </svg>
       <span class="brace-text" :style="vis(ch.brace)"><span class="figure-num">77,347</span> of <span class="figure-num">250,112</span> tokens: <span class="figure-num">{{ share }} %</span></span>
-      <span class="eyebrow illus" :style="vis(ch.langs)">Illustration: one token can serve several languages</span>
     </div>
 
     <div class="notes">
@@ -337,11 +336,6 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
 }
 .lang.other.faded {
   color: var(--muted-2);
-}
-.illus {
-  position: absolute;
-  right: 0;
-  top: 19px;
 }
 .brace {
   position: relative;
