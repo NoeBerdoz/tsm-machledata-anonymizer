@@ -98,7 +98,7 @@ Presidio's recall is lower in French and German (50 % and 47 % on OpenPII-1M) th
 
 GLiNER2 reaches 81 % and 82 %, with a precision of 97 to 98 %. It finds almost every phone number, e-mail, name, street and number type. Its recall is about the same in the four languages (79 to 84 %).
 
-- **Attributes that are not on its label list**: titles (15 %, `Dekan`, `Sig.ra`), ages (5 %, `64`), gender and sex (43 to 53 %, `Weiblich`, `F`) and times (0 %, `5:38 AM`). The model card has no label for them, so the model does not look for them. Without these five types, its recall is 92 % on OpenPII-1M and 91 % on 500k.
+- **Attributes that are not on its label list**: titles (15 %, `Dekan`, `Sig.ra`), ages (5 %, `64`), gender and sex (43 to 53 %, `Weiblich`, `F`) and times (0 %, `5:38 AM`). The model card has no label for them, so the model does not look for them. Without these five types, its recall is 92 % on OpenPII-1M and 90 % on 500k.
 - **Dates in ISO format**: `1999-07-19T00:00:00` and some `21/08/2002` are missed.
 - **AVS numbers**: some are missed (`756.8602.4112.23`), and so are French social security numbers written in groups (`1 42 10 49647 462 12`).
 - **Long city names**: only part of `Linz Urfahr` or `Swansea Three Crosses` is masked, so the entity counts as a leak.
@@ -108,7 +108,7 @@ GLiNER2 reaches 81 % and 82 %, with a precision of 97 to 98 %. It finds almost e
 
 OpenAI Privacy Filter is a model that OpenAI published under the Apache 2.0 license. It has 1.5 billion parameters, but it is a sparse mixture of experts: only about 50 million of them work on each token. So it is fast for its size, but it is not small on disk (2.8 GB). It knows 8 types: people, addresses, e-mails, phones, URLs, dates, account numbers and secrets. Its model card says it is primarily English.
 
-It reaches 79 % on OpenPII-1M and 70 % on 500k, with a precision of 97 %. That is below GLiNER2 on both samples, and the gap is larger on 500k, where a third of the entities are given names. Without the five attribute types that neither model looks for (titles, ages, sex, gender, times), it reaches 88 % on OpenPII-1M and 77 % on 500k, against 92 % and 91 % for GLiNER2.
+It reaches 79 % on OpenPII-1M and 70 % on 500k, with a precision of 97 %. That is below GLiNER2 on both samples, and the gap is larger on 500k, where a third of the entities are given names. Without the five attribute types that neither model looks for (titles, ages, sex, gender, times), it reaches 88 % on OpenPII-1M and 77 % on 500k, against 92 % and 90 % for GLiNER2.
 
 | Language | OpenPII-1M | 500k |
 |---|---|---|
