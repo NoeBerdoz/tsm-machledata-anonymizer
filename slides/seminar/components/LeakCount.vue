@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// One line of an attached CSV file, one gold entity, three ways to mask it. Recall and character precision
-// are computed from the character offsets below, so the numbers match the drawing.
+// One line of an attached CSV file, one true entity, three ways to mask it. Recall and character
+// precision are computed from the character offsets below, so the numbers match the drawing.
+// Red has one meaning here: the characters that leak, and the verdict that names them.
 import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{ step?: number }>(), { step: 0 })
@@ -27,14 +28,24 @@ function metrics(c: Case) {
     prec: `${goldMasked} / ${masked} = ${(goldMasked / masked).toFixed(2)}`,
   }
 }
-const rows = cases.map((c) => ({ ...c, m: metrics(c) }))
+// The line cut into pieces, so the characters that stay visible inside the entity print in red
+function pieces(c: Case) {
+  if (!c.leak) return [{ t: line, leak: false }]
+  const a = c.mask[1]
+  return [
+    { t: line.slice(0, a), leak: false },
+    { t: line.slice(a, g1), leak: true },
+    { t: line.slice(g1), leak: false },
+  ]
+}
+const rows = cases.map((c) => ({ ...c, m: metrics(c), parts: pieces(c) }))
 const step = computed(() => props.step)
 </script>
 
 <template>
   <div class="leak">
-    <div class="head caption">
-      <span>payments.csv, attached to a prompt</span><span /><span>Recall</span><span>Character precision</span>
+    <div class="head">
+      <span>Example: payments.csv, in a prompt</span><span /><span>Recall</span><span>Character precision</span>
     </div>
 
     <div class="row gold">
@@ -42,20 +53,18 @@ const step = computed(() => props.step)
         <span class="txt">{{ line }}</span>
         <span class="cutbox" :style="{ left: g0 + 'ch', width: g1 - g0 + 'ch' }" />
       </div>
-      <div class="verdict caption">Gold, Swiss IBAN, <span class="mono">{{ iban.length }}</span> characters</div>
-      <div />
-      <div />
+      <div class="gloss">True entity: Swiss IBAN, {{ iban.length }} characters</div>
     </div>
 
     <div v-for="r in rows" :key="r.key" class="row" :class="{ on: step >= r.from }">
       <div class="text">
-        <span class="txt">{{ line }}</span>
+        <span class="txt"><span v-for="(p, i) in r.parts" :key="i" :class="{ leaked: p.leak }">{{ p.t }}</span></span>
         <span class="inkbar" :style="{ left: r.mask[0] + 'ch', width: r.mask[1] - r.mask[0] + 'ch' }" />
         <span v-if="r.leak" class="leakbox" :style="{ left: r.mask[1] + 'ch', width: g1 - r.mask[1] + 'ch' }" />
       </div>
-      <div class="verdict label" :class="{ bad: r.leak }">{{ r.verdict }}</div>
-      <div class="mono num" :class="{ bad: r.leak }">{{ r.m.recall }}</div>
-      <div class="mono num">{{ r.m.prec }}</div>
+      <div class="verdict" :class="{ bad: r.leak }">{{ r.verdict }}</div>
+      <div class="num">{{ r.m.recall }}</div>
+      <div class="num">{{ r.m.prec }}</div>
     </div>
   </div>
 </template>
@@ -63,7 +72,7 @@ const step = computed(() => props.step)
 <style scoped>
 .leak {
   width: 1136px;
-  margin-top: 48px;
+  margin-top: 44px;
 }
 .head,
 .row {
@@ -79,10 +88,13 @@ const step = computed(() => props.step)
 .head {
   padding-bottom: 8px;
   border-bottom: 1px solid var(--ink);
+  font-size: var(--fs-label);
+  line-height: 1.3;
+  color: var(--muted-2);
 }
 .row {
   height: 72px;
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hair);
   opacity: 0;
   transition: opacity var(--t-fast) var(--ease);
 }
@@ -90,12 +102,22 @@ const step = computed(() => props.step)
 .row.on {
   opacity: 1;
 }
+/* the true entity's description spans the three empty cells of its row */
+.gloss {
+  grid-column: 2 / span 3;
+  font-size: var(--fs-label);
+  color: var(--muted-2);
+  white-space: nowrap;
+}
 .text {
   position: relative;
   font-family: var(--mono);
   font-size: var(--fs-label);
   white-space: pre;
   line-height: 1;
+}
+.leaked {
+  color: var(--red);
 }
 .inkbar,
 .cutbox,
@@ -123,11 +145,21 @@ const step = computed(() => props.step)
   border: 1.5px solid var(--red);
   margin-left: 1px;
 }
+.verdict {
+  font-size: var(--fs-label);
+}
 .num {
+  font-family: var(--mono);
   font-size: var(--fs-label);
 }
 .bad {
   color: var(--red);
   font-weight: 500;
+}
+/* reduced motion: the mask appears with its row's fade, without sweeping */
+@media (prefers-reduced-motion: reduce) {
+  .inkbar {
+    transition: none;
+  }
 }
 </style>

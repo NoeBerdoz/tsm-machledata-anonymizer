@@ -1,67 +1,102 @@
 <script setup lang="ts">
-// Device | privacy boundary | cloud. step follows the slide clicks:
-// 1 the values are replaced and the pairs go into the mapping table,
-// 2 the pseudonymized prompt crosses the boundary,
-// 3 the answer comes back, and only once it is on the device are the values restored.
-import { computed, ref, watch } from 'vue'
+// Slide 3: where each part runs. Slide 2 told the trip of one prompt, so this slide does not
+// retell it. It shows the parts and their place, with the values of slide 2.
+//   0  the laptop: our app runs the engine (rules and our model) and keeps the mapping
+//      table; the cloud: our backend (FastAPI) calls the OpenAI Responses API; only
+//      placeholders cross the border
+//   1  the engine runs on every request, on the laptop CPU: our model is lit, and the
+//      consequence closes the slide
+// Names follow docs/architecture.md.
+import { useBeats, type Channels, type Seg } from './lib/beats'
+import Window from './Window.vue'
+import Callout from './Callout.vue'
 
-const props = withDefaults(defineProps<{ step?: number }>(), { step: 0 })
-const s = computed(() => props.step)
+const ROWS = [
+  { v: 'Marie Dupont', ph: '<PERSON_1>' },
+  { v: '756.1234.5678.97', ph: '<AVS_1>' },
+  { v: 'Rue Centrale 4, 1003 Lausanne', ph: '<ADDRESS_1>' },
+]
+const SENT = ROWS.map((r) => r.ph)
 
-const promptState = computed(() => (s.value >= 1 ? 3 : 0))
+function target(n: number): Channels {
+  return { lit: n >= 1 ? 1 : 0, close: n >= 1 ? 1 : 0 }
+}
+const beats: Record<number, Seg[]> = {
+  1: [
+    { k: 'lit', to: 1, at: 0, dur: 360 },
+    { k: 'close', to: 1, at: 160, dur: 420 },
+  ],
+}
+const { ch, fade } = useBeats({ target, beats })
 
-// Restoration waits for the end of the trip back (450 ms) plus a short pause.
-const restored = ref(s.value >= 3)
-let timer: ReturnType<typeof setTimeout> | undefined
-watch(s, (v, old) => {
-  clearTimeout(timer)
-  if (v >= 3 && (old ?? 0) < 3) timer = setTimeout(() => (restored.value = true), 560)
-  else restored.value = v >= 3
+const rise = (v: number, d = 10) => ({
+  opacity: v,
+  visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const),
+  transform: `translateY(${(1 - v) * d}px)`,
 })
-const answerState = computed(() => (restored.value ? 0 : 3))
 
-const H = 336
-const BX = 580
+// the wire between the app and the backend, in figure coordinates
+const APP_R = 724
+const CLOUD_L = 796
+const GO_Y = 112
+const BACK_Y = 144
 </script>
 
 <template>
-  <div class="setting" :style="{ height: H + 'px' }">
-    <ArtSlot name="Contours" class="contours" :w="1136 - BX - 24" :h="H - 32" :width="1136 - BX - 24" :height="H - 32" />
+  <div class="setting" :style="{ opacity: fade }">
+    <div class="zone laptop"><span class="eyebrow">Your laptop</span></div>
+    <div class="zone cloud"><span class="eyebrow">The cloud</span></div>
+    <div class="border" />
 
-    <svg class="wires" :viewBox="`0 0 1136 ${H}`" width="1136" :height="H">
+    <svg class="lanes" width="1136" height="400" aria-hidden="true">
       <defs>
-        <marker id="set-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-          <path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink)" stroke-width="1.2" />
+        <marker id="set-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M1 1 L9 5 L1 9" fill="none" stroke="currentColor" stroke-width="1.6" />
         </marker>
       </defs>
-      <line :x1="BX" :x2="BX" y1="0" :y2="H" stroke="var(--ink)" stroke-width="1" />
-      <path class="draw" :class="{ on: s >= 2 }" d="M 564 88 H 692" stroke="var(--ink)" stroke-width="1" fill="none" marker-end="url(#set-ah)" />
-      <path class="draw" :class="{ on: s >= 3 }" d="M 692 300 H 564" stroke="var(--ink)" stroke-width="1" fill="none" marker-end="url(#set-ah)" />
+      <line :x1="APP_R + 6" :y1="GO_Y" :x2="CLOUD_L - 8" :y2="GO_Y" class="lane" marker-end="url(#set-ah)" />
+      <line :x1="CLOUD_L - 6" :y1="BACK_Y" :x2="APP_R + 8" :y2="BACK_Y" class="lane" marker-end="url(#set-ah)" />
+      <line x1="966" y1="188" x2="966" y2="212" class="lane" marker-end="url(#set-ah)" />
     </svg>
 
-    <div class="caption zone" style="left: 0">Device</div>
-    <div class="caption zone" :style="{ left: BX + 12 + 'px' }">Privacy boundary</div>
-    <div class="caption zone" style="right: 0">Cloud</div>
+    <!-- the laptop: our app, the engine and the mapping table -->
+    <Window class="w-app" title="Our app">
+      <div class="app">
+        <div class="engine">
+          <div class="det">
+            <div class="det-name">Rules</div>
+            <div class="det-what">Fixed formats, such as Swiss social security (AVS) numbers</div>
+          </div>
+          <div class="det model" :style="{ '--lit': ch.lit }">
+            <div class="det-name">Our model</div>
+            <div class="det-what">What needs context, such as names and addresses</div>
+          </div>
+        </div>
+        <div class="map-head eyebrow">Mapping table</div>
+        <div v-for="r in ROWS" :key="r.ph" class="mrow">
+          <span class="val">{{ r.v }}</span>
+          <span class="dash" aria-hidden="true" />
+          <span class="ph">{{ r.ph }}</span>
+        </div>
+      </div>
+    </Window>
+    <p class="legal">
+      The table puts the real values back. So this is pseudonymization, not anonymization.
+    </p>
 
-    <div class="card prompt">
-      Remind <Pii :state="promptState" chip="<PERSON_1>">Marie Dupont</Pii> to pay into
-      <Pii :state="promptState" chip="<IBAN_1>">CH93 0076 2011 6238 5295 7</Pii>.
-    </div>
+    <!-- the cloud: our backend calls the OpenAI Responses API -->
+    <Window class="w-cloud w-back" title="Our backend (FastAPI)" tone="dark">
+      <div class="got">
+        <span v-for="p in SENT" :key="p" class="ph dark">{{ p }}</span>
+      </div>
+    </Window>
+    <Window class="w-cloud w-ai" title="OpenAI Responses API" tone="dark">
+      <div class="got">
+        <span v-for="p in SENT" :key="p" class="ph dark">{{ p }}</span>
+      </div>
+    </Window>
 
-    <div class="map step" :class="{ on: s >= 1 }">
-      <div class="caption">Stays on the device</div>
-      <div class="mrow"><span class="chip-inline">&lt;PERSON_1&gt;</span><span class="mono">Marie Dupont</span></div>
-      <div class="mrow"><span class="chip-inline">&lt;IBAN_1&gt;</span><span class="mono">CH93 0076 2011 6238 5295 7</span></div>
-    </div>
-
-    <div class="card packet out" :class="{ on: s >= 2 }">
-      Remind <span class="chip-inline">&lt;PERSON_1&gt;</span> to pay into <span class="chip-inline">&lt;IBAN_1&gt;</span>.
-    </div>
-
-    <div class="card packet back" :class="{ on: s >= 3 }">
-      Dear <Pii :state="answerState" chip="<PERSON_1>">Marie Dupont</Pii>, please pay into
-      <Pii :state="answerState" chip="<IBAN_1>">CH93 0076 2011 6238 5295 7</Pii>.
-    </div>
+    <Callout class="close" :style="rise(ch.close)">So it must be small and fast.</Callout>
   </div>
 </template>
 
@@ -69,100 +104,160 @@ const BX = 580
 .setting {
   position: relative;
   width: 1136px;
-  font-size: var(--fs-label);
-  line-height: 1.5;
-  --chip-size: 0.84em;
+  height: 500px;
+  margin-top: 18px;
 }
-.contours {
-  position: absolute;
-  left: 604px;
-  top: 32px;
-}
-.wires {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: visible;
-}
+
 .zone {
   position: absolute;
   top: 0;
-  line-height: 1;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
 }
-.card {
-  position: absolute;
-  background: var(--paper);
-  border: 1px solid var(--hairline);
-  padding: 12px 16px 14px;
-}
-.prompt {
+.zone.laptop {
   left: 0;
-  top: 40px;
-  width: 556px;
+  width: 724px;
 }
-.map {
+.zone.cloud {
+  left: 796px;
+  width: 340px;
+}
+.border {
+  position: absolute;
+  left: 760px;
+  top: 0;
+  height: 368px;
+  border-left: 1.5px dashed rgba(22, 22, 22, 0.3);
+}
+.lanes {
   position: absolute;
   left: 0;
-  top: 136px;
-  width: 556px;
+  top: 0;
+  color: rgba(22, 22, 22, 0.45);
 }
-.map .caption {
-  margin-bottom: 6px;
+.lane {
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+/* the windows: a larger title bar, so the window names read at 18 px */
+.w-app,
+.w-cloud {
+  position: absolute;
+  z-index: 2;
+  --win-bar: 46px;
+  --win-title: 18px;
+}
+.w-app {
+  left: 0;
+  top: 38px;
+  width: 724px;
+  height: 330px;
+}
+.w-cloud {
+  left: 796px;
+  width: 340px;
+}
+.w-back {
+  top: 38px;
+  height: 148px;
+}
+.w-ai {
+  top: 216px;
+  height: 152px;
+}
+
+.app {
+  padding: 18px 18px 0;
+}
+.engine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.det {
+  padding: 10px 14px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+}
+/* our model, lit on the click: the ink frame of slide 2's model card */
+.det.model {
+  border-color: rgba(22, 22, 22, calc(0.16 + var(--lit) * 0.84));
+  box-shadow:
+    inset 0 0 0 calc(var(--lit) * 1px) var(--ink),
+    0 14px 30px -22px rgba(22, 22, 22, calc(var(--lit) * 0.5));
+}
+.det-name {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.det-what {
+  margin-top: 2px;
+  font-size: 18px;
+  line-height: 1.32;
+  color: var(--muted);
+}
+.map-head {
+  margin: 20px 0 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
+  color: var(--ink);
 }
 .mrow {
   display: grid;
-  grid-template-columns: 168px 1fr;
+  grid-template-columns: 290px 64px 1fr;
   align-items: center;
+  gap: 12px;
   height: 36px;
-  border-top: 1px solid var(--hairline);
-  font-size: var(--fs-caption);
+  border-bottom: 1px solid var(--hair);
 }
-.mrow:last-child {
-  border-bottom: 1px solid var(--hairline);
+.val {
+  font-size: 18px;
+  color: var(--red);
+  white-space: nowrap;
 }
-.mrow .chip-inline {
+.dash {
+  height: 0;
+  border-top: 1px solid rgba(22, 22, 22, 0.3);
+}
+/* the placeholder: an ink chip, like a redaction */
+.ph {
   justify-self: start;
-  font-size: var(--fs-caption);
+  font-family: var(--mono);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--paper);
+  white-space: nowrap;
 }
-.packet {
-  width: 440px;
-  transition:
-    transform var(--t-slow) var(--ease),
-    opacity var(--t-fast) var(--ease),
-    width var(--t-slow) var(--ease);
+/* on the dark panel the ink chip keeps a light edge, so it still reads as a chip */
+.ph.dark {
+  background: #0d0d0d;
+  color: var(--on-dark);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
-.packet.out {
-  left: 696px;
-  top: 40px;
-  opacity: 0;
-  transform: translateX(-696px);
+.got {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 16px;
 }
-.packet.out.on {
-  opacity: 1;
-  transform: none;
-}
-.packet.back {
-  left: 696px;
-  top: 252px;
-  opacity: 0;
-}
-.packet.back.on {
-  opacity: 1;
+
+.legal {
+  position: absolute;
   left: 0;
-  width: 556px;
-  transition:
-    left var(--t-slow) var(--ease) 120ms,
-    width var(--t-slow) var(--ease) 120ms,
-    opacity var(--t-fast) var(--ease);
+  top: 406px;
+  width: 1000px;
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--muted);
 }
-.draw {
-  stroke-dasharray: 140;
-  stroke-dashoffset: 140;
-  opacity: 0;
-  transition: stroke-dashoffset var(--t-mid) var(--ease), opacity 1ms linear;
-}
-.draw.on {
-  stroke-dashoffset: 0;
-  opacity: 1;
+.close {
+  position: absolute;
+  left: 0;
+  top: 442px;
 }
 </style>

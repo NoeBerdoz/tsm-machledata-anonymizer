@@ -6,13 +6,16 @@ export const POYA_STATIONS = [{"x":317.7,"y":228.8,"left":24.82,"top":88},{"x":5
 
 <script setup lang="ts">
 // Roadmap: a calm climb with five stations. The lead armailli and the lead cow stand at the
-// current station (progress 0 to 4), two cows follow. Reached stations show a red heart.
+// current station (progress 0 to 4), two cows follow. Reached stations show a red heart;
+// --pa-mark recolours that heart alone.
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { POYA_SYMBOLS, colours, walker, type Pt } from './poya-symbols'
 
 const props = withDefaults(
   defineProps<{
     progress?: number // 0 to 4
+    at?: number // continuous position of the herd, 0 to 4; when given it overrides progress
+    mark?: number // the one station that shows the heart; by default every reached station
     animate?: boolean // walk to the new station when progress changes; keep false for exports
     ink?: string
     paper?: string
@@ -27,6 +30,12 @@ const HEART = 'm0-21.5c-1.1 0-3.2-2.8-3.6-3.8-.5-1 .2-2.5.6-3 .3-.6 1.4-.6 1.9-.
 const at = walker(PATH)
 const back = (s: number) => at(s - 24)
 const clamp = (p: number) => Math.max(0, Math.min(4, Math.round(p)))
+// arc length of a position between stations, for a herd that glides
+const along = (p: number) => {
+  const i = Math.max(0, Math.min(4, p))
+  const a = Math.min(3, Math.floor(i))
+  return STATION_S[a] + (STATION_S[a + 1] - STATION_S[a]) * (i - a)
+}
 
 const pos = ref(STATION_S[clamp(props.progress)])
 let raf = 0
@@ -57,7 +66,7 @@ const GROUP = [
 ]
 const figures = computed(() =>
   GROUP.map((g) => {
-    const s = pos.value + g.d
+    const s = (props.at !== undefined ? along(props.at) : pos.value) + g.d
     const a = at(s), b = back(s)
     const tilt = (Math.atan2(a.y - b.y, a.x - b.x) * 180) / Math.PI * 0.8
     return { href: '#pa-' + g.n, t: `translate(${a.x.toFixed(1)} ${a.y.toFixed(1)}) rotate(${tilt.toFixed(1)}) translate(${-g.w} 0) scale(0.5)` }
@@ -73,7 +82,7 @@ const stations = POYA_STATIONS
       <g v-html="SCENE" />
       <g v-for="(p, i) in stations" :key="i" :transform="`translate(${p.x} ${p.y + 0.5})`">
         <use href="#pa-post" />
-        <path v-if="i <= progress" fill="var(--pa-red)" :d="HEART" />
+        <path v-if="mark !== undefined ? i === mark : i <= progress" fill="var(--pa-mark, var(--pa-red))" :d="HEART" />
       </g>
       <use v-for="(f, i) in figures" :key="'f' + i" :href="f.href" :transform="f.t" />
     </svg>

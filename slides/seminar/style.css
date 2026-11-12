@@ -1,31 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Fragment+Mono&display=block');
-
 /*
-  Palette, type and grid. Every colour and size in the deck comes from these tokens.
-  Canvas 1280 x 720, 12 columns, 72 px margins, 24 px gutters, 8 px rhythm.
+  The deck's look: a Swiss product. Paper, black ink, neutral greys and one red, set in
+  Instrument Sans with Fragment Mono for labels. Red is the signal and never decoration.
+  THEME.md explains how to write a slide with it. Every colour and size below is a token,
+  so a slide never needs a raw value.
+
+  Contents
+    1. fonts            4. layout chrome      7. per-slide helpers
+    2. tokens           5. small helpers      8. appendix
+    3. the three voices 6. motion
 */
+
+/* 1. Fonts: local woff2 files under the SIL Open Font License (see fonts/).
+   Instrument Sans is variable: weight 400 to 700, width 75 to 100 %. */
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: block;
+  src: url('./fonts/instrument-sans-latin-wdth-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: italic;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: block;
+  src: url('./fonts/instrument-sans-latin-wdth-wght-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fragment Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/fragment-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fragment Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/fragment-mono-latin-400-italic.woff2') format('woff2');
+}
+
+/* 2. Tokens */
 :root {
-  --paper: #f6f5f1;
-  --ink: #161616;
-  --red: #da291c;
-  --graphite: #666660;
-  --hairline: #d4d1c8;
+  /* paper and ink */
+  --paper: #f6f5f1; /* the page; the Poya art is cut from it */
+  --card: #ffffff; /* windows and cards that sit on the page */
+  --ink: #161616; /* type, the Poya art, placeholder chips */
+  --muted: #4a4a45; /* the lede and secondary prose */
+  --muted-2: #666660; /* graphite: labels, eyebrows, sources */
+  --hair: rgba(22, 22, 22, 0.16); /* rules, borders, empty bars */
+  --wash: rgba(22, 22, 22, 0.05); /* the faintest fill: tracks, inactive cells */
+  --ui: #efeeea; /* quiet interface fills: a chat bubble, a status line */
 
-  --sans: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
-  --mono: 'Fragment Mono', 'Menlo', monospace;
+  /* the one colour: red is the signal */
+  --red: #da291c; /* Pantone 485 C */
+  --red-soft: rgba(218, 41, 28, 0.1);
 
-  /* The five sizes */
-  --fs-cover: 58px;
-  --fs-head: 42px;
-  --fs-body: 24px;
-  --fs-label: 18px;
-  --fs-caption: 15px;
+  /* the dark panel of a remote service, and what sits on it */
+  --charcoal: #232323;
+  --charcoal-bar: #2d2d2c;
+  --on-dark: #edece8; /* text on charcoal */
+  --on-dark-2: #a4a39d; /* labels on charcoal */
+  --red-on-dark: #f2584b; /* the red, lifted so type reads on charcoal */
 
+  /* older names, kept so the slides not yet restyled keep working */
+  --graphite: var(--muted-2);
+  --hairline: var(--hair);
+
+  /* the voices */
+  --sans: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; /* claims, prose, figures */
+  --mono: 'Fragment Mono', Menlo, monospace; /* eyebrows, labels, identifiers */
+  --fig-stretch: 84%; /* big numbers set a little narrow, as on a Swiss poster */
+
+  /* sizes on the 1280 x 720 canvas */
+  --fs-cover: 66px; /* cover title */
+  --fs-head: 44px; /* the claim headline */
+  --fs-lede: 24px; /* the sentence under the claim */
+  --fs-body: 24px; /* main text in the older slides */
+  --fs-text: 20px; /* prose inside the figures */
+  --fs-label: 18px; /* the smallest explaining text */
+  --fs-caption: 15px; /* sources and small print only */
+  --fs-eyebrow: 13px; /* mono eyebrows */
+
+  /* grid: 72 px margins, 12 columns, 24 px gutters */
   --margin: 72px;
   --gutter: 24px;
   --col: calc((1136px - 11 * 24px) / 12);
 
+  /* motion */
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --t-fast: 250ms;
   --t-mid: 350ms;
   --t-slow: 450ms;
@@ -33,74 +100,124 @@
 
 .slidev-layout {
   font-family: var(--sans);
-  font-variation-settings: 'wdth' 100;
   font-size: var(--fs-body);
   font-weight: 400;
-  line-height: 1.33;
+  line-height: 1.36;
   color: var(--ink);
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
 
+/* 3. The three voices */
+
+/* The claim headline: Instrument Sans at a medium weight, never bold. Its one emphasis,
+   written as *words* in markdown, prints in red, upright. */
 .slidev-layout h1,
 .slidev-layout h2,
 .slidev-layout h3 {
   font-family: var(--sans);
   font-weight: 500;
-  letter-spacing: -0.012em;
   margin: 0;
+  color: var(--ink);
 }
-
 .slidev-layout h1 {
   font-size: var(--fs-head);
-  line-height: 1.14;
+  line-height: 1.12;
+  letter-spacing: -0.016em;
   max-width: 1136px;
+}
+.slidev-layout h1 em,
+.display-em {
+  font-style: normal;
+  font-weight: inherit;
+  color: var(--red);
+}
+
+/* The lede: one sentence under the claim. A paragraph written right under the headline
+   becomes the lede on its own. */
+.slidev-layout h1 + p,
+.slidev-layout .lede {
+  margin-top: 12px;
+  font-family: var(--sans);
+  font-size: var(--fs-lede);
+  line-height: 1.34;
+  color: var(--muted);
+  max-width: 900px;
+}
+
+/* A figure: a number in the sans, tabular so counting digits never jump. */
+.figure-num {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-stretch: var(--fig-stretch);
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* The eyebrow: the mono voice for kickers, part names and labels above things. */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--fs-eyebrow);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--muted-2);
+}
+/* Math inside an uppercase label keeps its own case, so tau never prints as T. */
+.eyebrow .katex,
+.appx h3 .katex {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .slidev-layout p {
   margin: 0;
 }
 
-.slidev-layout h1 + p {
-  opacity: 1;
-}
-
-.slidev-layout code {
+.slidev-layout code,
+.mono {
   font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.slidev-layout code {
   font-size: 0.9em;
   background: none;
   padding: 0;
   color: inherit;
 }
 
-.mono {
+/* A placeholder chip, such as <PERSON_1>: an ink chip with light mono text, like a
+   redaction. Never red. */
+.chip-inline,
+.ph {
   font-family: var(--mono);
-  font-weight: 400;
-  letter-spacing: 0;
+  font-size: 0.8em;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 3px;
+  padding: 0.06em 0.36em 0.08em;
+  white-space: nowrap;
 }
 
+/* 4. Layout chrome lives in slide-top.vue and in layouts/. */
+
+/* 5. Small helpers */
 .label {
   font-size: var(--fs-label);
-  line-height: 1.33;
+  line-height: 1.36;
 }
-
 .caption {
   font-size: var(--fs-caption);
   line-height: 1.4;
-  color: var(--graphite);
+  color: var(--muted-2);
 }
-
 .muted {
-  color: var(--graphite);
+  color: var(--muted-2);
 }
-
 .red {
   color: var(--red);
-}
-
-.lede {
-  font-size: var(--fs-body);
-  line-height: 1.33;
 }
 
 /* 12-column grid helper */
@@ -110,34 +227,66 @@
   column-gap: var(--gutter);
 }
 
-/* Click reveal used in slides.md: class="step" :class="{ on: $clicks >= n }" */
-.step {
-  opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity var(--t-fast) var(--ease),
-    transform var(--t-mid) var(--ease);
-}
-
-.step.on {
-  opacity: 1;
-  transform: none;
-}
-
-/* The replaced mark, for inline use */
-.chip-inline {
-  font-family: var(--mono);
-  font-size: 0.78em;
-  border: 1px solid var(--ink);
-  border-radius: 3px;
-  padding: 0.06em 0.36em 0.08em;
-  white-space: nowrap;
-}
-
 /* KaTeX inside the deck */
 .slidev-layout .katex {
   font-size: 1.05em;
   color: var(--ink);
+}
+
+/* 6. Motion. A calm rise-in: each top-level element of a slide rises in turn when the
+   slide opens. Clicks reveal one beat at a time. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slidev-layout.doc > *,
+.slidev-layout.closing > * {
+  animation: rise 0.6s var(--ease-out) both;
+  animation-delay: var(--d, 0s);
+}
+.slidev-layout.doc > :nth-child(1),
+.slidev-layout.closing > :nth-child(1) {
+  --d: 0.04s;
+}
+.slidev-layout.doc > :nth-child(2),
+.slidev-layout.closing > :nth-child(2) {
+  --d: 0.16s;
+}
+.slidev-layout.doc > :nth-child(3),
+.slidev-layout.closing > :nth-child(3) {
+  --d: 0.28s;
+}
+.slidev-layout.doc > :nth-child(n + 4),
+.slidev-layout.closing > :nth-child(n + 4) {
+  --d: 0.4s;
+}
+
+/* A click reveal in markdown: class="step" :class="{ on: $clicks >= n }" */
+.step {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--t-mid) var(--ease),
+    transform var(--t-slow) var(--ease-out);
+}
+.step.on {
+  opacity: 1;
+  transform: none;
 }
 
 /* Slide transition: a short fade */
@@ -145,268 +294,120 @@
 .page-fade-leave-active {
   transition: opacity 300ms var(--ease);
 }
-
 .page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
 }
 
-/* Reader appendix: plain text in two columns */
+/* Reduced motion: short fades, no travel. */
+@media (prefers-reduced-motion: reduce) {
+  .slidev-layout.doc > *,
+  .slidev-layout.closing > * {
+    animation-name: fade-in;
+    animation-duration: 0.2s;
+    animation-delay: 0s;
+  }
+  .step {
+    transform: none;
+    transition: opacity 0.2s linear;
+  }
+}
+
+/* Print and PDF export: every page shows the end state at once.
+   slide-top.vue sets .is-print on the page while the deck is exported. */
+.is-print *,
+.is-print *::before,
+.is-print *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+/* 7. Per-slide helpers, used by a few pages */
+
+/* Quantization (slide 7) */
+.slidev-layout .quant-x {
+  margin-top: 24px;
+}
+
+/* A lede that follows a claim set by hand (slide 9) */
+.slidev-layout .sub {
+  margin-top: 12px;
+}
+
+/* Closing (slide 14) */
+.slidev-layout .close-sentence {
+  margin-top: 44px;
+}
+
+/* Roadmap: the Poya path keeps its cut, in the deck's ink. Its one red is the marker of
+   where we stand today. */
+.slidev-layout .route-fig {
+  margin-top: 36px;
+}
+.slidev-layout .route-fig svg {
+  --pa-ink: var(--ink) !important;
+  --pa-red: var(--ink) !important;
+  --pa-brass: var(--ink) !important;
+  --pa-mark: var(--red);
+}
+
+/* 8. Reader appendix: plain text in columns */
 .appx {
-  margin-top: 32px;
+  margin-top: 28px;
   font-size: var(--fs-label);
   line-height: 1.42;
 }
-
-.appx.cols {
+.appx.cols,
+.slidev-layout .appx .cols {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   column-gap: calc(2 * var(--gutter));
 }
-
 .appx p + p,
 .appx ul + p,
 .appx p + ul {
   margin-top: 10px;
 }
-
 .appx h3 {
-  font-size: var(--fs-label);
-  font-weight: 500;
-  line-height: 1.33;
-  padding-top: 8px;
-  border-top: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: var(--fs-eyebrow);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--ink);
+  padding-top: 10px;
+  border-top: 1px solid var(--hair);
   margin: 0 0 8px;
 }
-
 .appx * + h3 {
-  margin-top: 20px;
+  margin-top: 18px;
 }
-
 .appx ul {
   margin: 0;
   padding-left: 1.1em;
 }
-
 .appx li + li {
   margin-top: 4px;
 }
-
 .appx .katex-display {
   margin: 10px 0;
   text-align: left;
 }
-
 .appx .katex-display > .katex {
   text-align: left;
 }
-
-.appx.small {
-  font-size: var(--fs-caption);
-  line-height: 1.45;
-}
-
-.appx.small h3 {
-  font-size: var(--fs-caption);
-}
-
 .appx .note {
   font-size: var(--fs-caption);
-  color: var(--graphite);
-}
-
-/* Cover */
-.slidev-layout .cover-course {
-  line-height: 1.2;
-}
-.slidev-layout .cover-head {
-  margin-top: 40px;
-  align-items: start;
-}
-.slidev-layout .cover-main {
-  grid-column: 1 / span 9;
-}
-.slidev-layout .cover-project {
-  font-size: var(--fs-body);
-  color: var(--graphite);
-}
-.slidev-layout h1.cover-title {
-  margin-top: 16px;
-  font-size: var(--fs-cover);
-  font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.018em;
-  max-width: none;
-}
-.slidev-layout .cover-tagline {
-  margin-top: 24px;
-  font-size: var(--fs-body);
-}
-.slidev-layout .cover-team {
-  grid-column: 10 / span 3;
-  list-style: none;
-  margin: 0;
-  padding: 4px 0 0;
-}
-.slidev-layout .cover-team li {
-  margin: 0;
-  padding: 0;
-}
-.slidev-layout .cover-art {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-}
-
-/* Hook */
-.slidev-layout .hook {
-  margin-top: 136px;
-}
-
-/* Setting */
-.slidev-layout .setting-fig {
-  margin-top: 40px;
-}
-.slidev-layout .gdpr {
-  margin-top: 24px;
-}
-
-/* Distillation */
-.slidev-layout .distil-a {
-  margin-top: 48px;
-}
-.slidev-layout .vignette {
-  grid-column: 1 / span 3;
-}
-.slidev-layout .soft-wrap {
-  grid-column: 4 / span 9;
-}
-.slidev-layout .takeaway {
-  margin-top: 32px;
-  margin-left: calc(3 * var(--col) + 3 * var(--gutter));
-}
-
-/* Quantization */
-.slidev-layout .quant {
-  margin-top: 48px;
-}
-.slidev-layout .clock-cap {
-  margin-top: 16px;
-  max-width: 200px;
-}
-.slidev-layout .quant-fig {
-  grid-column: 4 / span 9;
-}
-.slidev-layout .quant-eq {
-  display: flex;
-  align-items: baseline;
-  gap: 48px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hairline);
-}
-.slidev-layout .quant-eq .legend {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.slidev-layout .quant-eq .sw {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-left: 8px;
-}
-.slidev-layout .quant-eq .sw.ghost {
-  border: 1px solid var(--graphite);
-}
-.slidev-layout .quant-eq .sw.stored {
-  background: var(--graphite);
-}
-.slidev-layout .quant-eq .sw.err {
-  width: 16px;
-  height: 2px;
-  border-radius: 0;
-  background: var(--ink);
-}
-.slidev-layout .ptq {
-  margin: 40px 0 40px;
-}
-.slidev-layout .ptq p:first-child {
-  grid-column: 1 / span 6;
-}
-.slidev-layout .ptq p:last-child {
-  grid-column: 7 / span 6;
-}
-.slidev-layout .ptq .mono {
-  color: var(--graphite);
-}
-
-/* Evaluation */
-.slidev-layout .sub {
-  margin-top: 16px;
-}
-
-/* Pipeline */
-.slidev-layout .gate-cap {
-  margin-top: 8px;
-}
-
-/* Roadmap */
-.slidev-layout .route-fig {
-  margin-top: 40px;
-}
-
-/* Closing */
-.slidev-layout .questions {
-  margin-top: 64px;
-  font-size: var(--fs-cover);
-  font-weight: 500;
-  letter-spacing: -0.018em;
-  line-height: 1.08;
-}
-.slidev-layout .close-sentence {
-  margin-top: 40px;
-}
-.slidev-layout .close-art {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-}
-
-/* Appendix extras */
-.slidev-layout .appx .cols3,
-.slidev-layout .appx.cols3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  column-gap: calc(2 * var(--gutter));
-}
-.slidev-layout .size-table {
-  display: grid;
-  grid-template-columns: calc(3 * var(--col) + 2 * var(--gutter)) calc(2 * var(--col) + var(--gutter)) 1fr;
-  column-gap: var(--gutter);
-}
-.slidev-layout .size-table > div {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--hairline);
-}
-.slidev-layout .size-table > .caption {
-  border-bottom-color: var(--ink);
-}
-.slidev-layout .size-notes {
-  margin-top: 32px;
+  color: var(--muted-2);
 }
 .slidev-layout .refs {
-  margin-top: 32px;
+  margin-top: 28px;
   max-width: calc(9 * var(--col) + 8 * var(--gutter));
 }
 .slidev-layout .refs p {
   padding: 12px 0;
-  border-top: 1px solid var(--hairline);
-}
-.slidev-layout .appx .cols {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  column-gap: calc(2 * var(--gutter));
+  border-top: 1px solid var(--hair);
 }

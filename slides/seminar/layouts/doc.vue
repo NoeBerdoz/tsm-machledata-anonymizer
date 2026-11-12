@@ -1,3 +1,8 @@
+<script setup lang="ts">
+// The default slide. The masthead and the footer rail come from slide-top.vue; this layout
+// places the claim headline, the lede and the body between them.
+</script>
+
 <template>
   <div class="slidev-layout doc">
     <slot />
@@ -9,6 +14,6 @@
   position: relative;
   height: 100%;
   background: var(--paper);
-  padding: 88px var(--margin) 48px;
+  padding: 92px var(--margin) 64px;
 }
 </style>
