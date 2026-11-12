@@ -7,9 +7,16 @@ source: 'Counted from the published weights, and on 103,718 OpenPII-1M texts in 
 
 # Most of the teacher is *a dictionary*
 
-The dictionary turns each token, a word or a piece of a word, into numbers.
+The dictionary turns each token, a word or a piece of one, into learned numbers: parameters.
 
 <TeacherSize />
+
+<style>
+/* the lede defines token and parameter in one line, so it may use the full width */
+h1 + p {
+  max-width: none;
+}
+</style>
 
 <!--
 Target time 0:35. Speaker: to assign.

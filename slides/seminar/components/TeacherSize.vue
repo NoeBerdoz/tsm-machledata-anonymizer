@@ -166,7 +166,7 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
     </div>
 
     <div class="notes">
-      <p class="note" :style="rise(ch.note1)">Our model targets Switzerland, so it needs only four languages.</p>
+      <p class="note" :style="rise(ch.note1)">Our model targets Switzerland: it needs only four languages.</p>
       <p class="note" :style="rise(ch.note2)">An option if time allows: drop the other tokens.</p>
     </div>
   </div>

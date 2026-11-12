@@ -9,12 +9,12 @@ eyebrow: Appendix for readers
 <div class="appx cols bl-notes">
 <div>
 
-Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. T2 is in progress, so no row is on T2-dev yet. Each T1 sample is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. T1 is chosen by 16 November, and these numbers favour OpenPII-1M.
+Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. T2 is in progress, so no row is on T2-dev yet. Each T1 sample is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. We chose OpenPII-1M validation as T1.
 
 </div>
 <div>
 
-The Swiss set has 634 public rows from the OpenPII-1M sample and the Gretel test split, with fake but valid Swiss values. "Regex +" masks every span that either detector finds. Without the 5 types it has no label for, GLiNER2-PII reaches 92 % on OpenPII-1M and 91 % on open-pii-500k.
+The Swiss set has 634 public rows from the OpenPII-1M sample and the Gretel test split, with fake but valid Swiss values. "Regex +" masks every span that either detector finds. Without the 5 types it has no label for, GLiNER2-PII reaches 92 % on OpenPII-1M and 90 % on open-pii-500k.
 
 </div>
 </div>

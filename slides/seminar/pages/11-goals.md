@@ -5,6 +5,8 @@ clicks: 5
 
 # Five *SMART* goals
 
+Checked at the final talk in mid-December, MLOps by 7 December.
+
 <Goals />
 
 <!--
