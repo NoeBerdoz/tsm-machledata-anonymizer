@@ -3,7 +3,7 @@ part: 5
 clicks: 4
 ---
 
-# The gate comes before the students
+# The pipeline comes before the students
 
 Our plan, from today to the final talk.
 
@@ -12,9 +12,9 @@ Our plan, from today to the final talk.
 <!--
 Target time 0:15. Speaker: to assign.
 
-Today, v0.
+Today: the baselines.
 [click] 30 November: the fine-tuned teacher.
-[click] 7 December: the gate and the monitoring.
-[click] 10 December: the students. The gate checks them.
-[click] 18 December: the final talk.
+[click] 7 December: the pipeline.
+[click] About 10 December: the students. The pipeline checks them.
+[click] Mid-December: the final talk.
 -->

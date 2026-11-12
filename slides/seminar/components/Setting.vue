@@ -1,15 +1,11 @@
 <script setup lang="ts">
-// Slide 3: where each part runs. Slide 2 told the trip of one prompt, so this slide does not
-// retell it. It shows the parts and their place, with the values of slide 2.
-//   0  the laptop: our app runs the engine (rules and our model) and keeps the mapping
-//      table; the cloud: our backend (FastAPI) calls the OpenAI Responses API; only
-//      placeholders cross the border
-//   1  the engine runs on every request, on the laptop CPU: our model is lit, and the
-//      consequence closes the slide
-// Names follow docs/architecture.md.
-import { useBeats, type Channels, type Seg } from './lib/beats'
+// Appendix: where each part of our app runs, for a reader who asks where the real values
+// come back. A static figure, with no clicks.
+//   the laptop: our app runs the engine (rules and our model) and keeps the mapping table;
+//   the cloud: our backend (FastAPI) calls the OpenAI Responses API; only placeholders
+//   cross the border
+// Names follow docs/architecture.md, values follow slide 2.
 import Window from './Window.vue'
-import Callout from './Callout.vue'
 
 const ROWS = [
   { v: 'Marie Dupont', ph: '<PERSON_1>' },
@@ -17,23 +13,6 @@ const ROWS = [
   { v: 'Rue Centrale 4, 1003 Lausanne', ph: '<ADDRESS_1>' },
 ]
 const SENT = ROWS.map((r) => r.ph)
-
-function target(n: number): Channels {
-  return { lit: n >= 1 ? 1 : 0, close: n >= 1 ? 1 : 0 }
-}
-const beats: Record<number, Seg[]> = {
-  1: [
-    { k: 'lit', to: 1, at: 0, dur: 360 },
-    { k: 'close', to: 1, at: 160, dur: 420 },
-  ],
-}
-const { ch, fade } = useBeats({ target, beats })
-
-const rise = (v: number, d = 10) => ({
-  opacity: v,
-  visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const),
-  transform: `translateY(${(1 - v) * d}px)`,
-})
 
 // the wire between the app and the backend, in figure coordinates
 const APP_R = 724
@@ -43,7 +22,7 @@ const BACK_Y = 144
 </script>
 
 <template>
-  <div class="setting" :style="{ opacity: fade }">
+  <div class="setting">
     <div class="zone laptop"><span class="eyebrow">Your laptop</span></div>
     <div class="zone cloud"><span class="eyebrow">The cloud</span></div>
     <div class="border" />
@@ -67,7 +46,7 @@ const BACK_Y = 144
             <div class="det-name">Rules</div>
             <div class="det-what">Fixed formats, such as Swiss social security (AVS) numbers</div>
           </div>
-          <div class="det model" :style="{ '--lit': ch.lit }">
+          <div class="det model">
             <div class="det-name">Our model</div>
             <div class="det-what">What needs context, such as names and addresses</div>
           </div>
@@ -85,18 +64,17 @@ const BACK_Y = 144
     </p>
 
     <!-- the cloud: our backend calls the OpenAI Responses API -->
-    <Window class="w-cloud w-back" title="Our backend (FastAPI)" tone="dark">
+    <Window class="w-cloud w-back" title="Our backend (FastAPI)" tone="dark" icon="cloud">
       <div class="got">
         <span v-for="p in SENT" :key="p" class="ph dark">{{ p }}</span>
       </div>
     </Window>
-    <Window class="w-cloud w-ai" title="OpenAI Responses API" tone="dark">
+    <Window class="w-cloud w-ai" title="OpenAI Responses API" tone="dark" icon="cloud">
       <div class="got">
         <span v-for="p in SENT" :key="p" class="ph dark">{{ p }}</span>
       </div>
     </Window>
 
-    <Callout class="close" :style="rise(ch.close)">So it must be small and fast.</Callout>
   </div>
 </template>
 
@@ -104,7 +82,7 @@ const BACK_Y = 144
 .setting {
   position: relative;
   width: 1136px;
-  height: 500px;
+  height: 450px;
   margin-top: 18px;
 }
 
@@ -180,12 +158,10 @@ const BACK_Y = 144
   border: 1px solid var(--hair);
   border-radius: 8px;
 }
-/* our model, lit on the click: the ink frame of slide 2's model card */
+/* our model: the ink frame of slide 2's model card */
 .det.model {
-  border-color: rgba(22, 22, 22, calc(0.16 + var(--lit) * 0.84));
-  box-shadow:
-    inset 0 0 0 calc(var(--lit) * 1px) var(--ink),
-    0 14px 30px -22px rgba(22, 22, 22, calc(var(--lit) * 0.5));
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 .det-name {
   font-size: 20px;
@@ -254,10 +230,5 @@ const BACK_Y = 144
   font-size: 18px;
   line-height: 1.4;
   color: var(--muted);
-}
-.close {
-  position: absolute;
-  left: 0;
-  top: 442px;
 }
 </style>

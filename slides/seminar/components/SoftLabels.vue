@@ -1,107 +1,143 @@
 <script setup lang="ts">
-// Slide 5: hard label against soft labels, for the first "Dupont" of an example sentence.
+// Slide 6: what a soft label is, built one idea per click on one word of one sentence.
+//   0  the sentence and the four types: which type is Dupont?
+//   1  the issue: the same word is a person, then part of a place (Rue Dupont)
+//   2  the hard label: the ground truth says PERSON, 100 %
+//   3  the soft labels: the teacher's probability for each type; LOCATION 14 %
+//   4  the temperature: the same teacher at tau = 4; the small values grow
 // The teacher's scores are made up for the example: z = (4.0, 2.2, 0.6, 0.0) for PERSON,
 // LOCATION, ORGANIZATION and NONE. Its probabilities are softmax(z / tau), computed here:
-//   tau 1  82.2 / 13.6 / 2.7 / 1.5 %
-//   tau 2  58.0 / 23.6 / 10.6 / 7.8 %
-//   tau 4  41.1 / 26.2 / 17.6 / 15.1 %
-// The ground truth is PERSON at 100 %.
-//   0  tau = 1: who gives the target (ground truth or teacher) and its form (hard or soft)
-//   1  tau = 2: the scores are divided by the temperature, the soft labels get flatter
-//   2  tau = 4: LOCATION 26 %, so the student learns that Dupont can be a place
+//   tau 1  82.17 / 13.58 / 2.74 / 1.51 %   (shown 82 / 14 / 3 / 2)
+//   tau 4  41.10 / 26.21 / 17.57 / 15.12 % (shown 41 / 26 / 18 / 15)
+// On click 4 the last column starts from the tau = 1 values and the temperature rises to 4.
 import { computed } from 'vue'
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import Callout from './Callout.vue'
+import Tex from './Tex.vue'
 
-const CLASSES = ['PERSON', 'LOCATION', 'ORGANIZATION', 'NONE']
+const TYPES = ['PERSON', 'LOCATION', 'ORGANIZATION', 'NONE']
 const Z = [4.0, 2.2, 0.6, 0.0]
 const TRUTH = [1, 0, 0, 0]
-const TAUS = [1, 2, 4]
+const HOT = 4
 
 function softmax(z: number[], tau: number) {
   const e = z.map((v) => Math.exp(v / tau))
   const s = e.reduce((a, b) => a + b, 0)
   return e.map((v) => v / s)
 }
+const COOL = softmax(Z, 1)
 
+// ---------- states ----------
 function target(n: number): Channels {
-  const i = Math.min(Math.max(n, 0), 2)
-  return { tau: TAUS[i], sel: i, c0: i === 0 ? 1 : 0, c1: i === 1 ? 1 : 0, c2: i === 2 ? 1 : 0, loc: i === 2 ? 1 : 0 }
+  const c: Channels = {
+    u: n >= 1 ? 1 : 0, l1: n >= 1 ? 1 : 0, l2: n >= 1 ? 1 : 0,
+    gt: n >= 2 ? 1 : 0, gtFill: n >= 2 ? 1 : 0,
+    t1: n >= 3 ? 1 : 0, t1Fill: n >= 3 ? 1 : 0, loc: n >= 3 ? 1 : 0,
+    t4: n >= 4 ? 1 : 0, tau: n >= 4 ? HOT : 1, tag: n >= 4 ? 1 : 0,
+  }
+  for (let i = 0; i <= 4; i++) c['c' + i] = i === Math.min(n, 4) ? 1 : 0
+  return c
 }
-const step = (n: number, extra: Seg[] = []): Seg[] => [
-  { k: 'sel', to: n, at: 0, dur: 320, ease: inOutCubic },
-  { k: 'tau', to: TAUS[n], at: 0, dur: 900, ease: inOutCubic },
-  { k: 'c' + (n - 1), to: 0, at: 0, dur: 200 },
-  { k: 'c' + n, to: 1, at: 260, dur: 420 },
-  ...extra,
+// the sentence of the past click leaves, the new one comes in
+const swap = (n: number): Seg[] => [
+  { k: 'c' + (n - 1), to: 0, at: 0, dur: 180 },
+  { k: 'c' + n, to: 1, at: 200, dur: 380 },
 ]
 const beats: Record<number, Seg[]> = {
-  1: step(1),
-  2: step(2, [{ k: 'loc', to: 1, at: 700, dur: 400 }]),
+  1: [
+    { k: 'u', to: 1, at: 0, dur: 420, ease: inOutCubic },
+    { k: 'l1', to: 1, at: 80, dur: 360 },
+    { k: 'l2', to: 1, at: 300, dur: 360 },
+    ...swap(1),
+  ],
+  2: [
+    { k: 'gt', to: 1, at: 0, dur: 300 },
+    { k: 'gtFill', to: 1, at: 150, dur: 700, ease: inOutCubic },
+    ...swap(2),
+  ],
+  3: [
+    { k: 't1', to: 1, at: 0, dur: 300 },
+    { k: 't1Fill', to: 1, at: 150, dur: 800, ease: inOutCubic },
+    { k: 'loc', to: 1, at: 900, dur: 400 },
+    ...swap(3),
+  ],
+  // the new column starts as a copy of the tau = 1 column, then the temperature rises
+  4: [
+    { k: 't4', to: 1, at: 0, dur: 280 },
+    { k: 'tag', to: 1, at: 0, dur: 280 },
+    { k: 'tau', to: HOT, at: 350, dur: 1300, ease: inOutCubic },
+    ...swap(4),
+  ],
 }
 const { ch, fade } = useBeats({ target, beats })
 
-const probs = computed(() => softmax(Z, ch.tau))
+// ---------- what each state shows ----------
+const hot = computed(() => softmax(Z, ch.tau))
 const pct = (v: number) => `${Math.round(v * 100)} %`
-const score = (i: number) => (Z[i] / ch.tau).toFixed(2)
-const BAR = 280
-const on = (v: number, d = 8) => ({
-  opacity: v,
-  visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const),
-  transform: `translateY(${(1 - v) * d}px)`,
-})
+const tauText = computed(() => (Math.abs(ch.tau - Math.round(ch.tau)) < 0.005 ? String(Math.round(ch.tau)) : ch.tau.toFixed(1)))
+const vis = (v: number) => ({ opacity: v, visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const) })
+const rise = (v: number, d = 8) => ({ ...vis(v), transform: `translateY(${(1 - v) * d}px)` })
+const bar = (v: number) => ({ transform: `scaleX(${Math.max(0, Math.min(1, v))})` })
 </script>
 
 <template>
   <div class="soft" :style="{ opacity: fade }">
+    <!-- the sentence, with the word in question -->
     <div class="top">
-      <p class="line">Send the contract to Mrs <span class="val">Dupont</span>, Rue Dupont 4, Lausanne.</p>
-      <span class="eyebrow">Example with made-up scores</span>
+      <p class="line">
+        Send the contract to Mrs
+        <span class="w"><span class="val">Dupont</span><span class="tag" :style="rise(ch.l1, 6)">a person</span></span>,
+        Rue
+        <span class="w">Dupont<span class="u" :style="bar(ch.u)" /><span class="tag" :style="rise(ch.l2, 6)">part of a place</span></span>
+        4, Lausanne.
+      </p>
+      <span class="eyebrow ex">Simplified example, made-up scores</span>
     </div>
 
-    <div class="table">
-      <!-- headers: who gives the target, then its form -->
-      <div class="h" />
-      <div class="h">
-        <div class="eyebrow ink">Ground truth</div>
-        <div class="form">hard label</div>
-      </div>
-      <div class="h sc">
-        <div class="eyebrow">Score</div>
-        <div class="form">/ <Tex e="\tau" /></div>
-      </div>
-      <div class="h teach">
-        <div>
-          <div class="eyebrow ink">The teacher's prediction</div>
-          <div class="form">soft labels</div>
-        </div>
-        <div class="temp">
-          <div class="eyebrow">Temperature <Tex class="tau" e="\tau" /></div>
-          <div class="switch">
-            <span class="knob" :style="{ transform: `translateX(${ch.sel * 48}px)` }" />
-            <span v-for="(t, i) in TAUS" :key="t" class="opt" :class="{ act: Math.round(ch.sel) === i }">{{ t }}</span>
-          </div>
-        </div>
+    <!-- the table: the type, then one column per target -->
+    <div class="tab">
+      <div class="row head">
+        <span />
+        <span class="h" :style="rise(ch.gt)">
+          <span class="eyebrow ink">Ground truth</span>
+          <span class="form">hard label</span>
+        </span>
+        <span class="h" :style="rise(ch.t1)">
+          <span class="eyebrow ink">The teacher<span class="tau" :style="vis(ch.tag)">, <Tex e="\tau = 1" /></span></span>
+          <span class="form">soft labels: a probability for each type</span>
+        </span>
+        <span class="h" :style="rise(ch.t4)">
+          <span class="eyebrow ink">The teacher, <Tex class="tau" :e="`\\tau = ${tauText}`" /></span>
+          <span class="form">softer labels</span>
+        </span>
       </div>
 
-      <div v-for="(c, i) in CLASSES" :key="c" class="row" :style="{ '--lit': i === 1 ? ch.loc : 0 }">
-        <span class="mono cname">{{ c }}</span>
-        <span class="cell">
-          <span class="track" :style="{ width: BAR + 'px' }"><span class="fill" :style="{ transform: `scaleX(${TRUTH[i]})` }" /></span>
-          <span class="num">{{ pct(TRUTH[i]) }}</span>
+      <div v-for="(t, i) in TYPES" :key="t" class="row" :style="{ '--lit': i === 1 ? ch.loc : 0 }">
+        <span class="mono cname">{{ t }}</span>
+        <span class="cell" :style="vis(ch.gt)">
+          <span class="track"><span class="fill" :style="bar(TRUTH[i] * ch.gtFill)" /></span>
+          <span class="num">{{ pct(TRUTH[i] * ch.gtFill) }}</span>
         </span>
-        <span class="score">{{ score(i) }}</span>
-        <span class="cell">
-          <span class="track" :style="{ width: BAR + 'px' }"><span class="fill" :style="{ transform: `scaleX(${probs[i]})` }" /></span>
-          <span class="num">{{ pct(probs[i]) }}</span>
+        <span class="cell" :style="vis(ch.t1)">
+          <span class="track"><span class="fill" :style="bar(COOL[i] * ch.t1Fill)" /></span>
+          <span class="num">{{ pct(COOL[i] * ch.t1Fill) }}</span>
+        </span>
+        <span class="cell" :style="vis(ch.t4)">
+          <span class="track"><span class="fill" :style="bar(hot[i])" /></span>
+          <span class="num">{{ pct(hot[i]) }}</span>
         </span>
       </div>
     </div>
 
-    <div class="notes">
-      <Callout class="note" :style="on(ch.c0)">Hard or soft is the form of the target. Ground truth or prediction is who gives it.</Callout>
-      <Callout class="note" :style="on(ch.c1)">The temperature <Tex e="\tau" /> divides each score before it becomes a probability. A higher <Tex e="\tau" /> brings the probabilities closer together.</Callout>
-      <Callout class="note" :style="on(ch.c2)">The student is trained to copy all four values, so LOCATION gets 26 % too.<br>It learns that Dupont can also be a place.</Callout>
+    <!-- one sentence per click, in the order the speaker says it -->
+    <div class="says">
+      <Callout class="note" :style="rise(ch.c0)">Here, each word gets one of these types. Which one is Dupont?</Callout>
+      <Callout class="note" :style="rise(ch.c1)">The same word can be a person or part of a place. A model can hesitate.</Callout>
+      <Callout class="note" :style="rise(ch.c2)">A hard label gives one answer. It says nothing about the other types.</Callout>
+      <Callout class="note" :style="rise(ch.c3)">The teacher's soft labels show that Dupont can also be a place.</Callout>
+      <Callout class="note" :style="rise(ch.c4)">
+        A higher temperature <Tex e="\tau" /> spreads the probabilities: small ones grow.<br>The student sees the second choices.
+      </Callout>
     </div>
   </div>
 </template>
@@ -115,13 +151,21 @@ const on = (v: number, d = 8) => ({
 .ink {
   color: var(--ink);
 }
+
+/* the sentence */
 .top {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  height: 74px;
 }
 .line {
-  font-size: 24px;
+  font-size: 28px;
+  line-height: 1.25;
+}
+.w {
+  position: relative;
+  display: inline-block;
 }
 .val {
   color: var(--red);
@@ -129,86 +173,72 @@ const on = (v: number, d = 8) => ({
   text-decoration-thickness: 1.5px;
   text-underline-offset: 5px;
 }
-
-/* the table: class, ground truth, score, teacher */
-.table {
-  display: grid;
-  grid-template-columns: 200px 400px 100px 1fr;
-  margin-top: 22px;
-}
-.h {
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--ink);
-  align-self: end;
-}
-.form {
-  margin-top: 4px;
-  font-size: 20px;
-  color: var(--muted);
-}
-.sc {
-  text-align: right;
-  padding-right: 22px;
-}
-.teach {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-.temp {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-/* the eyebrows are uppercase: the math in them must keep its own case */
-.tau :deep(.katex) {
-  font-size: 20px;
-  color: var(--ink);
-  text-transform: none;
-}
-.form :deep(.katex) {
-  font-size: 20px;
-}
-.switch {
-  position: relative;
-  display: flex;
-  border: 1px solid var(--hair);
-  border-radius: 6px;
-  background: var(--card);
-}
-.knob {
+/* the second Dupont: an ink rule drawn under it, as the issue appears */
+.u {
   position: absolute;
-  left: -1px;
-  top: -1px;
-  width: 48px;
-  height: calc(100% + 2px);
-  border-radius: 6px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1.5px;
   background: var(--ink);
+  transform-origin: left center;
 }
-.opt {
-  position: relative;
-  width: 48px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: var(--muted-2);
-  transition: color 0.2s;
+.tag {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
 }
-.opt.act {
-  color: var(--paper);
+.ex {
+  flex: none;
+}
+
+/* the table */
+.tab {
+  margin-top: 10px;
 }
 .row {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 200px 400px 100px 1fr;
+  grid-template-columns: 170px 320px 320px 1fr;
   align-items: center;
-  height: 46px;
+  height: 44px;
   border-bottom: 1px solid var(--hair);
-  background: rgba(22, 22, 22, calc(var(--lit) * 0.06));
+  background: rgba(22, 22, 22, calc(var(--lit, 0) * 0.06));
+}
+.row.head {
+  height: auto;
+  min-height: 74px;
+  align-items: start;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ink);
+}
+.h {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 28px;
+}
+/* one fixed line for each eyebrow, so the math in some of them does not shift the row */
+.h > .eyebrow {
+  height: 18px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.form {
+  font-size: 20px;
+  line-height: 1.22;
+  color: var(--muted);
+}
+/* the eyebrows are uppercase: the math in them keeps its own case */
+.tau :deep(.katex) {
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
 }
 .cname {
   padding-left: 8px;
@@ -220,16 +250,10 @@ const on = (v: number, d = 8) => ({
   align-items: center;
   gap: 14px;
 }
-.score {
-  text-align: right;
-  padding-right: 22px;
-  font-size: 20px;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: var(--muted);
-}
 .track {
   position: relative;
-  height: 14px;
+  width: 210px;
+  height: 12px;
   background: var(--wash);
   border-radius: 2px;
 }
@@ -241,20 +265,27 @@ const on = (v: number, d = 8) => ({
   border-radius: 2px;
 }
 .num {
-  min-width: 60px;
+  min-width: 62px;
   font-size: 20px;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
-.notes {
+/* the sentence of each click, one at a time */
+.says {
   position: relative;
-  height: 84px;
-  margin-top: 30px;
+  height: 76px;
+  margin-top: 26px;
 }
 .note {
   position: absolute;
   left: 0;
   top: 0;
-  max-width: 1080px;
+  max-width: 1100px;
+}
+.note :deep(.text) {
+  font-size: 24px;
+}
+.note :deep(.katex) {
+  font-size: 1.05em;
 }
 </style>

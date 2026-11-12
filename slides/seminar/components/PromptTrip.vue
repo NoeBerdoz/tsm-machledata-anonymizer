@@ -188,7 +188,7 @@ const chip = (v: number, x0: number, x1: number, y: number) => ({
       </div>
 
       <!-- the cloud AI -->
-      <Window class="w-cloud" title="Cloud AI" tone="dark">
+      <Window class="w-cloud" title="Cloud AI" tone="dark" icon="cloud">
         <div class="cloud-body">
           <div class="take" :style="vis(ch.cloud1)">
             <div class="ck">Received</div>

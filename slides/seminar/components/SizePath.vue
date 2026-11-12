@@ -1,27 +1,27 @@
 <script setup lang="ts">
-// Slide 8: the two ways to get an int8 model, then the size path, built one step per click.
-//   0  PTQ and QAT side by side. Each has a small timeline: PTQ rounds a trained model once;
-//      QAT goes on training with the rounding, which takes a training run
-//   1  the two methods leave and the path arrives: the teacher (measured) and int8 with only
-//      the tokens of our four languages, against the current goal line, 12 times smaller
-//   2  a student with 6 layers
-//   3  then the word embeddings in int4, or the rare tokens dropped instead: just under the line
-//   4  both: past the line, and the reminder that recall must be measured after each step
+// Slide 9: the size path, built one step per click, then the two ways to apply the rounding.
+//   0  the teacher (measured) and int8 with only the tokens of our four languages, against the
+//      current goal line, 12 times smaller
+//   1  a student with 6 layers
+//   2  then the dictionary in int4, or the rare tokens dropped instead: just under the line
+//   3  both: past the line, and the reminder that recall must be measured after each step
+//   4  the two ways to apply the rounding, PTQ and QAT. No order between them is decided, so
+//      none is shown
 // The bars show how many times smaller each step is than the teacher, to scale from zero.
 // Sizes and ratios are copied from docs/baselines.md, "The vocabulary of our four languages":
 // estimates at 1 byte per parameter in int8 and half a byte in int4, GLiNER2 heads kept,
 // tokenizer counted. Only the teacher (1,244 MB, every file) is measured.
-import { useBeats, inOutCubic, linear, type Channels, type Seg } from './lib/beats'
+import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import Callout from './Callout.vue'
 
 type Row = { label: string; size: string; x: number; measured?: boolean; pass?: boolean; from: number }
 const ROWS: Row[] = [
-  { label: 'The teacher, float32, every file', size: '1,244 MB', x: 1, measured: true, from: 1 },
-  { label: 'int8, only French, German, Italian, English tokens', size: 'about 179 MB', x: 6.9, from: 1 },
-  { label: 'A student with 6 layers instead of 12', size: 'about 137 MB', x: 9.1, from: 2 },
-  { label: 'Then word embeddings in int4: half a byte each', size: 'about 107 MB', x: 11.6, from: 3 },
-  { label: 'Or drop the tokens seen under 10 times', size: 'about 108 MB', x: 11.6, from: 3 },
-  { label: 'Or both', size: 'about 91 MB', x: 13.6, pass: true, from: 4 },
+  { label: 'The teacher, float32, every file', size: '1,244 MB', x: 1, measured: true, from: 0 },
+  { label: 'int8, only French, German, Italian, English tokens', size: 'about 179 MB', x: 6.9, from: 0 },
+  { label: 'A student with 6 layers instead of 12', size: 'about 137 MB', x: 9.1, from: 1 },
+  { label: 'Then the dictionary in int4: half a byte each', size: 'about 107 MB', x: 11.6, from: 2 },
+  { label: 'Or drop the tokens seen under 10 times', size: 'about 108 MB', x: 11.6, from: 2 },
+  { label: 'Or both', size: 'about 91 MB', x: 13.6, pass: true, from: 3 },
 ]
 const GOAL = 12 // times smaller, O3: 1,244 MB / 12 = about 104 MB
 
@@ -31,18 +31,18 @@ const MAX_X = 14
 const PX = 27 // px per "times smaller"
 const GOAL_X = TRACK_X + GOAL * PX
 const ROW_Y = 72
-const ROW_H = 50
+const ROW_H = 46
 const rowTop = (i: number) => ROW_Y + i * ROW_H
+const NOTE_Y = rowTop(ROWS.length) + 20
+const TWO_Y = NOTE_Y + 58
 
 // ---------- states ----------
 function target(n: number): Channels {
   const c: Channels = {
-    a: n === 0 ? 1 : 0, // the two methods
-    b: n >= 1 ? 1 : 0, // the path
-    goal: n >= 1 ? 1 : 0,
-    boxA: 1, arrow: 1, round: 1, qat: 1,
-    check: n >= 4 ? 1 : 0,
-    note: n >= 4 ? 1 : 0,
+    goal: 1,
+    check: n >= 3 ? 1 : 0,
+    note: n >= 3 ? 1 : 0,
+    two: n >= 4 ? 1 : 0,
     gl: ROWS.filter((r) => n >= r.from).length, // how many rows the goal line crosses
   }
   ROWS.forEach((r, i) => {
@@ -56,33 +56,27 @@ const show = (i: number, at: number, dur = 800): Seg[] => [
   { k: 'g' + i, to: 1, at: at + 80, dur, ease: inOutCubic },
 ]
 const beats: Record<number, Seg[]> = {
-  1: [
-    { k: 'a', to: 0, at: 0, dur: 260 },
-    { k: 'b', to: 1, at: 250, dur: 300 },
-    { k: 'goal', to: 1, at: 260, dur: 300 },
-    { k: 'gl', to: 2, at: 260, dur: 520 },
-    ...show(0, 260, 360),
-    ...show(1, 440, 820),
-  ],
-  2: [{ k: 'gl', to: 3, at: 0, dur: 280 }, ...show(2, 0)],
-  3: [{ k: 'gl', to: 5, at: 0, dur: 580 }, ...show(3, 0), ...show(4, 300)],
-  4: [
+  1: [{ k: 'gl', to: 3, at: 0, dur: 280 }, ...show(2, 0)],
+  2: [{ k: 'gl', to: 5, at: 0, dur: 580 }, ...show(3, 0), ...show(4, 300)],
+  3: [
     { k: 'gl', to: 6, at: 0, dur: 280 },
     ...show(5, 0, 900),
     { k: 'check', to: 1, at: 980, dur: 260 },
     { k: 'note', to: 1, at: 1000, dur: 450 },
   ],
+  4: [{ k: 'two', to: 1, at: 0, dur: 450 }],
 }
+// When the slide opens, the goal line comes down and the first two bars grow
 const { ch, fade } = useBeats({
   target,
   beats,
   entry: {
-    from: { boxA: 0, arrow: 0, round: 0, qat: 0 },
+    from: { goal: 0, gl: 0, r0: 0, g0: 0, r1: 0, g1: 0 },
     segs: [
-      { k: 'boxA', to: 1, at: 300, dur: 300 },
-      { k: 'arrow', to: 1, at: 520, dur: 220 },
-      { k: 'round', to: 1, at: 700, dur: 300 },
-      { k: 'qat', to: 1, at: 700, dur: 1100, ease: linear },
+      { k: 'goal', to: 1, at: 250, dur: 300 },
+      { k: 'gl', to: 2, at: 260, dur: 520 },
+      ...show(0, 260, 360),
+      ...show(1, 440, 820),
     ],
   },
 })
@@ -96,53 +90,8 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
 
 <template>
   <div class="sp" :style="{ opacity: fade }">
-    <!-- 0: the two ways to get an int8 model -->
-    <div class="methods" :style="on(ch.a)">
-      <div class="card">
-        <div class="ab">PTQ</div>
-        <div class="nm">Post-training quantization</div>
-        <svg class="tl" width="498" height="56" viewBox="0 0 500 56" aria-hidden="true">
-          <g :style="{ opacity: ch.boxA }">
-            <rect x="1" y="6" width="168" height="44" rx="6" class="model" />
-            <text x="85" y="34" class="t mid">Trained model</text>
-          </g>
-          <g :style="{ opacity: ch.arrow }">
-            <path d="M 176 28 H 202" class="ar" />
-            <path d="M 196 22 L 203 28 L 196 34" class="ar" />
-          </g>
-          <g :style="{ opacity: ch.round, transformOrigin: '265px 28px', transform: `scale(${0.9 + 0.1 * ch.round})` }">
-            <rect x="210" y="6" width="110" height="44" rx="6" class="rnd" />
-            <text x="265" y="34" class="t ink mid">Round</text>
-          </g>
-        </svg>
-        <p class="s1">Round a trained model, with no retraining.</p>
-        <p class="s2">Static int8 also measures inner value ranges on a few inputs.</p>
-      </div>
-      <div class="card">
-        <div class="ab">QAT</div>
-        <div class="nm">Quantization-aware training</div>
-        <svg class="tl" width="498" height="56" viewBox="0 0 500 56" aria-hidden="true">
-          <g :style="{ opacity: ch.boxA }">
-            <rect x="1" y="6" width="168" height="44" rx="6" class="model" />
-            <text x="85" y="34" class="t mid">Trained model</text>
-          </g>
-          <g :style="{ opacity: ch.arrow }">
-            <path d="M 176 28 H 202" class="ar" />
-            <path d="M 196 22 L 203 28 L 196 34" class="ar" />
-          </g>
-          <g :style="on(ch.qat > 0.001 ? 1 : 0)">
-            <rect x="210" y="6" :width="Math.max(8, 288 * ch.qat)" height="44" rx="6" class="train" />
-            <text x="354" y="34" class="t ink mid" :style="{ opacity: clamp01((ch.qat - 0.8) / 0.2) }">Training with rounding</text>
-          </g>
-        </svg>
-        <p class="s1">Train with the rounding, so the model adapts to it.</p>
-        <p class="s2">It costs a training run, but it can recover accuracy.</p>
-      </div>
-    </div>
-
-    <!-- 1 to 4: the size path -->
-    <div class="path" :style="on(ch.b)">
-      <p class="lede-s">Only the teacher is measured. The rest are estimates.</p>
+    <div class="path">
+      <p class="lede-s">Possible steps. Only the teacher is measured.</p>
 
       <div class="head" :style="{ top: ROW_Y - 26 + 'px' }">
         <span class="eyebrow" style="left: 884px">Smaller</span>
@@ -167,7 +116,13 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
       <!-- the goal line, drawn down from its label -->
       <span class="goal" :style="{ left: GOAL_X - 1 + 'px', top: ROW_Y - 8 + 'px', height: rowTop(ch.gl) - ROW_Y + 8 + 'px', opacity: ch.goal }" />
 
-      <Callout class="note" :style="{ top: rowTop(ROWS.length) + 26 + 'px', ...rise(ch.note, 10) }">Recall must be measured after each step.</Callout>
+      <Callout class="note" :style="{ top: NOTE_Y + 'px', ...rise(ch.note, 10) }">Recall must be measured after each step.</Callout>
+
+      <!-- 4: the two ways to apply the rounding -->
+      <div class="two" :style="{ top: TWO_Y + 'px', ...rise(ch.two, 10) }">
+        <p><b>PTQ</b>, post-training quantization: rounds a trained model, with no retraining.</p>
+        <p><b>QAT</b>, quantization-aware training: trains with the rounding, so the model can adapt.</p>
+      </div>
     </div>
   </div>
 </template>
@@ -176,97 +131,12 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
 .sp {
   position: relative;
   width: 1136px;
-  height: 470px;
+  height: 500px;
   margin-top: 26px;
 }
-.methods,
 .path {
   position: absolute;
   inset: 0;
-}
-
-/* ---------- the two methods ---------- */
-.methods {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: var(--gutter);
-  align-items: start;
-  padding-top: 30px;
-}
-.card {
-  min-width: 0;
-  padding: 26px 28px 28px;
-  background: var(--card);
-  border: 1px solid var(--hair);
-  border-radius: 10px;
-  box-shadow:
-    0 1px 0 rgba(22, 22, 22, 0.04),
-    0 18px 36px -22px rgba(22, 22, 22, 0.38);
-}
-.ab {
-  font-family: var(--sans);
-  font-size: 40px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-.nm {
-  margin-top: 8px;
-  font-size: 22px;
-  color: var(--muted);
-}
-.tl {
-  display: block;
-  margin: 26px 0 24px;
-  overflow: visible;
-}
-.model {
-  fill: var(--ui);
-  stroke: var(--hair);
-  stroke-width: 1;
-}
-.rnd {
-  fill: var(--card);
-  stroke: var(--ink);
-  stroke-width: 2;
-}
-/* training with the rounding: the training fill with the ink edge of the rounding */
-.train {
-  fill: var(--ui);
-  stroke: var(--ink);
-  stroke-width: 2;
-}
-.t {
-  font-family: var(--sans);
-  font-size: 18px;
-  fill: var(--muted);
-}
-.t.ink {
-  fill: var(--ink);
-}
-.t.mid {
-  text-anchor: middle;
-}
-.ar {
-  fill: none;
-  stroke: var(--muted-2);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.s1 {
-  font-size: 24px;
-  line-height: 1.3;
-  color: var(--ink);
-  text-wrap: balance;
-}
-.s2 {
-  margin-top: 12px;
-  font-size: 20px;
-  line-height: 1.34;
-  color: var(--muted);
-  text-wrap: balance;
 }
 
 /* ---------- the size path ---------- */
@@ -310,22 +180,22 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
   position: absolute;
   left: 0;
   width: 1136px;
-  height: 50px;
+  height: 46px;
   border-bottom: 1px solid var(--hair);
 }
 .lab {
   position: absolute;
   left: 0;
   top: 0;
-  line-height: 50px;
+  line-height: 46px;
   font-size: 20px;
   white-space: nowrap;
 }
 .track,
 .bar {
   position: absolute;
-  top: 16px;
-  height: 18px;
+  top: 17px;
+  height: 12px;
   border-radius: 2px;
 }
 .track {
@@ -345,7 +215,7 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
 .size-v {
   position: absolute;
   top: 0;
-  height: 50px;
+  height: 46px;
   display: flex;
   align-items: center;
   font-family: var(--sans);
@@ -385,5 +255,24 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
 .note {
   position: absolute;
   left: 0;
+}
+
+/* ---------- the two ways to apply the rounding ---------- */
+.two {
+  position: absolute;
+  left: 0;
+  width: 1136px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: calc(2 * var(--gutter));
+  padding-top: 12px;
+  border-top: 1px solid var(--hair);
+  font-size: 20px;
+  line-height: 1.32;
+  color: var(--muted);
+}
+.two b {
+  font-weight: 500;
+  color: var(--ink);
 }
 </style>

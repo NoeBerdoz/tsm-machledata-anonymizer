@@ -1,18 +1,19 @@
 ---
 part: 2
 eyebrow: The teacher
-clicks: 1
+clicks: 3
+source: 'Model card on Hugging Face. Tests: 1,000 texts of ai4privacy OpenPII-1M, validation. Full tables in the appendix.'
 ---
 
-# Most of the teacher is *a dictionary*
+# We plan to start from *GLiNER2-PII*
 
-Every laptop would download it and run it on each request.
-
-<TeacherSize />
+<TeacherIntro />
 
 <!--
-Target time 0:30. Speaker: to assign.
+Target time 0:40. Speaker: to assign.
 
-The teacher is GLiNER2-PII. The student is made from it. The teacher has 307 million parameters. 192 million are word embeddings: one row of numbers per token.
-[click] Our test texts use under a third of the tokens. So we can cut the dictionary to about 174 million parameters.
+To build our small model, we start from a bigger one: GLiNER2-PII. It finds personal data and gives each piece a type.
+[click] Why this one? We tested four tools before our training. It found the most: 81 percent.
+[click] We fine-tune it on Swiss IDs and on our training set, by 30 November.
+[click] It becomes our teacher. It teaches a small model, the student, that runs on the laptop.
 -->

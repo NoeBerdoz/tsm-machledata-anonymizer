@@ -16,6 +16,6 @@ export const goals: Goal[] = [
   { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall", more: 'Swiss IDs: 99 %' },
   { id: 'O2', name: 'Utility', figure: '90 %', caption: 'of solved app tasks still solved with placeholders' },
   { id: 'O3', name: 'Compression', figure: '12x', caption: 'smaller than the teacher', more: '4x faster on a laptop CPU' },
-  { id: 'O4', name: 'End to end', figure: '100 %', caption: 'of replacements restored exactly', more: 'No silent failure' },
+  { id: 'O4', name: 'End to end', figure: '100 %', caption: 'of replacements restored exactly', more: 'Errors are shown' },
   { id: 'O5', name: 'MLOps', figure: '7 Dec.', caption: 'the gate refuses a bad model', more: 'Alert when too slow' },
 ]

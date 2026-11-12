@@ -10,7 +10,7 @@ clicks: 4
 <!--
 Target time 0:35. Speaker: to assign.
 
-Take one weight, 0.4237: 4 bytes in float32. Our example step is 0.01.
+Next, we store each weight in fewer bytes: 0.4237 takes 4 bytes in float32. The step is 0.01.
 [click] Divide by the step: 42.37. Round to 42 and store it in 1 byte, as int8.
 [click] Read back, it is 0.42. The error, 0.0037, is at most half a step.
 [click] Every weight is rounded the same way.

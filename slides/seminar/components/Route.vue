@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// Slide 13: the roadmap set on the Poya path. The herd and its armailli stand at v0, where we
-// are today, and glide up the path one milestone per click:
-//   0  v0, today      1  v1      2  the pipeline      3  v2 and v3      4  the final talk
-// Each station's label turns from grey to ink when the herd reaches it. The red heart stays on
-// today's station: the path shows the plan, today is v0.
-// Dates: the GitHub milestones (v0 16.11, v1 30.11, v2 and v3 10.12, final 18.12, to confirm)
-// and goal O5 (the pipeline, the gate and the monitoring work by 7 December 2026).
+// Slide 13: the roadmap set on the Poya path. The herd and its armailli stand at today's
+// milestone and glide up the path one milestone per click:
+//   0  baselines, today   1  the fine-tuned teacher   2  the pipeline   3  the students
+//   4  the final talk
+// Each milestone is named by what it delivers. Its label turns from grey to ink when the herd
+// reaches it, and the red heart stays on today's station: the path shows the plan.
+// Dates: docs/project-management.md (16 November, 30 November, around 10 December, and
+// mid-December for the final talk, to confirm) and goal O5 (the pipeline by 7 December 2026).
 import PoyaPath, { POYA_STATIONS } from './art/PoyaPath.vue'
 import { useBeats, type Channels, type Ease, type Seg } from './lib/beats'
 
@@ -27,11 +28,11 @@ const W = 1280
 const H = (W * 260) / 1280
 
 const stops = [
-  { v: 'v0', date: '16 Nov., today', what: 'Baselines measured' },
-  { v: 'v1', date: '30 Nov.', what: 'Fine-tuned teacher' },
-  { v: 'Pipeline', date: '7 Dec.', what: 'Gate and monitoring work' },
-  { v: 'v2, v3', date: '10 Dec.', what: 'Distilled, then quantized student' },
-  { v: 'Final', date: '18 Dec.', what: 'Final talk and report, date to confirm' },
+  { name: 'Baselines measured', date: '16 Nov., today' },
+  { name: 'Teacher fine-tuned', date: '30 Nov.' },
+  { name: 'Pipeline working', date: '7 Dec.' },
+  { name: 'Student distilled, then quantized', date: 'About 10 Dec.' },
+  { name: 'Final talk and report', date: 'Mid-Dec., to confirm' },
 ]
 const LAST = stops.length - 1
 
@@ -60,9 +61,8 @@ const drop = (i: number) => H - (POYA_STATIONS[i].top / 100) * H + 18
     <PoyaPath :at="ch.pos" :mark="0">
       <template #station="{ index }">
         <div class="label-wrap" :style="{ transform: `translateY(${drop(index)}px)`, opacity: 0.42 + 0.58 * ch['l' + index] }">
-          <div class="v">{{ stops[index].v }}</div>
+          <div class="name">{{ stops[index].name }}</div>
           <div class="date">{{ stops[index].date }}</div>
-          <div class="what">{{ stops[index].what }}</div>
         </div>
       </template>
     </PoyaPath>
@@ -80,21 +80,16 @@ const drop = (i: number) => H - (POYA_STATIONS[i].top / 100) * H + 18
   text-align: center;
   color: var(--ink);
 }
-.v {
-  font-size: 22px;
+.name {
+  font-size: 20px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.22;
+  text-wrap: balance;
 }
 .date {
-  margin-top: 2px;
+  margin-top: 4px;
   font-size: 18px;
   font-variant-numeric: lining-nums tabular-nums;
   color: var(--muted);
-}
-.what {
-  margin-top: 6px;
-  font-size: 18px;
-  line-height: 1.3;
-  text-wrap: balance;
 }
 </style>

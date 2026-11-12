@@ -15,7 +15,7 @@ $$p_i^{\tau} = \frac{e^{z_i/\tau}}{\sum_j e^{z_j/\tau}}$$
 
 At $\tau = 1$ this is the usual softmax. A higher $\tau$ makes the probabilities flatter. The student then also sees how the teacher ranks the wrong classes.
 
-### The example of slides 5 and 6
+### The example of slides 6 and 7
 
 The scores are made up: $z = (4.0,\ 2.2,\ 0.6,\ 0.0)$ for PERSON, LOCATION, ORGANIZATION and NONE. They show doubt in the teacher, not evidence that this Dupont is a place.
 
@@ -33,13 +33,13 @@ Rounded to whole percents, as on the slides, the four values can add up to 101 %
 
 ### The loss
 
-$$\mathcal{L} = \alpha\,\tau^2\,\mathrm{KL}\big(p_T^{\tau}\,\|\,p_S^{\tau}\big) + (1-\alpha)\,\mathrm{CE}\big(y,\,p_S\big)$$
+$$\mathcal{L} = (1-\alpha)\,\mathrm{CE}\big(y,\,p_S\big) + \alpha\,\tau^2\,\mathrm{KL}\big(p_T^{\tau}\,\|\,p_S^{\tau}\big)$$
 
-$p_T^{\tau}$ and $p_S^{\tau}$ are the soft labels of the teacher $T$ and the student $S$. KL (Kullback-Leibler divergence) measures how far the student's soft labels are from the teacher's. CE (cross-entropy) measures how far the student's answer $p_S$, at $\tau = 1$, is from the ground truth $y$. The weight $\alpha$, from 0 to 1, sets the mix.
+CE (cross-entropy) measures how far the student's answer $p_S$, at $\tau = 1$, is from the ground truth $y$. KL (Kullback-Leibler divergence) measures how far the student's soft labels $p_S^{\tau}$ are from the teacher's $p_T^{\tau}$. The weight $\alpha$, from 0 to 1, sets the mix.
 
-### What slide 6 draws
+### What slide 7 draws
 
-At $\tau = 1$ the loss is smallest when $p_S = \alpha\, p_T + (1-\alpha)\, y$. With $\alpha = 0.5$, an example, the student gives PERSON 91.1 % and LOCATION 6.8 %.
+A student during training, with made-up scores $z_S = (2.0,\ 0,\ 0,\ 0)$: its answer at $\tau = 1$ is 71.1 / 9.6 / 9.6 / 9.6 %, its soft labels at $\tau = 4$ are 35.5 / 21.5 / 21.5 / 21.5 %. CE pulls the answer toward the ground truth, KL pulls the soft labels toward the teacher's. On LOCATION the two pulls disagree.
 
 ### Why the factor $\tau^2$
 
@@ -47,7 +47,7 @@ Hinton, Vinyals and Dean (2015) show that the gradients of the soft part shrink 
 
 ### The control of goal O1
 
-The control student has the same architecture, data and training budget, but learns from the ground truth only: $\alpha = 0$. Distillation counts only if the distilled student beats it on recall.
+The control student has the same architecture, data and training budget, but learns from the ground truth only: $\alpha = 0$. Distillation counts only if it beats the control on recall.
 
 </div>
 </div>
@@ -56,13 +56,16 @@ The control student has the same architecture, data and training budget, but lea
 .distil-appx {
   margin-top: 18px;
   font-size: 16px;
-  line-height: 1.38;
+  line-height: 1.34;
+}
+.distil-appx p {
+  line-height: 1.34;
 }
 .distil-appx p + p {
   margin-top: 6px;
 }
 .distil-appx * + h3 {
-  margin-top: 12px;
+  margin-top: 9px;
 }
 .distil-appx .katex-display {
   margin: 6px 0;

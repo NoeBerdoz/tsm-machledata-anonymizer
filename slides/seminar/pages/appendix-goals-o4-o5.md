@@ -24,7 +24,7 @@ A model is published to the MLflow registry, with a version, only if it meets on
 
 The demonstration shows a degraded model refused and a good model published, which the app then installs and whose version it reports. Sentry records the on-device pseudonymization time apart from the full response time, without any prompt or response content. The alert fires when the p95 of that time over a fixed window crosses a threshold, and we trigger it on purpose.
 
-By 7 December 2026, the pipeline, the gate and the monitoring work with the best model available then. The final model is accepted after v3.
+By 7 December 2026, the pipeline, the gate and the monitoring work with the best model available then. The final model is accepted once the student is quantized.
 
 </div>
 </div>
