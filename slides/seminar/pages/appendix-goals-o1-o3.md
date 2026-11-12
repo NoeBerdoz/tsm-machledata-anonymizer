@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 
 ### O1 Protection
 
-The quantized student (v3) keeps at least 95 % of the fine-tuned teacher's (v1) recall, on T1 and on T2-final, each set separately. Swiss structured identifiers, caught by the regex rules and the model together, reach at least 99 % recall.
+The quantized student keeps at least 95 % of the fine-tuned teacher's recall, on T1 and on T2-final, each set separately. Swiss structured identifiers, caught by the regex rules and the model together, reach at least 99 % recall.
 
 No entity type may fall below the recall that the best baseline reaches on that type on T2-dev. This is the per-type floor.
 
@@ -61,7 +61,7 @@ The delivered student is at least 12 times smaller than the fp32 teacher, and at
 
 Size counts every file needed to run the model, weights and tokenizer included. Counted this way, the teacher measures 1,244 MB, so 12 times smaller is about 104 MB.
 
-Its p95 latency, the time that 95 of 100 calls stay under, is at most a quarter of the fp32 teacher's. We measure it on one reference laptop CPU, with a fixed benchmark protocol: the same texts, length counted in words, fixed runtime and thread settings, a warm-up and a fixed number of runs.
+Its p95 latency, the time that 95 of 100 calls stay under, is at most a quarter of the fp32 teacher's. We measure it on the reference laptop CPU, an Intel Core i5-1130G7, with a fixed benchmark protocol: the same texts, length counted in words, fixed runtime and thread settings, a warm-up and a fixed number of runs.
 
 We publish a compression curve with at least 3 points (fp32, int8, distilled int8), and 5 with the options (pruned vocabulary, int4). Each point has its recall, size and latency. O3 is evaluated at the final talk.
 
@@ -76,7 +76,7 @@ The rules are fixed today. The values that depend on data are computed on T2-dev
 |---|---|---|
 | O1 | 95 % of the teacher's recall, Swiss IDs 99 %, beats GLiNER2-PII | Per-type floor: the best baseline's recall per type |
 | O2 | Paired utility of at least 90 % | Character precision: GLiNER2-PII's on T2-dev |
-| O3 | 12 times smaller, p95 at most a quarter of the teacher's, 3 curve points | The reference CPU and the benchmark protocol |
+| O3 | 12 times smaller, p95 at most a quarter of the teacher's on an Intel Core i5-1130G7, 3 curve points | The 30 texts of the latency sample, from T2-dev |
 | O4 | 100 % exact restoration, every bad replacement flagged, no silent failure | Leak budget: half of GLiNER2-PII's leaks, rounded down |
 | O5 | Refusal and publication shown in MLflow, the app installs the model, one alert, 7 December 2026 | Alert window and threshold on the pseudonymization time |
 

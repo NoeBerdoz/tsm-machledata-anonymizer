@@ -1,116 +1,167 @@
 <script setup lang="ts">
-// Slide 6: the distillation loss of Hinton, Vinyals and Dean (2015), each part named, and what
-// it does to the student, computed.
-//   L = alpha tau^2 KL(p_T^tau || p_S^tau) + (1 - alpha) CE(y, p_S)
-// The chart uses slide 5's made-up scores z = (4.0, 2.2, 0.6, 0.0) at tau = 1, where the
-// teacher gives 82.2 / 13.6 / 2.7 / 1.5 %. At tau = 1 the loss is smallest exactly when the
-// student gives alpha x teacher + (1 - alpha) x ground truth, so the student's bars are that mix:
-//   alpha 0.5  91.1 / 6.8 / 1.4 / 0.8 %
-//   0  the formula, each part named
-//   1  the student's best answer, between its two targets; alpha moves from 0 to 0.5
-//   2  the control student of goal O1: alpha = 0, the ground truth only
+// Slide 7: the distillation loss of Hinton, Vinyals and Dean (2015), built term by term over
+// the columns it compares. Each term of the formula sits over its two columns.
+//   L = (1 - alpha) CE(y, p_S) + alpha tau^2 KL(p_T^tau || p_S^tau)
+//   0  the student's answer p_S for Dupont
+//   1  the first target: the ground truth y, and CE, which pulls the answer toward it
+//   2  the second target: the teacher's soft labels at tau = 4, and KL, which pulls the
+//      student's soft labels toward them; both columns start at tau = 1 and soften together
+//   3  the weights: alpha mixes the two parts, tau^2 keeps the two parts balanced as tau changes
+//   4  the control student: alpha = 0, so the teacher's part is off; distillation must beat it
+// Same example as slide 6, with made-up scores:
+//   teacher z_T = (4.0, 2.2, 0.6, 0.0)  tau 4  41.10 / 26.21 / 17.57 / 15.12 %
+//   student z_S = (2.0, 0.0, 0.0, 0.0)  tau 1  71.12 / 9.63 / 9.63 / 9.63 %
+//                                       tau 4  35.47 / 21.51 / 21.51 / 21.51 %
+// The arrows give the sign of each pull on the student's values: up when the target is
+// higher, down when it is lower. On LOCATION the two pulls disagree: CE down, KL up.
 import { computed } from 'vue'
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import Callout from './Callout.vue'
+import Tex from './Tex.vue'
 
-const CLASSES = ['PERSON', 'LOCATION', 'ORGANIZATION', 'NONE']
-const Z = [4.0, 2.2, 0.6, 0.0]
+const TYPES = ['PERSON', 'LOCATION', 'ORGANIZATION', 'NONE']
+const ZT = [4.0, 2.2, 0.6, 0.0]
+const ZS = [2.0, 0.0, 0.0, 0.0]
 const TRUTH = [1, 0, 0, 0]
-const ALPHA = 0.5
-const e = Z.map((v) => Math.exp(v))
-const TEACH = e.map((v) => v / e.reduce((a, b) => a + b, 0))
+const HOT = 4
 
+function softmax(z: number[], tau: number) {
+  const e = z.map((v) => Math.exp(v / tau))
+  const s = e.reduce((a, b) => a + b, 0)
+  return e.map((v) => v / s)
+}
+const ANSWER = softmax(ZS, 1)
+const T_HOT = softmax(ZT, HOT)
+const S_HOT = softmax(ZS, HOT)
+// the sign of each pull: +1 up, -1 down
+const PULL_CE = ANSWER.map((p, i) => Math.sign(TRUTH[i] - p))
+const PULL_KL = S_HOT.map((p, i) => Math.sign(T_HOT[i] - p))
+
+// ---------- geometry ----------
+// one column per distribution; each term of the formula sits over its pair of columns
+const COL = [170, 398, 680, 908]
+const PAIR_W = 442
+
+// ---------- states ----------
 function target(n: number): Channels {
-  return { chart: n >= 1 ? 1 : 0, a: n >= 1 ? ALPHA : 0, ctrl: n >= 2 ? 1 : 0 }
+  return {
+    ce: n >= 1 ? 1 : 0, a: n >= 1 ? 1 : 0, aFill: n >= 1 ? 1 : 0, pullB: n >= 1 ? 1 : 0,
+    kl: n >= 2 ? 1 : 0, cd: n >= 2 ? 1 : 0, tau: n >= 2 ? HOT : 1, pullD: n >= 2 ? 1 : 0, loc: n >= 2 ? 1 : 0,
+    w: n >= 3 ? 1 : 0,
+    ctl: n >= 4 ? 1 : 0, close: n >= 4 ? 1 : 0,
+  }
 }
 const beats: Record<number, Seg[]> = {
   1: [
-    { k: 'chart', to: 1, at: 0, dur: 420 },
-    { k: 'a', to: ALPHA, at: 450, dur: 1300, ease: inOutCubic },
+    { k: 'ce', to: 1, at: 0, dur: 380 },
+    { k: 'a', to: 1, at: 100, dur: 300 },
+    { k: 'aFill', to: 1, at: 200, dur: 650, ease: inOutCubic },
+    { k: 'pullB', to: 1, at: 900, dur: 300 },
   ],
-  2: [{ k: 'ctrl', to: 1, at: 0, dur: 450 }],
+  // both soft columns start at tau = 1, then the temperature rises for both
+  2: [
+    { k: 'kl', to: 1, at: 0, dur: 380 },
+    { k: 'cd', to: 1, at: 100, dur: 300 },
+    { k: 'tau', to: HOT, at: 450, dur: 1100, ease: inOutCubic },
+    { k: 'pullD', to: 1, at: 1600, dur: 300 },
+    { k: 'loc', to: 1, at: 1600, dur: 400 },
+  ],
+  3: [{ k: 'w', to: 1, at: 0, dur: 450 }],
+  4: [
+    { k: 'ctl', to: 1, at: 0, dur: 600, ease: inOutCubic },
+    { k: 'close', to: 1, at: 250, dur: 450 },
+  ],
 }
-const { ch, fade } = useBeats({ target, beats })
+const { ch, fade, print } = useBeats({ target, beats })
 
-const student = computed(() => TEACH.map((t, i) => ch.a * t + (1 - ch.a) * TRUTH[i]))
+// ---------- what each state shows ----------
+const tHot = computed(() => softmax(ZT, ch.tau))
+const sHot = computed(() => softmax(ZS, ch.tau))
 const pct = (v: number) => `${Math.round(v * 100)} %`
-const aText = computed(() => ch.a.toFixed(1))
-const BAR = 190
-const on = (v: number, d = 10) => ({
-  opacity: v,
-  visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const),
-  transform: `translateY(${(1 - v) * d}px)`,
-})
-
-// the dial runs under the student, from the ground truth column to the teacher column
-const COL = [200, 512, 824] // left edge of each column: ground truth, student, teacher
-const DIAL_L = COL[0] + BAR / 2
-const DIAL_R = COL[2] + BAR / 2
-const dialX = (a: number) => DIAL_L + (DIAL_R - DIAL_L) * a
-// the label of the alpha = 0 end makes room while the knob's own label passes over it
-const endZero = computed(() => Math.max(0, Math.min(1, (dialX(ch.a) - DIAL_L - 110) / 60)))
+const tauText = computed(() => (Math.abs(ch.tau - Math.round(ch.tau)) < 0.005 ? String(Math.round(ch.tau)) : ch.tau.toFixed(1)))
+const vis = (v: number) => ({ opacity: v, visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const) })
+const rise = (v: number, d = 8) => ({ ...vis(v), transform: `translateY(${(1 - v) * d}px)` })
+const bar = (v: number) => ({ transform: `scaleX(${Math.max(0, Math.min(1, v))})` })
+// the teacher's part fades back when alpha = 0. In print the page keeps the whole formula at
+// full strength, so the PDF never looks half rendered; the control callout says the rest.
+const klDim = computed(() => (print.value ? 1 : 1 - 0.62 * ch.ctl))
+const klPart = (v: number, d = 8) => ({ ...rise(v, d), opacity: v * klDim.value })
+const at = (x: number) => ({ left: x + 'px' })
 </script>
 
 <template>
   <div class="loss" :style="{ opacity: fade }">
-    <!-- the formula, each part named under it -->
-    <div class="formula">
-      <div class="piece lhs"><Tex e="\mathcal{L} \;=\;" /><p class="says">the loss</p></div>
-      <div class="term">
-        <Tex e="\alpha\,\tau^2\,\mathrm{KL}\big(p_T^{\tau}\,\|\,p_S^{\tau}\big)" />
-        <div class="brace" />
-        <p class="says">KL: pulls the student's soft labels toward the teacher's</p>
-      </div>
-      <div class="piece"><Tex e="\;+\;" /></div>
-      <div class="term">
-        <Tex e="(1-\alpha)\,\mathrm{CE}\big(y,\,p_S\big)" />
-        <div class="brace" />
-        <p class="says">CE: pulls the student's answer toward the ground truth <Tex e="y" /></p>
-      </div>
+    <!-- the formula, built term by term; each term over the two columns it compares -->
+    <div class="lhs" :style="rise(ch.ce)">
+      <Tex e="\mathcal{L} \;=" />
     </div>
-    <div class="legend">
-      <p><Tex e="p_T,\,p_S" /> teacher and student probabilities</p>
-      <p><Tex e="\alpha" /> mixes the two parts</p>
-      <p><Tex e="\tau^2" /> keeps the pull steady when the temperature <Tex e="\tau" /> changes</p>
+    <div class="half" :style="{ ...at(COL[0]), ...rise(ch.ce) }">
+      <span class="wt" :style="vis(ch.w)"><Tex e="(1-\alpha)" /></span>
+      <Tex e="\mathrm{CE}\big(y,\,p_S\big)" />
+    </div>
+    <div class="plus" :style="klPart(ch.kl)"><Tex e="+" /></div>
+    <div class="half" :style="{ ...at(COL[2]), ...klPart(ch.kl) }">
+      <span class="wt" :style="vis(ch.w)"><Tex e="\alpha\,\tau^2" /></span>
+      <Tex e="\mathrm{KL}\big(p_T^{\tau}\,\|\,p_S^{\tau}\big)" />
     </div>
 
-    <!-- what the loss does: the student's best answer sits between its two targets -->
-    <div class="chart" :style="on(ch.chart, 14)">
-      <div class="heads">
-        <span class="eyebrow ex">Example of slide 5</span>
-        <span class="eyebrow ink" :style="{ left: COL[0] + 'px' }">Ground truth <Tex e="y" /></span>
-        <span class="eyebrow ink" :style="{ left: COL[1] + 'px' }">Student's answer</span>
-        <span class="eyebrow ink" :style="{ left: COL[2] + 'px' }">Teacher, <Tex e="\tau = 1" /></span>
-      </div>
-      <div v-for="(c, i) in CLASSES" :key="c" class="row">
-        <span class="mono cname">{{ c }}</span>
-        <span class="cell" :style="{ left: COL[0] + 'px' }">
-          <span class="track" :style="{ width: BAR + 'px' }"><span class="fill" :style="{ transform: `scaleX(${TRUTH[i]})` }" /></span>
-          <span class="num">{{ pct(TRUTH[i]) }}</span>
-        </span>
-        <span class="cell" :style="{ left: COL[1] + 'px' }">
-          <span class="track" :style="{ width: BAR + 'px' }"><span class="fill" :style="{ transform: `scaleX(${student[i]})` }" /></span>
-          <span class="num">{{ pct(student[i]) }}</span>
-        </span>
-        <span class="cell" :style="{ left: COL[2] + 'px' }">
-          <span class="track" :style="{ width: BAR + 'px' }"><span class="fill" :style="{ transform: `scaleX(${TEACH[i]})` }" /></span>
-          <span class="num">{{ pct(TEACH[i]) }}</span>
-        </span>
-      </div>
+    <!-- what each part does -->
+    <p class="loss-name" :style="rise(ch.ce)">the loss</p>
+    <div class="bracket" :style="{ ...at(COL[0]), ...rise(ch.ce, 4) }" />
+    <div class="bracket" :style="{ ...at(COL[2]), ...klPart(ch.kl, 4) }" />
+    <div class="says" :style="{ ...at(COL[0]), ...rise(ch.ce) }">
+      <span class="eyebrow ink">CE: cross-entropy</span>
+      <p>pulls the answer toward the ground truth</p>
+    </div>
+    <div class="says" :style="{ ...at(COL[2]), ...klPart(ch.kl) }">
+      <span class="eyebrow ink">KL: Kullback-Leibler divergence</span>
+      <p>pulls the soft labels toward the teacher's</p>
+    </div>
 
-      <!-- the dial: alpha = 0 copies the ground truth, alpha = 1 copies the teacher -->
-      <div class="dial">
-        <div class="rail" :style="{ left: DIAL_L + 'px', width: DIAL_R - DIAL_L + 'px' }" />
-        <span class="end" :style="{ left: DIAL_L + 'px', opacity: endZero }"><Tex e="\alpha = 0" /></span>
-        <span class="end" :style="{ left: DIAL_R + 'px' }"><Tex e="\alpha = 1" /></span>
-        <span class="knob" :style="{ left: dialX(ch.a) + 'px' }" />
-        <span class="knob-label" :style="{ left: dialX(ch.a) + 'px' }"><Tex :e="`\\alpha = ${aText}`" /></span>
-        <span class="knob ctrl" :style="{ left: DIAL_L + 'px', ...on(ch.ctrl, 0) }" />
+    <!-- the weights -->
+    <p class="legend" :style="rise(ch.w)">
+      <span><Tex e="\alpha" /> mixes the two parts, from 0 to 1</span>
+      <span><Tex e="\tau^2" /> keeps the two parts balanced when the temperature <Tex e="\tau" /> changes</span>
+    </p>
+
+    <!-- the four distributions -->
+    <div class="tab">
+      <div class="head">
+        <span class="eyebrow ex">Same example,<br>simplified,<br>made-up scores</span>
+        <div class="h" :style="{ ...at(COL[0]), ...rise(ch.a) }"><Tex e="y" /><span>ground truth</span></div>
+        <div class="h" :style="at(COL[1])"><Tex e="p_S" /><span>student's answer</span></div>
+        <div class="h" :style="{ ...at(COL[2]), ...klPart(ch.cd) }"><Tex e="p_T^{\tau}" /><span>teacher, <Tex :e="`\\tau = ${tauText}`" /></span></div>
+        <div class="h" :style="{ ...at(COL[3]), ...klPart(ch.cd) }"><Tex e="p_S^{\tau}" /><span>student, <Tex :e="`\\tau = ${tauText}`" /></span></div>
+      </div>
+      <div v-for="(t, i) in TYPES" :key="t" class="row" :style="{ '--lit': i === 1 ? ch.loc : 0 }">
+        <span class="mono cname">{{ t }}</span>
+        <span class="cell" :style="{ ...at(COL[0]), ...vis(ch.a) }">
+          <span class="track"><span class="fill" :style="bar(TRUTH[i] * ch.aFill)" /></span>
+          <span class="num">{{ pct(TRUTH[i] * ch.aFill) }}</span>
+        </span>
+        <span class="cell st" :style="at(COL[1])">
+          <span class="track"><span class="fill" :style="bar(ANSWER[i])" /></span>
+          <span class="num">{{ pct(ANSWER[i]) }}</span>
+          <svg class="pull" :style="vis(ch.pullB)" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path :d="PULL_CE[i] > 0 ? 'M6 1 L11 10 L1 10 Z' : 'M6 11 L11 2 L1 2 Z'" />
+          </svg>
+        </span>
+        <span class="cell" :style="{ ...at(COL[2]), opacity: ch.cd * klDim, visibility: ch.cd > 0.001 ? 'visible' : 'hidden' }">
+          <span class="track"><span class="fill" :style="bar(tHot[i])" /></span>
+          <span class="num">{{ pct(tHot[i]) }}</span>
+        </span>
+        <span class="cell st" :style="{ ...at(COL[3]), opacity: ch.cd * klDim, visibility: ch.cd > 0.001 ? 'visible' : 'hidden' }">
+          <span class="track"><span class="fill" :style="bar(sHot[i])" /></span>
+          <span class="num">{{ pct(sHot[i]) }}</span>
+          <svg class="pull" :style="vis(ch.pullD)" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path :d="PULL_KL[i] > 0 ? 'M6 1 L11 10 L1 10 Z' : 'M6 11 L11 2 L1 2 Z'" />
+          </svg>
+        </span>
       </div>
     </div>
 
-    <Callout class="close" :style="on(ch.ctrl)">
-      The control student uses <Tex e="\alpha = 0" />, with the same setup.<br>Distillation must beat this control (goal O1).
+    <Callout class="close" :style="rise(ch.close, 10)">
+      The control student uses <Tex e="\alpha = 0" />: no teacher. Distillation must beat it (goal O1).
     </Callout>
   </div>
 </template>
@@ -119,112 +170,140 @@ const endZero = computed(() => Math.max(0, Math.min(1, (dialX(ch.a) - DIAL_L - 1
 .loss {
   position: relative;
   width: 1136px;
+  height: 470px;
   margin-top: 16px;
 }
 .ink {
   color: var(--ink);
 }
+.ex {
+  position: absolute;
+  left: 8px;
+  bottom: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
 
 /* the formula */
-.formula {
+.lhs,
+.half,
+.plus {
+  position: absolute;
+  top: 18px;
+  height: 56px;
   display: flex;
-  align-items: flex-start;
-  font-size: 40px;
+  align-items: center;
+  font-size: 34px;
+  white-space: nowrap;
 }
-.piece,
-.term {
-  flex: none;
-}
-/* the loss is named under its symbol, on the line of the two bracket labels */
 .lhs {
-  display: flex;
-  flex-direction: column;
+  left: 0;
+  width: 150px;
+  justify-content: flex-end;
 }
-.lhs .says {
-  margin-top: 19px;
+.half {
+  width: 442px;
+  justify-content: center;
+  gap: 8px;
 }
-.term {
-  display: flex;
-  flex-direction: column;
+.plus {
+  left: 612px;
+  width: 68px;
+  justify-content: center;
 }
-.brace {
+.loss-name {
+  position: absolute;
+  left: 0;
+  top: 94px;
+  width: 150px;
+  text-align: right;
+  font-size: 20px;
+}
+.bracket {
+  position: absolute;
+  top: 78px;
+  width: 442px;
   height: 9px;
-  margin: 2px 4px 0;
   border: 1.5px solid var(--ink);
   border-top: none;
 }
 .says {
-  max-width: 330px;
-  margin: 8px 4px 0;
-  font-size: 20px;
-  line-height: 1.3;
+  position: absolute;
+  top: 96px;
+  width: 442px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-.says :deep(.katex) {
-  font-size: 1.1em;
+.says p {
+  font-size: 20px;
+  line-height: 1.25;
 }
 .legend {
+  position: absolute;
+  left: 170px;
+  top: 156px;
   display: flex;
-  gap: 28px;
-  margin-top: 16px;
+  gap: 40px;
   font-size: 19px;
   color: var(--muted);
-}
-/* one row: each symbol and its name stay together */
-.legend p {
-  flex: none;
   white-space: nowrap;
 }
 .legend :deep(.katex) {
-  margin-right: 8px;
+  margin-right: 4px;
   font-size: 1.15em;
 }
 
-/* the chart */
-.chart {
-  position: relative;
-  margin-top: 18px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hair);
+/* the table */
+.tab {
+  position: absolute;
+  left: 0;
+  top: 196px;
+  width: 1136px;
 }
-.heads {
+.head {
   position: relative;
-  height: 34px;
+  height: 60px;
   border-bottom: 1px solid var(--ink);
 }
-.heads .eyebrow {
+.h {
   position: absolute;
-  top: 6px;
-}
-.heads .ex {
-  left: 0;
-}
-/* the eyebrows are uppercase: the math in them must keep its own case */
-.heads :deep(.katex) {
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 18px;
-  letter-spacing: 0;
-  text-transform: none;
+  color: var(--ink);
+}
+.h > :first-child :deep(.katex) {
+  font-size: 23px;
+}
+.h span :deep(.katex) {
+  font-size: 18px;
 }
 .row {
   position: relative;
-  height: 33px;
+  height: 38px;
   border-bottom: 1px solid var(--hair);
+  background: rgba(22, 22, 22, calc(var(--lit, 0) * 0.06));
 }
 .cname {
   position: absolute;
   left: 8px;
-  top: 6px;
+  top: 8px;
   font-size: 18px;
 }
 .cell {
   position: absolute;
   top: 0;
-  height: 33px;
+  height: 38px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 .track {
   position: relative;
+  width: 136px;
   height: 12px;
   background: var(--wash);
   border-radius: 2px;
@@ -236,58 +315,26 @@ const endZero = computed(() => Math.max(0, Math.min(1, (dialX(ch.a) - DIAL_L - 1
   background: var(--ink);
   border-radius: 2px;
 }
+/* the student: graphite bars, so the two targets stay ink */
+.st .fill {
+  background: var(--muted-2);
+}
 .num {
-  min-width: 56px;
+  min-width: 50px;
   font-size: 20px;
   font-variant-numeric: lining-nums tabular-nums;
 }
-
-.dial {
-  position: relative;
-  height: 52px;
-  font-size: 18px;
-}
-.rail {
-  position: absolute;
-  top: 18px;
-  height: 0;
-  border-top: 1.5px solid var(--ink);
-}
-.end {
-  position: absolute;
-  top: 26px;
-  transform: translateX(-50%);
-  color: var(--muted);
-}
-.end :deep(.katex),
-.knob-label :deep(.katex) {
-  font-size: 18px;
-}
-.knob {
-  position: absolute;
-  top: 10px;
-  width: 16px;
-  height: 16px;
-  margin-left: -8px;
-  border-radius: 50%;
-  background: var(--ink);
-}
-/* the control student: an open ring at alpha = 0 */
-.knob.ctrl {
-  background: var(--paper);
-  border: 2px solid var(--ink);
-}
-.knob-label {
-  position: absolute;
-  top: 26px;
-  transform: translateX(-50%);
-  white-space: nowrap;
+.pull {
+  margin-left: -2px;
+  fill: var(--ink);
 }
 
 .close {
-  margin-top: 4px;
+  position: absolute;
+  left: 0;
+  top: 424px;
 }
 .close :deep(.text) {
-  font-size: 22px;
+  font-size: 24px;
 }
 </style>

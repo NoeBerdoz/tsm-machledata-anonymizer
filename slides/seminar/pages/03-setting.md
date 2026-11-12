@@ -1,16 +1,16 @@
 ---
 part: 1
-source: 'Pseudonymization: GDPR Art. 4(5) and Recital 26'
-clicks: 1
+clicks: 2
 ---
 
-# Our model has to run on the laptop CPU, on every request
+# Our model has to run fast *on a normal laptop*
 
-<Setting />
+<OnTheLaptop />
 
 <!--
-Target time 0:20. Speaker: to assign.
+Target time 0:25. Speaker: to assign.
 
-The left side runs on the laptop. Rules catch fixed formats. Our model catches names and addresses. Only placeholders reach the cloud.
-[click] It has to run on every request, on the laptop CPU. So it must be small and fast.
+Our model runs locally, on the employee's laptop. The personal data is already there.
+[click] It is a normal laptop. Our model runs on its CPU, the main processor.
+[click] It runs before every request, and files can be long. So it must be small and fast.
 -->

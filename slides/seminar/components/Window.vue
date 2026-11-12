@@ -2,19 +2,24 @@
 // The window of an app, drawn crisp in the deck's type: a title bar with three dots, a title
 // and an optional tag, and the body in the default slot.
 //   tone="dark"  a remote service, such as a cloud AI
+//   icon="cloud" a cloud mark in place of the three dots, for a service that is not an app
 //   <template #bar>  extra items at the right end of the title bar
 // The bar height and the title size can be set with --win-bar and --win-title.
-withDefaults(defineProps<{ title?: string; tag?: string; tone?: 'light' | 'dark' }>(), {
+withDefaults(defineProps<{ title?: string; tag?: string; tone?: 'light' | 'dark'; icon?: 'dots' | 'cloud' }>(), {
   title: '',
   tag: '',
   tone: 'light',
+  icon: 'dots',
 })
 </script>
 
 <template>
   <div class="win" :class="tone">
     <div class="bar">
-      <span class="dots" aria-hidden="true"><i /><i /><i /></span>
+      <svg v-if="icon === 'cloud'" class="cloud" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6.9 18.5A3.9 3.9 0 0 1 6.61 10.71A5.2 5.2 0 0 1 16.98 10A4.25 4.25 0 1 1 17.1 18.5Z" />
+      </svg>
+      <span v-else class="dots" aria-hidden="true"><i /><i /><i /></span>
       <span class="title">{{ title }}</span>
       <span v-if="tag" class="tag">{{ tag }}</span>
       <span class="grow" />
@@ -58,6 +63,19 @@ withDefaults(defineProps<{ title?: string; tag?: string; tone?: 'light' | 'dark'
   height: 9px;
   border-radius: 50%;
   background: rgba(22, 22, 22, 0.14);
+}
+/* the cloud mark: a stroke icon at the weight of the deck's other marks */
+.cloud {
+  flex: none;
+  margin: 0 -2px 0 -4px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  color: var(--muted);
+}
+.dark .cloud {
+  color: #d2d1cc;
 }
 .title {
   font-family: var(--sans);

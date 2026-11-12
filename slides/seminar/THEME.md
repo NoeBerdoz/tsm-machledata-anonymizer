@@ -63,7 +63,7 @@ Nobody in the room is a native English speaker: not the four of us, and not the 
 
 ## Writing a slide
 
-Each slide is one file in `pages/`, such as `pages/05-soft-labels.md`, and `slides.md` lists it with a `src:` line after the cover.
+Each slide is one file in `pages/`, such as `pages/06-soft-labels.md`, and `slides.md` lists it with a `src:` line after the cover.
 
 ```md
 ---
@@ -97,10 +97,10 @@ The rail at the bottom right shows where we are in the talk.
 
 | Part | Slides |
 | --- | --- |
-| 1 Problem | 2 the hook, 3 the setting |
-| 2 Model | 4 the teacher, 5 soft labels, 6 the distillation loss |
-| 3 Quantization | 7 int8, 8 PTQ or QAT and the size path |
-| 4 Evaluation | 9 how we count a leak, 10 the goals, 11 the baseline |
+| 1 Problem | 2 the hook, 3 the laptop |
+| 2 Model | 4 the teacher, 5 the dictionary, 6 soft labels, 7 the loss |
+| 3 Quantization | 8 int8, 9 the size path, then PTQ and QAT |
+| 4 Evaluation | 10 how we count a leak, 11 the SMART goals |
 | 5 Plan | 12 the pipeline, 13 the roadmap |
 
 The cover has no rail. The closing lights the whole rail. The appendix pages have no rail.
@@ -118,10 +118,14 @@ The cover has no rail. The closing lights the whole rail. The appendix pages hav
 | `Callout` | the one thing to remember | `<Callout tag="In short">This time, the AI only saw placeholders.</Callout>`, with `tone="alert"` for a danger |
 | `BigStat` | one figure and its caption | `<BigStat :value="48" suffix="%" side>of employees report ...</BigStat>` |
 | `StepTrail` | a process read left to right, the current step lit | `<StepTrail :steps="['Version', 'Train', 'Gate']" :current="1" />`, with `size="lg"` when the trail is the figure |
-| `Window` | the window of an app | `<Window title="AI chat">...</Window>`, with `tone="dark"` for a remote service |
+| `Window` | the window of an app | `<Window title="AI chat">...</Window>`, with `tone="dark"` for a remote service and `icon="cloud"` in place of the three dots when the service is not an app |
 | `Bar` | a measure against a goal line | `<Bar :value="88" :max="100" :goal="95" tone="fail" display="88 %" />` |
 
 The figures of slides 2 and 12 are `PromptTrip` and `PipelineTrail`. They are built from the same blocks.
+
+A bar row looks the same on every slide: a 12 px bar on a light track that starts at zero, the value at 20 px with tabular digits, and a check mark after a value that passes.
+
+One trap: the deck runs UnoCSS, which reads a class named like one of its utilities as that utility. A class called `table` becomes `display: table`, and `flex`, `grid`, `block` or `hidden` would do the same. Give a class a name of its own, such as `gate-table`.
 
 ## Motion
 

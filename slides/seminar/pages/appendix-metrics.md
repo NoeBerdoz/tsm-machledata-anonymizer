@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 
 ### T1
 
-The validation split of the training set, in French, German, Italian and English. We never use it for training. The training set, and so T1, is still open: we choose it at v0, between OpenPII-1M and open-pii-masking-500k. The numbers so far favour OpenPII-1M: both give GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
+The validation split of the training set, in French, German, Italian and English. We never use it for training. The training set, and so T1, is still open: we choose it by 16 November, between OpenPII-1M and open-pii-masking-500k. The numbers so far favour OpenPII-1M: both give GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
 
 ### T2
 
@@ -28,7 +28,7 @@ Both sets carry gold character offsets: the exact position of each true entity. 
 
 ### Character precision
 
-The share of masked characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 9, masking the whole 54-character line gives $26/54 = 0.48$.
+The share of masked characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 10, masking the whole 54-character line gives $26/54 = 0.48$.
 
 </div>
 </div>

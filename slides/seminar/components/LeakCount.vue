@@ -45,7 +45,7 @@ const step = computed(() => props.step)
 <template>
   <div class="leak">
     <div class="head">
-      <span>Example: payments.csv, in a prompt</span><span /><span>Recall</span><span>Character precision</span>
+      <span>Example: payments.csv, in a prompt</span><span /><span>Recall</span><span>Character precision<span class="k-sub">personal / masked</span></span>
     </div>
 
     <div class="row gold">
@@ -161,5 +161,9 @@ const step = computed(() => props.step)
   .inkbar {
     transition: none;
   }
+}
+.k-sub {
+  display: block;
+  color: var(--muted);
 }
 </style>

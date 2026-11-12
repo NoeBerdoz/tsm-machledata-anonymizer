@@ -41,31 +41,31 @@ src: ./pages/04-teacher.md
 ---
 
 ---
-src: ./pages/05-soft-labels.md
+src: ./pages/05-dictionary.md
 ---
 
 ---
-src: ./pages/06-loss.md
+src: ./pages/06-soft-labels.md
 ---
 
 ---
-src: ./pages/07-quantization.md
+src: ./pages/07-loss.md
 ---
 
 ---
-src: ./pages/08-size-path.md
+src: ./pages/08-quantization.md
 ---
 
 ---
-src: ./pages/09-leak.md
+src: ./pages/09-size-path.md
 ---
 
 ---
-src: ./pages/10-goals.md
+src: ./pages/10-leak.md
 ---
 
 ---
-src: ./pages/11-baseline.md
+src: ./pages/11-goals.md
 ---
 
 ---
@@ -78,6 +78,10 @@ src: ./pages/13-roadmap.md
 
 ---
 src: ./pages/14-questions.md
+---
+
+---
+src: ./pages/appendix-architecture.md
 ---
 
 ---

@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 <div class="appx cols bl-notes">
 <div>
 
-Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. T2 is in progress, so no row is on T2-dev yet. Each T1 sample is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. T1 is chosen at v0, and these numbers favour OpenPII-1M.
+Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. T2 is in progress, so no row is on T2-dev yet. Each T1 sample is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. T1 is chosen by 16 November, and these numbers favour OpenPII-1M.
 
 </div>
 <div>
