@@ -7,6 +7,8 @@ clicks: 4
 
 # The loss pulls the student toward *two targets*
 
+The same sentence goes into both models. Only the student learns.
+
 <DistillLoss />
 
 <!--

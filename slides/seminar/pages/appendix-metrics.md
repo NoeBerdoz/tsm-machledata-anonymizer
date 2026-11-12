@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 
 ### T1
 
-The validation split of the training set, in French, German, Italian and English. We never use it for training. The training set, and so T1, is still open: we choose it by 16 November, between OpenPII-1M and open-pii-masking-500k. The numbers so far favour OpenPII-1M: both give GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
+The validation split of the training set, in French, German, Italian and English. We never use it for training. We train on OpenPII-1M and Gretel, so T1 is the OpenPII-1M validation split. Both candidates gave GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
 
 ### T2
 
@@ -24,11 +24,11 @@ Before any tuning we split T2 into T2-dev, for thresholds and the gate, and a fi
 
 ### Recall, the primary metric
 
-Both sets carry gold character offsets: the exact position of each true entity. An entity counts as protected only if all its characters are masked, so a partly masked IBAN is a leak. Recall is the micro-average of this rule over the true entities, also reported per entity type. One minus recall is the leak rate.
+Both sets carry gold character offsets: the exact position of each true entity. An entity counts as protected only if every non-whitespace character is masked, so a partly masked IBAN is a leak. Recall is the micro-average of this rule over the true entities, also reported per entity type. One minus recall is the leak rate.
 
 ### Character precision
 
-The share of masked characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 10, masking the whole 54-character line gives $26/54 = 0.48$.
+The share of masked non-whitespace characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 10, masking the whole 49-character line gives $21/49 = 0.43$.
 
 </div>
 </div>

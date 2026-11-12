@@ -134,7 +134,7 @@ const bar = (v: number) => ({ transform: `scaleX(${Math.max(0, Math.min(1, v))})
       <Callout class="note" :style="rise(ch.c0)">Here, each word gets one of these types. Which one is Dupont?</Callout>
       <Callout class="note" :style="rise(ch.c1)">The same word can be a person or part of a place. A model can hesitate.</Callout>
       <Callout class="note" :style="rise(ch.c2)">A hard label gives one answer. It says nothing about the other types.</Callout>
-      <Callout class="note" :style="rise(ch.c3)">The teacher's soft labels show that Dupont can also be a place.</Callout>
+      <Callout class="note" :style="rise(ch.c3)">The teacher's soft labels show its doubt: Dupont might be a place.</Callout>
       <Callout class="note" :style="rise(ch.c4)">
         A higher temperature <Tex e="\tau" /> spreads the probabilities: small ones grow.<br>The student sees the second choices.
       </Callout>

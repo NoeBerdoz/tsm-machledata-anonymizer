@@ -135,4 +135,4 @@ One trap: the deck runs UnoCSS, which reads a class named like one of its utilit
 
 ## The art
 
-The Poya paper-cut stays on the cover and on the roadmap (slide 13) only, cut in the deck's ink. On the roadmap, its one red is the heart on the station where we stand today. We draw no new figurative art: no laptops, hands, clouds or people.
+The Poya paper-cut stays on the cover and on the roadmap (slide 13) only, cut in the deck's ink. On the roadmap, the only red is the heart on each station that the herd has reached. On each click, the next heart pops red, and it stays red. We draw no new figurative art: no laptops, hands, clouds or people.

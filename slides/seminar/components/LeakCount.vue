@@ -6,15 +6,15 @@ import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{ step?: number }>(), { step: 0 })
 
-const line = '2026-11-02;INV-4471;CH93 0076 2011 6238 5295 7;1200.00'
-const iban = 'CH93 0076 2011 6238 5295 7'
+const line = '2026-11-02;INV-4471;CH9300762011623852957;1200.00'
+const iban = 'CH9300762011623852957'
 const g0 = line.indexOf(iban)
 const g1 = g0 + iban.length
 
 type Case = { key: string; mask: [number, number]; verdict: string; leak?: boolean; from: number }
 const cases: Case[] = [
   { key: 'Fully masked', mask: [g0, g1], verdict: 'Protected', from: 1 },
-  { key: 'Last digits visible', mask: [g0, g1 - 4], verdict: 'Leak', leak: true, from: 2 },
+  { key: 'Last digits visible', mask: [g0, g1 - 3], verdict: 'Leak', leak: true, from: 2 },
   { key: 'Whole line masked', mask: [0, line.length], verdict: 'Over-masked', from: 3 },
 ]
 

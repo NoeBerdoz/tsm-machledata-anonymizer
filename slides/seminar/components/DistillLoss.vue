@@ -127,7 +127,7 @@ const at = (x: number) => ({ left: x + 'px' })
     <!-- the four distributions -->
     <div class="tab">
       <div class="head">
-        <span class="eyebrow ex">Same example,<br>simplified,<br>made-up scores</span>
+        <span class="eyebrow ex">Simplified,<br>made-up scores</span>
         <div class="h" :style="{ ...at(COL[0]), ...rise(ch.a) }"><Tex e="y" /><span>ground truth</span></div>
         <div class="h" :style="at(COL[1])"><Tex e="p_S" /><span>student's answer</span></div>
         <div class="h" :style="{ ...at(COL[2]), ...klPart(ch.cd) }"><Tex e="p_T^{\tau}" /><span>teacher, <Tex :e="`\\tau = ${tauText}`" /></span></div>
