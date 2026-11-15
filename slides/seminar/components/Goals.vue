@@ -76,7 +76,8 @@ const rise = (v: number, d = 12) => ({
   grid-template-columns: repeat(5, 1fr);
   column-gap: 24px;
   width: 1136px;
-  margin-top: 72px;
+  /* no lede on slide 11: the row sits in the middle of the free space */
+  margin-top: 112px;
 }
 .id {
   font-size: 15px;

@@ -167,7 +167,7 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
 
     <div class="notes">
       <p class="note" :style="rise(ch.note1)">Our model targets Switzerland: it needs only four languages.</p>
-      <p class="note" :style="rise(ch.note2)">Required for O3: keep tokens from training data.</p>
+      <p class="note" :style="rise(ch.note2)">Needed to be 8 times smaller: keep only the tokens of our training data.</p>
     </div>
   </div>
 </template>

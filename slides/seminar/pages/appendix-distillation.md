@@ -15,7 +15,7 @@ $$p_i^{\tau} = \frac{e^{z_i/\tau}}{\sum_j e^{z_j/\tau}}$$
 
 At $\tau = 1$ this is the usual softmax. A higher $\tau$ makes the probabilities flatter. The student then also sees how the teacher ranks the wrong classes.
 
-### The example of slide 7 and of the loss page
+### The example of slide 7
 
 The scores are made up: $z = (4.0,\ 2.2,\ 0.6,\ 0.0)$ for PERSON, LOCATION, ORGANIZATION and NONE. They show doubt in the teacher, not evidence that this Dupont is a place.
 
@@ -37,7 +37,7 @@ $$\mathcal{L} = (1-\alpha)\,\mathrm{CE}\big(y,\,p_S\big) + \alpha\,\tau^2\,\math
 
 CE (cross-entropy) measures how far the student's answer $p_S$, at $\tau = 1$, is from the ground truth $y$. KL (Kullback-Leibler divergence) measures how far the student's soft labels $p_S^{\tau}$ are from the teacher's $p_T^{\tau}$. The weight $\alpha$, from 0 to 1, sets the mix.
 
-### What the loss page draws
+### The two pulls on one example
 
 A student during training, with made-up scores $z_S = (2.0,\ 0,\ 0,\ 0)$: its answer at $\tau = 1$ is 71.1 / 9.6 / 9.6 / 9.6 %, its soft labels at $\tau = 4$ are 35.5 / 21.5 / 21.5 / 21.5 %. CE pulls the answer toward the ground truth, KL pulls the soft labels toward the teacher's. On LOCATION the two pulls disagree.
 

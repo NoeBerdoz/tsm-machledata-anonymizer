@@ -163,7 +163,7 @@ const pop = (v: number) => ({ ...vis(v), transform: `scale(${1.12 - 0.12 * v})` 
       <div class="tagrow"><span class="ver">v3</span></div>
       <div class="mname">The student we ship</div>
       <div class="goal eyebrow ink">Goal</div>
-      <div class="spec goal-spec"><span>at least <span class="figure-num">8</span> times smaller</span><span>at most <span class="figure-num">155 MB</span></span></div>
+      <div class="spec goal-spec"><span>at least <span class="figure-num">8</span> times smaller</span><span>at most <span class="nw">about <span class="figure-num">155.6 MB</span></span></span></div>
     </div>
 
     <!-- the output, on the laptop -->
@@ -325,6 +325,9 @@ const pop = (v: number) => ({ ...vis(v), transform: `scale(${1.12 - 0.12 * v})` 
 }
 .goal-spec {
   margin-top: 2px;
+}
+.goal-spec .nw {
+  white-space: nowrap;
 }
 
 /* the output */

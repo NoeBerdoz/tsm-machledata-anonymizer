@@ -223,7 +223,7 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
     <!-- 2 Gate -->
     <div class="card gate" :style="card(2)">
       <span class="stem" :style="stem(2)" />
-      <div class="ck">T2-dev, our development set</div>
+      <div class="ck">Our development set</div>
       <div class="grid head">
         <span />
         <span class="eyebrow">Goal</span>
@@ -276,12 +276,12 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
           <line x1="0" :y1="my(ALERT)" x2="364" :y2="my(ALERT)" class="alert-line" />
           <text x="0" :y="my(ALERT) - 8" class="ax red">alert line</text>
           <path :d="P95_PATH" pathLength="1" class="p95" :style="{ strokeDashoffset: 1 - ch.chart }" />
-          <text :x="mx(5)" :y="my(41) + 22" class="ax ink" :style="on(ch.chart)">p95</text>
+          <text :x="mx(5)" :y="my(41) + 22" class="ax ink" :style="on(ch.chart)">95 of 100 requests</text>
           <text :x="CROSS.x - 12" :y="CROSS.y - 12" class="ax red" text-anchor="end" :style="on(ch.alert)">Alert</text>
           <circle :cx="CROSS.x" :cy="CROSS.y" r="6" class="cross" :style="{ ...on(ch.alert), transformOrigin: `${CROSS.x}px ${CROSS.y}px`, transform: `scale(${2 - ch.alert})` }" />
         </svg>
         <div class="mon-notes" :style="on(ch.notes)">
-          <p><b class="mono">p95</b>: 95 of 100 requests are faster than this.</p>
+          <p>95 of 100 requests finish within this time.</p>
           <p>Sentry never sees the prompt or the answer.</p>
         </div>
       </div>
@@ -290,7 +290,7 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
     <!-- 5 Review -->
     <div class="card" :style="card(5)">
       <span class="stem" :style="stem(5)" />
-      <div class="ck">Feedback in the app</div>
+      <div class="ck">Optional user ratings</div>
       <div class="rate">
         <span>Rate this answer</span>
         <span class="stars">
@@ -299,7 +299,7 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
           </svg>
         </span>
       </div>
-      <p class="review" :style="{ ...on(ch.review), transform: `translateY(${(1 - ch.review) * 8}px)` }">People review the feedback, then plan the next run.</p>
+      <p class="review" :style="{ ...on(ch.review), transform: `translateY(${(1 - ch.review) * 8}px)` }">People review the results, then plan the next run.</p>
     </div>
   </div>
 </template>

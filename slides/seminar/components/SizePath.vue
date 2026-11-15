@@ -27,7 +27,7 @@ const ROWS: Row[] = [
   { label: 'Or drop the tokens seen under 10 times', size: 'about 108 MB', x: 11.6, from: 2 },
   { label: 'Or both', size: 'about 91 MB', x: 13.6, from: 3 },
 ]
-const GOAL = 8 // times smaller, O3: 1,244,444,426 bytes / 8 = about 155.6 MB, printed as "at most about 155 MB"
+const GOAL = 8 // times smaller, O3: 1,244,444,426 bytes / 8 = about 155.6 MB, printed as "at most about 155.6 MB"
 const passes = (i: number) => ROWS[i].x >= GOAL
 
 // geometry of the path, in figure coordinates
@@ -103,7 +103,7 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
         <span class="eyebrow" style="left: 884px">Smaller</span>
         <span class="eyebrow" style="left: 990px">Size</span>
       </div>
-      <p class="goal-l" :style="{ ...on(ch.goal), top: ROW_Y - 34 + 'px', right: 1136 - GOAL_X - 1 + 'px' }">Current goal, O3: {{ GOAL }}x, at most about 155 MB</p>
+      <p class="goal-l" :style="{ ...on(ch.goal), top: ROW_Y - 34 + 'px', right: 1136 - GOAL_X - 1 + 'px' }">Current goal, O3: {{ GOAL }}x, at most about 155.6 MB</p>
       <div class="rule" :style="{ top: ROW_Y + 'px' }" />
 
       <div v-for="(r, i) in ROWS" :key="r.label" class="row" :style="{ top: rowTop(i) + 'px', ...rise(ch['r' + i], 6) }">

@@ -18,14 +18,14 @@ layout: cover
 
 <h1>Distilling and quantizing<br><em>a PII detector</em></h1>
 
-<p>How small can a pseudonymizer get before it starts to leak?</p>
+<p>How small can a pseudonymizer get before it leaks more?</p>
 
 <p class="eyebrow cover-team">Raul Santos Barreira / Michael Strefeler / Noé Berdoz / Nicolas Hertling</p>
 
 <!--
 Target time 0:15. Speaker: to assign.
 
-Hello. We build a pseudonymizer. On the laptop, it replaces personal data before a prompt goes to a cloud AI. Our advanced topic is model compression: how small can the detector get before it leaks?
+Hello. We build a pseudonymizer. On the laptop, it replaces personal data before a prompt goes to a cloud AI. Our advanced topic is model compression: how small can the detector get before it leaks more?
 -->
 
 ---
@@ -78,14 +78,6 @@ src: ./pages/13-roadmap.md
 
 ---
 src: ./pages/14-questions.md
----
-
----
-src: ./pages/appendix-architecture.md
----
-
----
-src: ./pages/appendix-loss.md
 ---
 
 ---

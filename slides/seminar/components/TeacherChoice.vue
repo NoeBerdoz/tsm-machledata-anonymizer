@@ -12,18 +12,18 @@ const pct1 = (found: number, all: number) => ((100 * found) / all).toFixed(1)
 type Row = { label: string; a: string; b: string; better?: 'a' | 'b' }
 const rows: Row[] = [
   // entities found, of 7,275
-  { label: 'Recall on T1, OpenPII-1M', a: `${pct(5867, 7275)} %`, b: `${pct(5733, 7275)} %`, better: 'a' },
+  { label: 'Recall on OpenPII-1M, public test set', a: `${pct(5867, 7275)} %`, b: `${pct(5733, 7275)} %`, better: 'a' },
   // of 2,324
   { label: 'Recall on open-pii-500k', a: `${pct(1901, 2324)} %`, b: `${pct(1622, 2324)} %`, better: 'a' },
   // given names of 858, cities of 506, streets of 339
   {
-    label: 'Given names, cities, streets, on T1',
+    label: 'Given names, cities, streets, OpenPII-1M',
     a: `${pct(818, 858)}, ${pct(445, 506)}, ${pct(324, 339)} %`,
     b: `${pct(727, 858)}, ${pct(343, 506)}, ${pct(272, 339)} %`,
     better: 'a',
   },
   // dates of 871, social security numbers of 168
-  { label: 'Dates, social security numbers, on T1', a: `${pct(753, 871)}, ${pct(113, 168)} %`, b: `${pct(837, 871)}, ${pct(162, 168)} %`, better: 'b' },
+  { label: 'Dates, social security numbers, OpenPII-1M', a: `${pct(753, 871)}, ${pct(113, 168)} %`, b: `${pct(837, 871)}, ${pct(162, 168)} %`, better: 'b' },
   // AVS, IBAN and phone values found by the regex or the model, of 781
   { label: 'Swiss AVS, IBAN, phone, with our regex', a: `${pct1(775, 781)} %`, b: `${pct1(777, 781)} %`, better: 'b' },
   { label: 'Entity types it knows', a: '42', b: '8', better: 'a' },
@@ -46,7 +46,7 @@ const mark = (r: Row, side: 'a' | 'b') => (!r.better ? '' : r.better === side ? 
     <thead>
       <tr class="grp">
         <th />
-        <th colspan="2">Both measured as published, before our training</th>
+        <th colspan="2">Published weights, in our test setup</th>
       </tr>
       <tr class="who">
         <th />

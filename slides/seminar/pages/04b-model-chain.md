@@ -14,7 +14,7 @@ Target time 0:35. Speaker: to assign.
 
 Here is our plan, from GLiNER2-PII as published.
 [click] Fine-tuning on 50,000 labelled rows gives the teacher, v1. It learns the types it misses today, like titles and ages.
-[click] The student learns from the teacher and the true labels. It has fewer layers and a smaller dictionary.
+[click] The student learns from the teacher and the ground truth. It has fewer layers and a smaller dictionary.
 [click] Quantization stores the weights in 1 byte. This gives our app model, v3. Our goal: at least 8 times smaller than the teacher.
 [click] In the app, the model finds the name. Rules find the AVS number. The app sends placeholders.
 
