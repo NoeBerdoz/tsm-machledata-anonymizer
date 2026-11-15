@@ -24,11 +24,11 @@ Before any tuning we split T2 into T2-dev, for thresholds and the gate, and a fi
 
 ### Recall, the primary metric
 
-Both sets carry gold character offsets: the exact position of each true entity. An entity counts as protected only if every non-whitespace character is masked, so a partly masked IBAN is a leak. Recall is the micro-average of this rule over the true entities, also reported per entity type. One minus recall is the leak rate.
+Both sets carry gold character offsets: the exact position of each true entity. An entity counts as protected only if every non-whitespace character is masked, so a partly masked name or IBAN is a leak. Recall is the micro-average of this rule over the true entities, also reported per entity type. One minus recall is the leak rate.
 
 ### Character precision
 
-The share of masked non-whitespace characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 9, masking the whole 49-character line gives $21/49 = 0.43$.
+The share of masked non-whitespace characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 9, masking the whole line gives $11/36 = 0.31$: the line has 36 non-whitespace characters, 11 of them in the name.
 
 </div>
 </div>
