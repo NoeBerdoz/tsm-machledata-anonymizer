@@ -9,15 +9,15 @@ eyebrow: Appendix for readers
 
 ### O1 Protection
 
-<p class="goal-s">By the final talk in mid-December 2026, the delivered student keeps at least <span class="figure-num">95 %</span> of the fine-tuned teacher's recall, on T1 and on <span class="n">T2-final</span>, each set separately. With the regex, Swiss IDs reach at least <span class="figure-num">99 %</span> recall.</p>
+<p class="goal-s">By the final talk in mid-December 2026, the delivered student keeps at least <span class="figure-num">95 %</span> of the fine-tuned teacher's recall, on T1 and on <span class="n">T2-final</span>, each set separately, and never falls below <span class="n">GLiNER2-PII</span> as published (<span class="n">80.7 %</span> on T1). With the regex, Swiss IDs reach at least <span class="figure-num">99 %</span> recall on <span class="n">T2-final</span>.</p>
 
 ### How we measure it
 
 An entity counts as found only if every character except spaces is masked. Swiss IDs are AVS numbers, IBANs and phone numbers, counted together.
 
-### Reported, with no threshold
+### Also reported
 
-The absolute recall, overall and per type, since <span class="n">95 %</span> is relative: a teacher at <span class="n">90 %</span> allows <span class="n">85.5 %</span>. Also <span class="n">GLiNER2-PII</span> as published, and a control student without the teacher.
+The absolute recall, overall and per type, since <span class="n">95 %</span> is relative: a teacher at <span class="n">90 %</span> allows <span class="n">85.5 %</span>. Also <span class="n">GLiNER2-PII's</span> recall per type, and a control student without the teacher.
 
 </div>
 <div>
@@ -29,7 +29,7 @@ The absolute recall, overall and per type, since <span class="n">95 %</span> is 
 
 ### Why we can reach it
 
-On 9 November, 2 minutes of cloud training on 900 rows raised recall on 13 types from <span class="n">76.5 %</span> to <span class="n">95.4 %</span>. The test rows came from the same dataset, so this is optimistic. <span class="src">docs/cloud-training.md</span>
+Two thirds of <span class="n">GLiNER2-PII's</span> misses are types it has no label for, and our training data labels them. On T1, a teacher at <span class="n">85 %</span> makes the floor follow from the 95 % rule: <span class="n">95 %</span> of it is <span class="n">80.75 %</span>. Cloud training works (9 November), but that test covered 13 types only. <span class="src">docs/smart-goals.md</span>
 
 </div>
 </div>

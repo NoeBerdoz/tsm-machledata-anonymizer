@@ -20,7 +20,7 @@ export interface Goal {
 }
 
 export const goals: Goal[] = [
-  { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall", more: 'Swiss IDs: 99 %, | rules and model' },
+  { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall", more: 'and 99 % of | Swiss IDs found' },
   { id: 'O2', name: 'Utility', figure: '90 %', caption: 'of solved test prompts | still work | with placeholders' },
   { id: 'O3', name: 'Compression', figure: '8x', caption: 'smaller than | the teacher', more: '1.5x faster | on the i5 laptop' },
   { id: 'O4', name: 'End to end', figure: '100 %', caption: 'of intact placeholders | restored exactly', more: 'No leak added | by the app' },

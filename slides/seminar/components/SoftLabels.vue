@@ -136,7 +136,7 @@ const bar = (v: number) => ({ transform: `scaleX(${Math.max(0, Math.min(1, v))})
       <Callout class="note" :style="rise(ch.c2)">A hard label gives one answer. It says nothing about the other types.</Callout>
       <Callout class="note" :style="rise(ch.c3)">The teacher's soft labels show its doubt: Dupont might be a place.</Callout>
       <Callout class="note" :style="rise(ch.c4)">
-        A higher temperature <Tex e="\tau" /> spreads the probabilities: small ones grow.<br>The student sees the second choices.
+        A higher temperature <Tex e="\tau" /> spreads the probabilities: small ones grow.<br>So the student also learns that Dupont could be a place.
       </Callout>
     </div>
   </div>

@@ -1,7 +1,7 @@
 ---
 part: 3
 clicks: 4
-source: 'Size estimates at 1 byte per weight in int8 and half a byte in int4, tokenizer counted. Assumptions in the appendix.'
+source: 'Size estimates at 1 byte per weight in int8 and half a byte in int4, tokenizer counted.'
 ---
 
 # Int8 is not enough to make our model *8 times smaller*
