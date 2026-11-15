@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 7. One rounding on one weight, then the same rounding on every weight of a layer.
+// Slide 8. One rounding on one weight, then the same rounding on every weight of a layer.
 //   step 1: 0.4237 / 0.01 = 42.37, rounded to 42, stored as int8 in 1 byte
 //   step 2: read back 42 x 0.01 = 0.42, error 0.0037, never more than half a step (0.005)
 //   step 3: the weight is one cell of a 2 x 2 matrix: before (float32) and after (int8)

@@ -41,6 +41,10 @@ src: ./pages/04-teacher.md
 ---
 
 ---
+src: ./pages/04b-model-chain.md
+---
+
+---
 src: ./pages/05-dictionary.md
 ---
 

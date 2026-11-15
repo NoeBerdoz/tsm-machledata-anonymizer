@@ -13,14 +13,14 @@ PTQ rounds a model that is already trained, with no retraining. The weights are 
 
 ### Which tensors
 
-The weights go to int8. On the size path of slide 8, int4 for the word embeddings is an option. Any tensor left in float counts in the delivered size.
+The weights go to int8. On the size path of slide 9, int4 for the word embeddings is an option. Any tensor left in float counts in the delivered size.
 
 </div>
 <div>
 
 ### Quantization-aware training (QAT)
 
-QAT trains with the rounding simulated. In the forward pass, each quantized tensor is rounded to its grid and read back, as on slide 7. The model learns weights that cope with the rounding, so QAT can recover accuracy that PTQ loses. It costs a training run.
+QAT trains with the rounding simulated. In the forward pass, each quantized tensor is rounded to its grid and read back, as on slide 8. The model learns weights that cope with the rounding, so QAT can recover accuracy that PTQ loses. It costs a training run.
 
 ### The straight-through estimator
 

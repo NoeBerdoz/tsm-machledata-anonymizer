@@ -2,34 +2,34 @@
 eyebrow: Appendix for readers
 ---
 
-# O2 asks that 90 % of solved tasks still work
+# O2 asks that 90 % of solved test prompts still work
 
 <div class="appx cols goal-appx">
 <div>
 
 ### O2 Utility
 
-<p class="goal-s">By the final talk, at least <span class="figure-num">90 %</span> of the app tasks solved without pseudonymization stay solved with it. The student's character precision on <span class="n">T2-final</span> is at least <span class="n">GLiNER2-PII's</span> on <span class="n">T2-dev</span>.</p>
+<p class="goal-s">By the final talk, at least <span class="figure-num">90 %</span> of the test prompts solved without pseudonymization stay solved with it. The student's character precision on <span class="n">T2-final</span> is at least <span class="n">GLiNER2-PII's</span> on <span class="n">T2-dev</span>.</p>
 
 ### How we measure it
 
-20 scripted tasks run through our app twice, with and without pseudonymization, with the same OpenAI model and settings. Each task has an answer check fixed in advance.
+20 test prompts run through our app twice, with and without pseudonymization, with the same OpenAI model and settings. A test prompt is a prompt, with or without an attached file, and an answer check fixed in advance.
 
 ### Reported, with no threshold
 
-Both counts. If not all 20 tasks pass without pseudonymization, we divide by the real number.
+Both counts. If not all 20 test prompts pass without pseudonymization, we divide by the real number.
 
 </div>
 <div>
 
 ### Why these numbers
 
-<div class="why-row"><span class="k">90 %</span><p>O1 alone can be met by masking everything. O2 checks that the answers stay useful: at most 2 of 20 solved tasks may break. <span class="src">docs/smart-goals.md</span></p></div>
+<div class="why-row"><span class="k">90 %</span><p>O1 alone can be met by masking everything. O2 checks that the answers stay useful: at most 2 of 20 solved test prompts may break. <span class="src">docs/smart-goals.md</span></p></div>
 <div class="why-row"><span class="k">Precision</span><p>The precision floor limits how much is masked by mistake. The number is recorded on <span class="n">T2-dev</span> before any tuning. <span class="src">docs/smart-goals.md</span></p></div>
 
 ### The limit
 
-No app result yet: the tasks run once the app and the backend are ready.
+No app result yet: the test prompts run once the app and the backend are ready.
 
 </div>
 </div>

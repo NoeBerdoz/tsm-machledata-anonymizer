@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The appendix tables behind slide 10, from data/baseline.ts.
+// The appendix tables behind slide 11, from data/baseline.ts.
 //   view="full"     both T1 candidate samples (1,000 texts each) and the Swiss set (781 values)
 //   view="subset"   the app's engine against the others on the same 200 texts per set
 //   view="latency"  time per call on the development machine

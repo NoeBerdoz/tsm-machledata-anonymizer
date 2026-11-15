@@ -187,7 +187,7 @@ const coreOn = (i: number) => clamp01(ch.cores - i)
   background: var(--ink);
   transform-origin: left center;
 }
-/* number, line to say, then the rule: the column head of slide 10's goals */
+/* number, line to say, then the rule: the column head of slide 11's goals */
 .head {
   margin-top: 4px;
   font-size: 24px;

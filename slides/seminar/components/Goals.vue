@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// Slide 10: the five goals as five columns, read left to right. The slide opens on the five
+// Slide 11: the five goals as five columns, read left to right. The slide opens on the five
 // names; each click fills one goal with its target figure and what the figure means.
 //   0  O1 to O5, names only
-//   n  goal n gets its rule, its figure, its caption and its second condition (n = 1 to 5)
+//   n  goal n gets its rule, its figure, its caption and its second line (n = 1 to 5)
+// Every figure is a measure, and the figure with its caption is the phrase the speaker says.
+// Each column stays one block, so a goal's second line sits under its own caption.
 // The end state is the readable summary of all five targets.
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import { goals } from '../data/goals'
@@ -38,6 +40,10 @@ const split = (s: string) => {
   return m ? { n: m[1], u: m[2] } : { n: s, u: '' }
 }
 const figs = goals.map((g) => split(g.figure))
+// A "|" in a caption or a second line marks where the line may break; each phrase between
+// two marks stays whole, so a line never ends on "the" in any browser. Text without a mark
+// wraps as usual.
+const phrases = (s: string) => s.split('|').map((p) => p.trim())
 const rise = (v: number, d = 12) => ({
   opacity: v,
   visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const),
@@ -54,8 +60,12 @@ const rise = (v: number, d = 12) => ({
       <div class="fig figure-num" :style="rise(ch['f' + i], 18)">
         <span class="n">{{ figs[i].n }}</span><span v-if="figs[i].u" class="u">{{ figs[i].u }}</span>
       </div>
-      <p class="cap" :style="rise(ch['c' + i])">{{ g.caption }}</p>
-      <p v-if="g.more" class="more" :style="rise(ch['m' + i], 8)">{{ g.more }}</p>
+      <p class="cap" :style="rise(ch['c' + i])">
+        <template v-for="(p, k) in phrases(g.caption)" :key="k">{{ k ? ' ' : '' }}<span :class="{ phrase: g.caption.includes('|') }">{{ p }}</span></template>
+      </p>
+      <p v-if="g.more" class="more" :style="rise(ch['m' + i], 8)">
+        <template v-for="(p, k) in phrases(g.more)" :key="k">{{ k ? ' ' : '' }}<span :class="{ phrase: g.more.includes('|') }">{{ p }}</span></template>
+      </p>
     </div>
   </div>
 </template>
@@ -118,5 +128,8 @@ const rise = (v: number, d = 12) => ({
   line-height: 1.3;
   color: var(--muted);
   text-wrap: balance;
+}
+.phrase {
+  white-space: nowrap;
 }
 </style>

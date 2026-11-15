@@ -57,6 +57,6 @@ TODO: synthetic training data, only requests through our app are protected, text
 
 = Conclusion
 TODO: what we reached against the SMART goals.
-TODO: future work. Fake values in place of placeholders (issue #17) are a possible continuation, above all if the O2 app tasks show that placeholders make the answers worse.
+TODO: future work. Fake values in place of placeholders (issue #17) are a possible continuation, above all if the O2 test prompts show that placeholders make the answers worse.
 
 #bibliography("refs.bib")

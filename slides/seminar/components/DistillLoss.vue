@@ -10,7 +10,7 @@
 //   3  the weights: alpha mixes the two parts, tau^2 keeps the two parts balanced as tau changes
 //   4  the control student: alpha = 0, so the teacher's part is off; goal O1 reports which of
 //      the two students wins, with no threshold
-// Same example as slide 6, with made-up scores:
+// Same example as slide 7, with made-up scores:
 //   teacher z_T = (4.0, 2.2, 0.6, 0.0)  tau 4  41.10 / 26.21 / 17.57 / 15.12 %
 //   student z_S = (2.0, 0.0, 0.0, 0.0)  tau 1  71.12 / 9.63 / 9.63 / 9.63 %
 //                                       tau 4  35.47 / 21.51 / 21.51 / 21.51 %

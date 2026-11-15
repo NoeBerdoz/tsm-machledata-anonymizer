@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 
 ### O5 MLOps pipeline, cloud deployment and monitoring
 
-<p class="goal-s">By <span class="date">7 December 2026</span>, we show the whole chain at work.</p>
+<p class="goal-s">No model reaches the app without passing the quality gate: the target is <span class="n">0</span>. By <span class="date">7 December 2026</span>, we show the whole chain at work.</p>
 
 - A merge runs the tests. The cloud trains and evaluates.
 - Only models that pass the gate reach the MLflow registry.

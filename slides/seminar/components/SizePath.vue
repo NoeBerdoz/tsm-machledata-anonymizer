@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 8: the size path, built one step per click, then the two ways to apply the rounding.
+// Slide 9: the size path, built one step per click, then the two ways to apply the rounding.
 //   0  the teacher (measured) and int8 with only the tokens of our four languages, against the
 //      current goal line, 8 times smaller: int8 alone stays under it (6.9x)
 //   1  a student with 6 layers: past the line on paper (9.1x), so its row gets the check mark

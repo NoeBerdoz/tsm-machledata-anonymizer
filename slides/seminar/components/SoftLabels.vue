@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 6: what a soft label is, built one idea per click on one word of one sentence.
+// Slide 7: what a soft label is, built one idea per click on one word of one sentence.
 //   0  the sentence and the four types: which type is Dupont?
 //   1  the issue: the same word is a person, then part of a place (Rue Dupont)
 //   2  the hard label: the ground truth says PERSON, 100 %

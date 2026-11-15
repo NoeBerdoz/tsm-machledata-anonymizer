@@ -15,9 +15,9 @@ $$s = \frac{x_{max} - x_{min}}{2^b - 1}, \qquad z = \mathrm{round}\!\left(-\frac
 
 $$q = \mathrm{clamp}\big(\mathrm{round}(x/s) + z,\; 0,\; 2^b - 1\big), \qquad \hat{x} = s\,(q - z)$$
 
-### The example of slide 7
+### The example of slide 8
 
-Slide 7 uses the symmetric form: signed int8 levels from $-128$ to $127$, no zero point ($z = 0$), and an example step $s = 0.01$. So $0.4237 / 0.01 = 42.37$ is stored as $q = 42$, and read back as $\hat{x} = 0.01 \times 42 = 0.42$. The error is $|x - \hat{x}| = 0.0037$, under the bound $s/2 = 0.005$. The other weights of the layer give $-19$, $7$ and $30$.
+Slide 8 uses the symmetric form: signed int8 levels from $-128$ to $127$, no zero point ($z = 0$), and an example step $s = 0.01$. So $0.4237 / 0.01 = 42.37$ is stored as $q = 42$, and read back as $\hat{x} = 0.01 \times 42 = 0.42$. The error is $|x - \hat{x}| = 0.0037$, under the bound $s/2 = 0.005$. The other weights of the layer give $-19$, $7$ and $30$.
 
 </div>
 <div>

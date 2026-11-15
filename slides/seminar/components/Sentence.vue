@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 13: the answer of slide 2 comes back from the cloud AI with a placeholder, and our app
+// Slide 14: the answer of slide 2 comes back from the cloud AI with a placeholder, and our app
 // puts the real value back on the laptop.
 //   0  "Dear <PERSON_1>, please sign and return your contract.", as the cloud AI wrote it
 //   1  the placeholder gives way to the real name, in red: a real personal value

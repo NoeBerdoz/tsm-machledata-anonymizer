@@ -29,7 +29,7 @@ The idea is simple: the personal data that the engine detects never leaves the u
    - The restoration is exact. The LLM usually copies `<PERSON_1>` as it is, while it may shorten or change a fake name.
    - A miss stays visible. A placeholder left in an answer is obvious, while a fake name left in an answer looks real.
 
-   The price is that LLMs tend to write better answers from realistic text, and a placeholder does not tell the LLM whether to write "he" or "she". Goal O2 measures this cost, because its 20 app tasks run with and without pseudonymization ([smart-goals.md](smart-goals.md)). Fake values remain a possible continuation of the project, and step 2 already keeps the replacement apart from detection.
+   The price is that LLMs tend to write better answers from realistic text, and a placeholder does not tell the LLM whether to write "he" or "she". Goal O2 measures this cost, because its 20 test prompts run with and without pseudonymization ([smart-goals.md](smart-goals.md)). Fake values remain a possible continuation of the project, and step 2 already keeps the replacement apart from detection.
 
    The engine records each pair in a **mapping table** (placeholder ↔ real value), which is kept on the device only.
 4. **Privacy boundary.** Only the pseudonymized content goes past this point.
