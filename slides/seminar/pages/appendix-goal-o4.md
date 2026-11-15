@@ -31,7 +31,7 @@ All leaks, detector misses included, for the student and for <span class="n">GLi
 
 Our tests already cover masking, repeated values and restoration. The path to the cloud still needs testing. <span class="src">tests/test_engine.py, tests/test_app.py</span>
 
-### Outside the guarantee
+### Outside what O4 covers
 
 If OpenAI swaps one valid placeholder for another, such as <span class="ph">&lt;PERSON_2&gt;</span> for <span class="ph">&lt;PERSON_1&gt;</span>, the app cannot see it. The list of bad replacements is written before testing.
 
