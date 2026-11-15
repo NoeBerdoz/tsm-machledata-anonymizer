@@ -49,10 +49,6 @@ src: ./pages/06-soft-labels.md
 ---
 
 ---
-src: ./pages/07-loss.md
----
-
----
 src: ./pages/08-quantization.md
 ---
 
@@ -82,6 +78,10 @@ src: ./pages/14-questions.md
 
 ---
 src: ./pages/appendix-architecture.md
+---
+
+---
+src: ./pages/appendix-loss.md
 ---
 
 ---

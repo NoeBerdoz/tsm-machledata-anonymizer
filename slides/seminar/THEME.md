@@ -121,7 +121,7 @@ The cover has no rail. The closing lights the whole rail. The appendix pages hav
 | `Window` | the window of an app | `<Window title="AI chat">...</Window>`, with `tone="dark"` for a remote service and `icon="cloud"` in place of the three dots when the service is not an app |
 | `Bar` | a measure against a goal line | `<Bar :value="88" :max="100" :goal="95" tone="fail" display="88 %" />` |
 
-The figures of slides 2 and 12 are `PromptTrip` and `PipelineTrail`. They are built from the same blocks.
+The figures of slides 2 and 11 are `PromptTrip` and `PipelineTrail`. They are built from the same blocks.
 
 A bar row looks the same on every slide: a 12 px bar on a light track that starts at zero, the value at 20 px with tabular digits, and a check mark after a value that passes.
 
@@ -135,4 +135,4 @@ One trap: the deck runs UnoCSS, which reads a class named like one of its utilit
 
 ## The art
 
-The Poya paper-cut stays on the cover and on the roadmap (slide 13) only, cut in the deck's ink. On the roadmap, the only red is the heart on each station that the herd has reached. On each click, the next heart pops red, and it stays red. We draw no new figurative art: no laptops, hands, clouds or people.
+The Poya paper-cut stays on the cover and on the roadmap (slide 12) only, cut in the deck's ink. On the roadmap, the only red is the heart on each station that the herd has reached. On each click, the next heart pops red, and it stays red. We draw no new figurative art: no laptops, hands, clouds or people.

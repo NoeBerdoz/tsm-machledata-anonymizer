@@ -28,7 +28,7 @@ Both sets carry gold character offsets: the exact position of each true entity. 
 
 ### Character precision
 
-The share of masked non-whitespace characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 10, masking the whole 49-character line gives $21/49 = 0.43$.
+The share of masked non-whitespace characters that belong to a true entity. It shows over-masking: a model that masks everything fails it. In the example of slide 9, masking the whole 49-character line gives $21/49 = 0.43$.
 
 </div>
 </div>

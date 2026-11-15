@@ -16,5 +16,7 @@ Here, each word gets a type. Take Dupont.
 [click] Dupont appears twice: a person, then part of a street. A model can hesitate.
 [click] The ground truth says person, 100 percent: a hard label. It says nothing about the other types.
 [click] The teacher gives a probability to each type: soft labels. They show its doubt: Dupont might be a place.
-[click] Small values almost vanish. A higher temperature, here 4, spreads the probabilities. Now the student also sees the second choices.
+[click] Small values almost vanish. A higher temperature, here 4, spreads the probabilities. Now the student also sees the second choices. In training, it learns from both: the ground truth and the teacher.
+
+If asked: how are the two targets mixed? Show the appendix page "The loss pulls the student toward two targets".
 -->
