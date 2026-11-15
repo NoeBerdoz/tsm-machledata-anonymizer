@@ -27,7 +27,7 @@ const ROWS: Row[] = [
   { label: 'Or drop the tokens seen under 10 times', size: 'about 108 MB', x: 11.6, from: 2 },
   { label: 'Or both', size: 'about 91 MB', x: 13.6, from: 3 },
 ]
-const GOAL = 8 // times smaller, O3: 1,244 MB / 8 = 155.5 MB, printed as "at most about 155 MB"
+const GOAL = 8 // times smaller, O3: 1,244,444,426 bytes / 8 = about 155.6 MB, printed as "at most about 155 MB"
 const passes = (i: number) => ROWS[i].x >= GOAL
 
 // geometry of the path, in figure coordinates

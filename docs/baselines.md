@@ -33,7 +33,7 @@ We checked every offset: for all 9,599 entities, `text[start:end]` equals the `v
 |---|---|---|---|---|
 | regex | OpenPII-1M | 8.0 % | 99.4 % | (rules) |
 | presidio | OpenPII-1M | 54.3 % | 85.7 % | 2,357 |
-| gliner2 | OpenPII-1M | 80.7 % | 98.2 % | 1,244 |
+| gliner2 | OpenPII-1M | 80.6 % | 98.2 % | 1,244 |
 | regex | 500k | 6.3 % | 99.96 % | (rules) |
 | presidio | 500k | 63.5 % | 89.0 % | 2,357 |
 | gliner2 | 500k | 81.8 % | 96.7 % | 1,244 |
@@ -44,7 +44,7 @@ We checked every offset: for all 9,599 entities, `text[start:end]` equals the `v
 | regex+privacy-filter | OpenPII-1M | 79.0 % | 97.3 % | 2,827 |
 | regex+privacy-filter | 500k | 70.0 % | 96.6 % | 2,827 |
 
-`regex+gliner2` gives the same numbers as GLiNER2 alone, rounded: the samples have almost no valid Swiss values for the regex to add. It protects 5 more entities on OpenPII-1M, among them 2 `SOCIALNUM` and 2 `EMAIL`, and 1 more `TELEPHONENUM` on 500k. The regex adds a little more to Privacy Filter: 13 entities on OpenPII-1M and 5 on 500k, mostly e-mails.
+`regex+gliner2` gives almost the same numbers as GLiNER2 alone (80.7 % against 80.6 % on OpenPII-1M, the same once rounded on 500k): the samples have almost no valid Swiss values for the regex to add. It protects 5 more entities on OpenPII-1M, among them 2 `SOCIALNUM` and 2 `EMAIL`, and 1 more `TELEPHONENUM` on 500k. The regex adds a little more to Privacy Filter: 13 entities on OpenPII-1M and 5 on 500k, mostly e-mails.
 
 The size of Presidio is the four spaCy models. The size of GLiNER2 is its weights in fp32, its configs and its tokenizer. The size of Privacy Filter is its weights in bfloat16, its config and its tokenizer. The repo also holds ONNX exports and a second copy of the weights, which we do not count because we do not use them. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
 
@@ -150,9 +150,9 @@ Strict recall / character precision on the two T1 samples, and recall on the thr
 | regex | 7.5 % / 100.0 % | 6.2 % / 99.8 % | 96.8 % | rules only |
 | presidio | 55.0 % / 87.0 % | 65.9 % / 89.7 % | 77.3 % | 2,357 MB |
 | gliner2 | 81.9 % / 98.5 % | 82.6 % / 98.1 % | 84.1 % | 1,244 MB |
-| privacy-filter | 79.4 % / 97.5 % | 73.2 % / 97.1 % | 94.4 % | 2,827 MB |
+| privacy-filter | 79.4 % / 97.5 % | 73.1 % / 97.1 % | 94.4 % | 2,827 MB |
 | regex+gliner2 | 82.0 % / 98.5 % | 82.6 % / 98.1 % | 99.2 % | 1,244 MB |
-| regex+privacy-filter | 79.5 % / 97.5 % | 73.4 % / 97.1 % | 100.0 % | 2,827 MB |
+| regex+privacy-filter | 79.5 % / 97.5 % | 73.3 % / 97.1 % | 100.0 % | 2,827 MB |
 | engine | 62.4 % / 87.4 % | 63.5 % / 92.3 % | 100.0 % | 2,497 MB |
 
 What the engine shows:
@@ -204,7 +204,7 @@ What this means for the size path, as estimates at one byte per parameter in int
 | Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
 | Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
 | Same student, both | 105M | about 91 MB | 13.6 times |
-| O3 target | | about 155.5 MB (1,244 / 8) | 8 times |
+| O3 target | | about 155.6 MB (1,244,444,426 bytes / 8) | 8 times |
 | Stretch goal | | about 104 MB | 12 times |
 
 So int8, the pruned vocabulary and six layers give about 9 times, above the 8 times of O3. The stretch goal of 12 times needs int4 embeddings and dropping rare tokens: either one alone gives 11.6 times, both give 13.6 times. Recall must be measured after each step.

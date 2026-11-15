@@ -9,16 +9,13 @@ eyebrow: Appendix for readers
 
 ### O5 MLOps pipeline, cloud deployment and monitoring
 
-<p class="goal-s">No model reaches the app without passing the quality gate: the target is <span class="n">0</span>. By <span class="date">7 December 2026</span>, we show the whole chain at work.</p>
+<p class="goal-s">Every model version the app installs has a passing gate record in MLflow for the same file hash. We count the versions without one: the target is <span class="n">0</span>. By <span class="date">7 December 2026</span>, five scenarios must all pass.</p>
 
-- A merge runs the tests. The cloud trains and evaluates.
-- Only models that pass the gate reach the MLflow registry.
-- The app installs that version and shows it.
-- Sentry records the pseudonymization time, never the content. One alert fires on purpose.
-
-### How we check it
-
-Demonstration thresholds and the alert rule are written in advance in params.yaml. The gate must refuse a degraded model (at least 3 recall points lower) and a model without results, and publish a good one. If a download fails, the app keeps its last approved version. A demonstration approval never releases a model to users. The final student is accepted after v3, against the frozen thresholds of O1 to O3.
+- A degraded model, at least 3 recall points below the good one on T2-dev, fails the recall threshold.
+- A model without evaluation results is refused.
+- A good model is published. The app installs it and shows its version.
+- When a download fails, the app keeps its last approved version.
+- An injected slowdown fires the Sentry alert.
 
 </div>
 <div>
@@ -31,6 +28,10 @@ Demonstration thresholds and the alert rule are written in advance in params.yam
 ### Why we can reach it
 
 Cloud training already works (9 November, <span class="n">about USD 0.13</span>). The gate reuses the O1 to O3 scripts. <span class="src">docs/cloud-training.md</span>
+
+### How we check it
+
+Demonstration thresholds and the alert rule are written in advance in params.yaml. A demonstration approval never releases a model. The final student is accepted after v3, against the frozen thresholds of O1 to O3. User feedback and a smoke run on each merge are optional.
 
 </div>
 </div>

@@ -72,8 +72,8 @@ All the rows we read so far are English, but we train on FR, DE, and IT. We will
 
 | Set | Size | Languages | Entity types | License and access | Where |
 |---|---|---|---|---|---|
-| T1 | The validation split of OpenPII-1M (decided, see [test-set-decision.md](test-set-decision.md)): 284,746 rows, and we sample FR, DE, IT, and EN from it | FR, DE, IT, EN | The 19 ai4privacy types | The license of the source dataset. Never used for training. | see section 1 |
-| T2 | About 200 snippets of what users send through our app (prompts, e-mails, documents, CSV tables, pasted code or logs, and the text extracted from attached files), split into dev and a frozen final test. Pilot of 30 in `data/test/t2_pilot.jsonl`, see [test-set-decision.md](test-set-decision.md) | Mostly FR, DE, IT, EN with Swiss identifiers | Planted values (AVS 756..., Swiss IBAN, +41 phone numbers, postal codes) and incidental entities | Ours. No public dataset has Swiss IBANs or valid AVS numbers. Synthetic, so it can be published. | to be built before v0 |
+| T1 | A fixed sample of the validation split of OpenPII-1M (decided, see [test-set-decision.md](test-set-decision.md)): 1,000 of its 284,746 rows, 250 in each of FR, DE, IT and EN, drawn with seed 42 from a pinned commit, in `data/test/t1-openpii-1m.jsonl` | FR, DE, IT, EN | The 19 ai4privacy types | The license of the source dataset. Never used for training. | see section 1 |
+| T2 | About 200 snippets of what users send through our app (prompts, e-mails, documents, CSV tables, pasted code or logs, and the text extracted from attached files), split into dev and a frozen final test. Pilot of 30 in `data/test/t2_pilot.jsonl`, see [test-set-decision.md](test-set-decision.md) | Mostly FR, DE, IT, EN with Swiss identifiers | Planted values (AVS 756..., Swiss IBAN, +41 phone numbers, postal codes) and incidental entities | Ours. No public dataset has Swiss IBANs or valid AVS numbers. Synthetic, so it can be published. | to be built and frozen by v1, 30 November |
 
 ## 5. What to watch
 
@@ -104,6 +104,6 @@ All the rows we read so far are English, but we train on FR, DE, and IT. We will
 
 ### Test sets
 
-- **T1** = the OpenPII-1M validation split, sampled in FR, DE, IT, and EN. Never used for training. It is synthetic and in-distribution, so T1 is optimistic.
-- **Out-of-distribution benchmarks**, reported only, with no pass/fail threshold: TAB (EN), GraSCCo (DE), SPY (EN), Nemotron-PII (EN, test split: structured and unstructured documents; we do not train on it because it is English only), BigCode PII (code, scores only, never shared), and privaite-bench (small, as a point of comparison).
-- **T2** (our own, with Swiss identifiers) is the main real evidence. It must be built before v0.
+- **T1** = a fixed sample of the OpenPII-1M validation split: 1,000 texts, 250 in each of FR, DE, IT and EN, drawn with seed 42. We never train on the validation split. It is synthetic and in-distribution, so T1 is optimistic.
+- **Out-of-distribution benchmarks**, optional, reported if time allows, with no pass/fail threshold: TAB (EN), GraSCCo (DE), SPY (EN), Nemotron-PII (EN, test split: structured and unstructured documents; we do not train on it because it is English only), BigCode PII (code, scores only, never shared), and privaite-bench (small, as a point of comparison).
+- **T2** (our own, with Swiss identifiers) is the main real evidence. Its annotation policy, groups, mix of types and formats, and file hashes are frozen by v1, 30 November, before any tuning.

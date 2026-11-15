@@ -36,7 +36,7 @@ export const detectors: Detector[] = [
   {
     key: 'gliner2',
     name: 'GLiNER2-PII',
-    openpii: { recall: 80.7, charPrecision: 98.2 },
+    openpii: { recall: 80.6, charPrecision: 98.2 },
     openpii500k: { recall: 81.8, charPrecision: 96.7 },
     swiss: { avs: 75.6, iban: 79.9, phone: 91.2, all: 84.8 },
     sizeMB: 1244,
@@ -90,9 +90,9 @@ export const subset200: Row200[] = [
   { name: 'Regex rules', openpii: [7.5, 100.0], openpii500k: [6.2, 99.8], swiss251: 96.8, size: 'rules only' },
   { name: 'Presidio', openpii: [55.0, 87.0], openpii500k: [65.9, 89.7], swiss251: 77.3, size: '2,357 MB' },
   { name: 'GLiNER2-PII', openpii: [81.9, 98.5], openpii500k: [82.6, 98.1], swiss251: 84.1, size: '1,244 MB' },
-  { name: 'OpenAI Privacy Filter', openpii: [79.4, 97.5], openpii500k: [73.2, 97.1], swiss251: 94.4, size: '2,827 MB' },
+  { name: 'OpenAI Privacy Filter', openpii: [79.4, 97.5], openpii500k: [73.1, 97.1], swiss251: 94.4, size: '2,827 MB' },
   { name: 'Regex + GLiNER2-PII', openpii: [82.0, 98.5], openpii500k: [82.6, 98.1], swiss251: 99.2, size: '1,244 MB' },
-  { name: 'Regex + Privacy Filter', openpii: [79.5, 97.5], openpii500k: [73.4, 97.1], swiss251: 100.0, size: '2,827 MB' },
+  { name: 'Regex + Privacy Filter', openpii: [79.5, 97.5], openpii500k: [73.3, 97.1], swiss251: 100.0, size: '2,827 MB' },
   { name: 'App engine, qwen3:4b + rules', openpii: [62.4, 87.4], openpii500k: [63.5, 92.3], swiss251: 100.0, size: '2,497 MB' },
 ]
 

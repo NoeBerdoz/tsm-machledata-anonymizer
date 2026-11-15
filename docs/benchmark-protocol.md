@@ -21,13 +21,13 @@ The quality gate of the CI (#14) runs the student and the teacher in the same jo
 
 ## Inputs
 
-- The texts: a fixed sample of 30 T2-dev snippets, listed by snippet ID in `src/pii_anonymizer/latency_ids.txt`, one ID per line. We create this file in issue #6, once T2-dev exists (issue #5).
+- The texts: a fixed sample of 30 T2-dev snippets, listed by snippet ID in `src/pii_anonymizer/latency_ids.txt`, one ID per line. They are drawn from T2-dev with a fixed seed, across its sources, before any timing. We create this file in issue #6, once T2-dev exists (issue #5).
 - We measure latency only on a test set that holds this sample. On the other test sets, the latency cells stay empty.
 - We count the length of an input in words, split on whitespace. We report latency per input and per 100 words.
 
 ## Runtime settings
 
-- Runtime and version: the baselines run in different runtimes (Python regular expressions, Presidio, PyTorch). So each detector reports its runtime and version, and we record them in each row of the results.
+- Runtime and version: the baselines run in different runtimes (Python regular expressions, Presidio, PyTorch). So each detector reports its runtime and version, and we record them in each row of the results. When the student's runtime can also run the teacher, we time both in it. Otherwise the O3 ratio is the speedup of the deployed system, and we name both runtimes.
 - Threads: 4 intra-op threads and 1 inter-op thread, one per core of the reference laptop. The evaluation script sets `OMP_NUM_THREADS`, `MKL_NUM_THREADS` and `OPENBLAS_NUM_THREADS` to 4 before it loads a detector. A detector whose runtime has its own settings (for example `torch.set_num_threads` and `torch.set_num_interop_threads`) applies them too.
 - Batch size: 1, because our app sends one prompt or one file at a time.
 

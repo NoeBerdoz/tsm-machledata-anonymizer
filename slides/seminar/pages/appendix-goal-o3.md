@@ -9,11 +9,11 @@ eyebrow: Appendix for readers
 
 ### O3 Compression
 
-<p class="goal-s">By the final talk, the delivered student is at least <span class="figure-num">8</span> times smaller than the fp32 teacher, at most <span class="figure-num">155.5 MB</span> with every file, and at least <span class="figure-num">1.5</span> times faster: its p95 latency is at most two thirds of the teacher's.</p>
+<p class="goal-s">By the final talk, the delivered student is at least <span class="figure-num">8</span> times smaller than the fp32 teacher, at most <span class="figure-num">155.6 MB</span> with every file, in exact bytes, and at least <span class="figure-num">1.5</span> times faster: its p95 latency is at most two thirds of the teacher's.</p>
 
 ### How we measure it
 
-Speed is the p95 latency of both models on an Intel Core <span class="n">i5-1130G7</span>, 300 calls each. One curve point per step, at least 4: fp32 teacher, pruned vocabulary, int8, distilled student.
+Speed is the p95 latency of both models on an Intel Core <span class="n">i5-1130G7</span>, 300 calls each, on 30 texts drawn from <span class="n">T2-dev</span> with a fixed seed. We time both models in the student's runtime when it can run the teacher. Otherwise the ratio is the speedup of the deployed system, and we name both runtimes. One curve point per step, at least 4: fp32 teacher, pruned vocabulary, int8, distilled student.
 
 </div>
 <div>
