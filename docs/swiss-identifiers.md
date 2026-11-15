@@ -101,7 +101,7 @@ Recall on the three Swiss types:
 | privacy-filter | 99.4 % | 79.4 % | 96.7 % | 92.6 % |
 | regex+privacy-filter | 100 % | 98.1 % | 100 % | **99.5 %** |
 
-Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.2 % for GLiNER2, 80.3 % for `regex+gliner2`, 76.7 % for Privacy Filter and 78.1 % for `regex+privacy-filter`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
+Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.3 % for GLiNER2, 80.3 % for `regex+gliner2`, 76.7 % for Privacy Filter and 78.1 % for `regex+privacy-filter`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
 
 What each detector misses:
 

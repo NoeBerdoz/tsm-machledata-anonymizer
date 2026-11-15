@@ -14,7 +14,7 @@ eyebrow: Appendix for readers
   <div>Then int4 embeddings</div><div>Same student, word embeddings at half a byte</div><div class="num">132M</div><div class="num">about 107 MB</div><div class="num">11.6x</div>
   <div>Or rare tokens dropped</div><div>Same student, only the 42,073 tokens seen 10 times or more</div><div class="num">105M</div><div class="num">about 108 MB</div><div class="num">11.6x</div>
   <div>Or both</div><div>Same student, both steps</div><div class="num">105M</div><div class="num">about 91 MB</div><div class="num">13.6x</div>
-  <div>Current goal, O3</div><div>1,244 MB divided by 8</div><div class="num"></div><div class="num">about 155.6 MB</div><div class="num">8x</div>
+  <div>Current goal, O3</div><div>1,244,444,426 bytes divided by 8</div><div class="num"></div><div class="num">about 155.6 MB</div><div class="num">8x</div>
   <div>Stretch goal, O3</div><div>1,244 MB divided by 12, not promised</div><div class="num"></div><div class="num">about 104 MB</div><div class="num">12x</div>
 </div>
 

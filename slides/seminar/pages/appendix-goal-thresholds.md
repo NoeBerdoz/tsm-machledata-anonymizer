@@ -11,10 +11,10 @@ eyebrow: Appendix for readers
 <div class="thr-table">
   <div class="th">Goal</div><div class="th">Fixed today</div><div class="th">Recorded later, by a fixed rule</div>
   <div class="g">O1</div><div>Models alone: <span class="n">95 %</span> of the fine-tuned teacher's recall, on T1 and on <span class="n">T2-final</span>. Never below <span class="n">GLiNER2-PII</span> (<span class="n">80.6 %</span> on T1). With the regex: Swiss IDs <span class="n">99 %</span>, pooled</div><div class="none">Nothing</div>
-  <div class="g">O2</div><div><span class="n">90 %</span> of solved test prompts still solved, on 20 frozen prompts. Solved when 2 of 3 runs pass. 5 stress prompts reported apart</div><div>Character precision: <span class="n">GLiNER2-PII's</span> on <span class="n">T2-final</span></div>
-  <div class="g">O3</div><div>8 times smaller in exact bytes, at most <span class="n">155.6 MB</span>. <span class="n">1.5 times</span> faster on the reference laptop. At least 4 curve points</div><div>The 30-text latency sample, drawn from <span class="n">T2-dev</span> with a fixed seed</div>
-  <div class="g">O4</div><div>0 leaks added by the app. <span class="n">100 %</span> exact restoration of intact placeholders. Every listed bad replacement flagged. No silent failure</div><div class="none">Nothing</div>
-  <div class="g">O5</div><div>0 installed versions without a passing gate record. By 7 December 2026, five scenarios pass, such as a model 3 recall points worse refused</div><div>Demonstration thresholds, alert window and alert threshold, in params.yaml</div>
+  <div class="g">O2</div><div><span class="n">90 %</span> of solved test prompts still solved, on 20 frozen prompts. Pinned model version. Solved when 2 of 3 runs pass. 5 stress prompts reported apart</div><div>Character precision: <span class="n">GLiNER2-PII's</span> on <span class="n">T2-final</span></div>
+  <div class="g">O3</div><div>8 times smaller in exact bytes, at most <span class="n">about 155.6 MB</span>. <span class="n">1.5 times</span> faster on the reference laptop. At least 4 curve points</div><div>The 30-text latency sample, drawn from <span class="n">T2-dev</span> with a fixed seed</div>
+  <div class="g">O4</div><div>0 leaks added by the app, in everything that leaves the device. <span class="n">100 %</span> exact restoration of intact placeholders. Every listed bad replacement flagged. No silent failure</div><div class="none">Nothing</div>
+  <div class="g">O5</div><div>Across the whole project, 0 installed versions without a passing MLflow gate record for the same file hash. Five scenarios pass by 7 December 2026</div><div>Demonstration thresholds, alert window and alert threshold, in params.yaml</div>
   <div class="g">Data</div><div><span class="n">OpenPII-1M</span> and Gretel, a seeded subset of 50,000 rows. T1 is a fixed 1,000-text sample of the <span class="n">OpenPII-1M</span> validation split</div><div>T2's annotation policy, groups, mix and hashes, frozen by 30 November</div>
 </div>
 
@@ -41,7 +41,7 @@ eyebrow: Appendix for readers
   margin-top: 16px;
 }
 .thr-table > div {
-  padding: 6px 0;
+  padding: 4px 0;
   border-bottom: 1px solid var(--hair);
 }
 .thr-table > .th {
