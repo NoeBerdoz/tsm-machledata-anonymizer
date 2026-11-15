@@ -14,7 +14,7 @@ Target time 0:40. Speaker: to assign.
 
 To build our small model, we start from a bigger one: GLiNER2-PII. It finds personal data and gives each piece a type.
 [click] Why this one? We tested four tools before our training. It found the most: 81 percent.
-[click] But as published, it has two gaps. It misses one entity in five. And at 1,244 megabytes, it is far from our goal of 8 times smaller. The next slide shows how we close both.
+[click] But as published, it has two gaps. It misses 1 entity in 5, such as titles and ages. And it is heavy for a normal laptop: 1,244 megabytes. The next slide shows how we close both.
 
 If asked: how fast is it? On our development Mac (Apple M5 Max, CPU, 4 threads), GLiNER2-PII takes 138 ms at p95 per call, on texts of 12 to 177 words. The official numbers will come from the reference laptop.
 
