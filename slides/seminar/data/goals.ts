@@ -1,9 +1,9 @@
 // The five SMART goals, short form for slide 11: one target figure each, in plain words.
 // Every big figure is a measure, never a date. The figure and its caption read as one phrase
 // the speaker can say aloud: the target, what it counts, and what it is compared with. The
-// dates are the T of SMART: mid-December for O1 to O4 is in the lede, and 7 December is in
-// the second line of O5, so each date shows once. A "|" marks where a line may break: the
-// phrases between the marks stay whole on the slide.
+// dates are the T of SMART: the speaker says them aloud (7 December for O5, mid-December for
+// O1 to O4), and slides 12 and 13 show them, so slide 11 shows no date. A "|" marks where a
+// line may break: the phrases between the marks stay whole on the slide.
 // The full wording, the acceptance conditions and why each number holds are on the appendix
 // pages, one page per goal, from docs/smart-goals.md. The targets below are fixed today. The
 // limits that a fixed rule sets later are the character precision of O2 (GLiNER2-PII's on
@@ -16,13 +16,13 @@ export interface Goal {
   name: string
   figure: string // the target, as printed: a measure, never a date
   caption: string // reads after the figure: what it counts, and what it is compared with
-  more?: string // a second condition of the same goal; for O5, its date and its alert
+  more?: string // a second condition of the same goal, shown only for O3
 }
 
 export const goals: Goal[] = [
-  { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall", more: 'and 99 % of | Swiss IDs found' },
+  { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall" },
   { id: 'O2', name: 'Utility', figure: '90 %', caption: 'of solved test prompts | still work | with placeholders' },
   { id: 'O3', name: 'Compression', figure: '8x', caption: 'smaller than | the teacher', more: '1.5x faster | on the i5 laptop' },
-  { id: 'O4', name: 'End to end', figure: '0', caption: 'leaks added | by the app', more: 'Placeholders come back, | or the user is warned' },
-  { id: 'O5', name: 'MLOps', figure: '0', caption: 'models reach the app | without passing | the quality gate', more: 'Shown by 7 Dec., | with one speed alert' },
+  { id: 'O4', name: 'End to end', figure: '0', caption: 'leaks added | by the app' },
+  { id: 'O5', name: 'MLOps', figure: '0', caption: 'models reach the app | without passing | the quality gate' },
 ]

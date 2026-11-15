@@ -14,7 +14,9 @@ Our planned pipeline. DVC tracks the data and the models. GitHub Actions tests e
 [click] We train on Google Cloud. MLflow records each run: models A and B.
 [click] The gate checks each model on T2-dev. A's recall is under the goal, so A is refused. B passes.
 [click] MLflow publishes B as version 4. The laptop app updates. Only the model reaches the laptop.
-[click] Sentry records times and errors, never the prompt or the answer. When it gets too slow, we get an alert.
+[click] Sentry records how long our slowest requests take, never the prompt or the answer. When this line crosses the red line, we get an alert.
 [click] People review the users' ratings and plan the next run.
 [click] The loop starts again: our plan for 7 December.
+
+If asked: the line is the p95: 95 of 100 requests are faster than it. An average would hide the slow ones.
 -->

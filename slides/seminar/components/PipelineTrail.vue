@@ -276,12 +276,12 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
           <line x1="0" :y1="my(ALERT)" x2="364" :y2="my(ALERT)" class="alert-line" />
           <text x="0" :y="my(ALERT) - 8" class="ax red">alert line</text>
           <path :d="P95_PATH" pathLength="1" class="p95" :style="{ strokeDashoffset: 1 - ch.chart }" />
-          <text :x="mx(5)" :y="my(41) + 22" class="ax ink" :style="on(ch.chart)">p95</text>
+          <text :x="mx(5)" :y="my(41) + 22" class="ax ink" :style="on(ch.chart)">slowest requests</text>
           <text :x="CROSS.x - 12" :y="CROSS.y - 12" class="ax red" text-anchor="end" :style="on(ch.alert)">Alert</text>
           <circle :cx="CROSS.x" :cy="CROSS.y" r="6" class="cross" :style="{ ...on(ch.alert), transformOrigin: `${CROSS.x}px ${CROSS.y}px`, transform: `scale(${2 - ch.alert})` }" />
         </svg>
         <div class="mon-notes" :style="on(ch.notes)">
-          <p><b class="mono">p95</b>: 95 of 100 requests are faster than this.</p>
+          <p>The line shows how long the slowest requests take.</p>
           <p>Sentry never sees the prompt or the answer.</p>
         </div>
       </div>
