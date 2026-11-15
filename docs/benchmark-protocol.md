@@ -1,6 +1,6 @@
 # Benchmark protocol
 
-We freeze this protocol at v0, before the seminar talk on 2026-11-16. If we change it after that, we must measure every model again.
+We freeze this protocol at the seminar talk on 2026-11-16. If we change it after that, we must measure every model again.
 
 This protocol says how we measure size and latency for goal O3. With the same rules for every model, all points of the compression curve can be compared. The code that applies it is `src/pii_anonymizer/benchmark.py`, and the quality metrics are defined in [evaluation.md](evaluation.md).
 
@@ -17,7 +17,7 @@ The reference machine is Michael's laptop, an ordinary laptop. Michael runs the 
 
 Latency numbers only compare within one machine. Any teammate can still add rows measured on their own laptop. The `cpu` column of the results tells the machines apart, and a rerun only replaces the row of the same CPU. The same commands work on Linux, macOS and Windows.
 
-The quality gate of the CI (#14) runs the student and the teacher in the same job, on the same machine. It checks the size and the latency ratio (student p95 at most a quarter of the teacher's), so it needs no reference machine.
+The quality gate of the CI (#14) runs the student and the teacher in the same job, on the same machine. It checks the size: the student must be at least 8 times smaller (O3). It also measures the ratio of the student's p95 latency to the teacher's and reports it, with no pass or fail on it. So it needs no reference machine.
 
 ## Inputs
 

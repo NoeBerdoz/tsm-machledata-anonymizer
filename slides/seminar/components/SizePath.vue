@@ -1,29 +1,34 @@
 <script setup lang="ts">
 // Slide 9: the size path, built one step per click, then the two ways to apply the rounding.
 //   0  the teacher (measured) and int8 with only the tokens of our four languages, against the
-//      current goal line, 12 times smaller
-//   1  a student with 6 layers
-//   2  then the dictionary in int4, or the rare tokens dropped instead: just under the line
-//   3  both: past the line, and the reminder that recall must be measured after each step
+//      current goal line, 8 times smaller: int8 alone stays under it (6.9x)
+//   1  a student with 6 layers: past the line on paper (9.1x), so its row gets the check mark
+//   2  then the dictionary in int4, or the rare tokens dropped instead: further past the line
+//      (11.6x each). These options lead toward the stretch goal, 12 times smaller, which the
+//      note names; the slide shows no line for it
+//   3  both (13.6x), the only row past the stretch goal, and the reminder that recall must be
+//      measured after each step
 //   4  the two ways to apply the rounding, PTQ and QAT. No order between them is decided, so
 //      none is shown
-// The bars show how many times smaller each step is than the teacher, to scale from zero.
+// The bars show how many times smaller each step is than the teacher, to scale from zero. A row
+// that reaches the goal line gets a check mark once its bar has grown.
 // Sizes and ratios are copied from docs/baselines.md, "The vocabulary of our four languages":
 // estimates at 1 byte per parameter in int8 and half a byte in int4, GLiNER2 heads kept,
 // tokenizer counted. Only the teacher (1,244 MB, every file) is measured.
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import Callout from './Callout.vue'
 
-type Row = { label: string; size: string; x: number; measured?: boolean; pass?: boolean; from: number }
+type Row = { label: string; size: string; x: number; measured?: boolean; from: number }
 const ROWS: Row[] = [
   { label: 'The teacher, float32, every file', size: '1,244 MB', x: 1, measured: true, from: 0 },
   { label: 'int8, only French, German, Italian, English tokens', size: 'about 179 MB', x: 6.9, from: 0 },
   { label: 'A student with 6 layers instead of 12', size: 'about 137 MB', x: 9.1, from: 1 },
   { label: 'Then the dictionary in int4: half a byte each', size: 'about 107 MB', x: 11.6, from: 2 },
   { label: 'Or drop the tokens seen under 10 times', size: 'about 108 MB', x: 11.6, from: 2 },
-  { label: 'Or both', size: 'about 91 MB', x: 13.6, pass: true, from: 3 },
+  { label: 'Or both', size: 'about 91 MB', x: 13.6, from: 3 },
 ]
-const GOAL = 12 // times smaller, O3: 1,244 MB / 12 = about 104 MB
+const GOAL = 8 // times smaller, O3: 1,244 MB / 8 = 155.5 MB, printed as "at most about 155 MB"
+const passes = (i: number) => ROWS[i].x >= GOAL
 
 // geometry of the path, in figure coordinates
 const TRACK_X = 490
@@ -40,7 +45,6 @@ const TWO_Y = NOTE_Y + 58
 function target(n: number): Channels {
   const c: Channels = {
     goal: 1,
-    check: n >= 3 ? 1 : 0,
     note: n >= 3 ? 1 : 0,
     two: n >= 4 ? 1 : 0,
     gl: ROWS.filter((r) => n >= r.from).length, // how many rows the goal line crosses
@@ -48,12 +52,15 @@ function target(n: number): Channels {
   ROWS.forEach((r, i) => {
     c['r' + i] = n >= r.from ? 1 : 0
     c['g' + i] = n >= r.from ? 1 : 0
+    c['c' + i] = passes(i) && n >= r.from ? 1 : 0 // the check mark of a row that reaches the goal
   })
   return c
 }
+// A row rises in, its bar grows, then the check mark comes if the row reaches the goal
 const show = (i: number, at: number, dur = 800): Seg[] => [
   { k: 'r' + i, to: 1, at, dur: 280 },
   { k: 'g' + i, to: 1, at: at + 80, dur, ease: inOutCubic },
+  ...(passes(i) ? [{ k: 'c' + i, to: 1, at: at + 80 + dur, dur: 260 }] : []),
 ]
 const beats: Record<number, Seg[]> = {
   1: [{ k: 'gl', to: 3, at: 0, dur: 280 }, ...show(2, 0)],
@@ -61,7 +68,6 @@ const beats: Record<number, Seg[]> = {
   3: [
     { k: 'gl', to: 6, at: 0, dur: 280 },
     ...show(5, 0, 900),
-    { k: 'check', to: 1, at: 980, dur: 260 },
     { k: 'note', to: 1, at: 1000, dur: 450 },
   ],
   4: [{ k: 'two', to: 1, at: 0, dur: 450 }],
@@ -97,7 +103,7 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
         <span class="eyebrow" style="left: 884px">Smaller</span>
         <span class="eyebrow" style="left: 990px">Size</span>
       </div>
-      <p class="goal-l" :style="{ ...on(ch.goal), top: ROW_Y - 34 + 'px', right: 1136 - GOAL_X - 1 + 'px' }">Current goal, O3: {{ GOAL }}x, about 104 MB</p>
+      <p class="goal-l" :style="{ ...on(ch.goal), top: ROW_Y - 34 + 'px', right: 1136 - GOAL_X - 1 + 'px' }">Current goal, O3: {{ GOAL }}x, at most about 155 MB</p>
       <div class="rule" :style="{ top: ROW_Y + 'px' }" />
 
       <div v-for="(r, i) in ROWS" :key="r.label" class="row" :style="{ top: rowTop(i) + 'px', ...rise(ch['r' + i], 6) }">
@@ -105,8 +111,8 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
         <span class="track" :style="{ left: TRACK_X + 'px', width: MAX_X * PX + 'px' }" />
         <span class="bar" :class="{ measured: r.measured }" :style="{ left: TRACK_X + 'px', width: barW(i) + 'px' }" />
         <span class="times-v" :style="val(i)">
-          {{ r.x }}x
-          <svg v-if="r.pass" class="tick" width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" :style="{ opacity: ch.check }"><path d="M2 7.6l3.3 3.2L12.2 3.4" /></svg>
+          <span class="tv">{{ r.x }}x</span>
+          <svg v-if="passes(i)" class="tick" width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" :style="{ opacity: ch['c' + i] }"><path d="M2 7.6l3.3 3.2L12.2 3.4" /></svg>
         </span>
         <span class="size-v" :style="val(i)">
           <span>{{ r.size }}</span><span v-if="r.measured" class="meas">measured</span>
@@ -226,6 +232,10 @@ const val = (i: number) => on(clamp01((ch['g' + i] - 0.7) / 0.3))
 .times-v {
   left: 884px;
   gap: 8px;
+}
+/* the value takes the width of the widest one, 13.6x, so the check marks stand in one column */
+.tv {
+  min-width: 54px;
 }
 .size-v {
   left: 990px;

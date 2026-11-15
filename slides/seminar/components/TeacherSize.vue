@@ -7,8 +7,9 @@
 //   the rest: encoder 85.5M + GLiNER2 heads 29.5M = 115.0M
 // The 103,718 French, German, Italian and English texts of OpenPII-1M's validation split use
 // 77,347 of the 250,112 tokens (30.9 %, docs/baselines.md). Pruned to them, the dictionary
-// keeps 59.4M parameters, a lower bound, and the teacher about 174M (an estimate). Pruning is
-// an option if time allows (docs/smart-goals.md).
+// keeps about 59.4M parameters and the teacher about 174M: estimates from validation texts,
+// not a bound on the final list. Pruning is required for O3, and the kept tokens come from
+// the training data, never from a test set (docs/smart-goals.md).
 //   0  the teacher as one bar to scale: the dictionary and the rest
 //   1  the dictionary opens below as slices of languages; the split per language is an
 //      illustration, only the total of our four is measured
@@ -104,7 +105,7 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
         </span>
         <span class="l2">
           <span class="swap" :style="before()"><span class="figure-num">192M</span>, <span class="figure-num">63 %</span></span>
-          <span class="swap" :style="after()"><span class="figure-num">59M</span> or more</span>
+          <span class="swap" :style="after()">about <span class="figure-num">59M</span></span>
         </span>
       </span>
       <span class="lab" :style="{ left: dictW() + 'px' }">
@@ -166,7 +167,7 @@ const zoomPath = () => `M 0 ${Y_TOP} L ${dictW() - GAP} ${Y_TOP} L ${barBW() - G
 
     <div class="notes">
       <p class="note" :style="rise(ch.note1)">Our model targets Switzerland: it needs only four languages.</p>
-      <p class="note" :style="rise(ch.note2)">An option if time allows: drop the other tokens.</p>
+      <p class="note" :style="rise(ch.note2)">Required for O3: keep tokens from training data.</p>
     </div>
   </div>
 </template>

@@ -12,6 +12,8 @@ Regulation (EU) 2016/679, General Data Protection Regulation (GDPR), Article 4(5
 
 Hinton, G., Vinyals, O. and Dean, J. (2015). Distilling the knowledge in a neural network. arXiv:1503.02531.
 
+Sanh, V., Debut, L., Chaumond, J. and Wolf, T. (2019). DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter. arXiv:1910.01108.
+
 Jacob, B. et al. (2018). Quantization and training of neural networks for efficient integer-arithmetic-only inference. CVPR 2018. arXiv:1712.05877.
 
 Bengio, Y., Léonard, N. and Courville, A. (2013). Estimating or propagating gradients through stochastic neurons for conditional computation. arXiv:1308.3432.

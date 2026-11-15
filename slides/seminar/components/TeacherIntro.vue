@@ -3,12 +3,15 @@
 //   0  its model card: name, origin, job, licence, types and languages
 //   1  why this one: recall of four existing detectors on 1,000 public texts, before any
 //      training; GLiNER2-PII finds the most
-//   2  what we add: fine-tuning on Swiss identifiers and on our training set, by 30 November
+//   2  what we add, by 30 November: fine-tuning on our training set, because today it misses
+//      about 1 entity in 5 on T1 (recall 80.65 %), and on Swiss IDs in the formats our regex
+//      does not know (AVS numbers with dashes: the regex finds 0 of 12)
 //   3  its job: the fine-tuned model teaches a small model, the student, that runs on the laptop
 // Sources: the model card of fastino/gliner2-privacy-filter-PII-multi on Hugging Face (base
 // GLiNER2, Apache 2.0, 42 types, 7 languages: EN, FR, ES, DE, IT, PT, NL); docs/baselines.md
-// (recall on OpenPII-1M, size 1,244 MB); docs/smart-goals.md and docs/swiss-identifiers.md
-// (what we fine-tune on); docs/project-management.md (fine-tuned teacher due 2026-11-30).
+// (recall on OpenPII-1M, size 1,244 MB); results/recall_per_type.csv (5,867 of 7,275 entities
+// found on T1); docs/smart-goals.md and docs/swiss-identifiers.md (what we fine-tune on, the
+// dashed AVS numbers); docs/project-management.md (fine-tuned teacher due 2026-11-30).
 // Every bar starts at zero. The slide's one red is the headline's emphasis.
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import { detectors } from '../data/baseline'
@@ -74,7 +77,7 @@ const growAt = (i: number) => Math.max(0, Math.min(1, ch.grow * 1.45 - i * 0.15)
       <!-- 1 why this one -->
       <section class="part" :style="rise(ch.tests)">
         <div class="ck">Why this one: our tests</div>
-        <p class="what">Personal data found (recall) in <span class="figure-num">1,000</span> public texts, before our training</p>
+        <p class="what">Personal data found (recall) in <span class="figure-num">1,000</span> public texts, before training</p>
         <div v-for="(r, i) in rows" :key="r.key" class="row" :class="{ lead: r.key === 'gliner2' }">
           <span class="rname">{{ r.name }}</span>
           <span class="track" :style="{ width: TRACK + 'px' }">
@@ -87,8 +90,8 @@ const growAt = (i: number) => Math.max(0, Math.min(1, ch.grow * 1.45 - i * 0.15)
       <!-- 2 what we add -->
       <section class="part" :style="rise(ch.fine)">
         <div class="ck">What we add: fine-tuning, by 30 November</div>
-        <p class="add"><span class="mono plus">+</span> Swiss IDs: AVS numbers, IBANs, phone numbers</p>
-        <p class="add"><span class="mono plus">+</span> our training set</p>
+        <p class="add"><span class="mono plus">+</span> our training set, for the 1 entity in 5 it misses</p>
+        <p class="add"><span class="mono plus">+</span> Swiss IDs in formats our regex does not know</p>
       </section>
 
       <!-- 3 its job -->

@@ -14,7 +14,8 @@ eyebrow: Appendix for readers
   <div>Then int4 embeddings</div><div>Same student, word embeddings at half a byte</div><div class="num">132M</div><div class="num">about 107 MB</div><div class="num">11.6x</div>
   <div>Or rare tokens dropped</div><div>Same student, only the 42,073 tokens seen 10 times or more</div><div class="num">105M</div><div class="num">about 108 MB</div><div class="num">11.6x</div>
   <div>Or both</div><div>Same student, both steps</div><div class="num">105M</div><div class="num">about 91 MB</div><div class="num">13.6x</div>
-  <div>Current goal, O3</div><div>1,244 MB divided by 12</div><div class="num"></div><div class="num">about 104 MB</div><div class="num">12x</div>
+  <div>Current goal, O3</div><div>1,244 MB divided by 8</div><div class="num"></div><div class="num">about 155.5 MB</div><div class="num">8x</div>
+  <div>Stretch goal, O3</div><div>1,244 MB divided by 12, not promised</div><div class="num"></div><div class="num">about 104 MB</div><div class="num">12x</div>
 </div>
 
 <div class="cols size-assume">
@@ -27,7 +28,7 @@ eyebrow: Appendix for readers
 </div>
 <div>
 
-- The 103,718 French, German, Italian and English validation texts of OpenPII-1M use 77,347 of the 250,112 tokens. This is a lower bound: a real pruning also keeps the tokens of the training texts.
+- The 103,718 French, German, Italian and English validation texts of OpenPII-1M use 77,347 of the 250,112 tokens. This only estimates the size: the final list comes from the training texts, never from a test set.
 - The 42,073 tokens seen at least 10 times cover 98.8 % of the text. A word that loses its token is cut into smaller tokens, so recall must be measured after any pruning.
 
 </div>

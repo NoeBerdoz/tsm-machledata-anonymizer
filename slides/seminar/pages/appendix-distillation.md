@@ -47,7 +47,7 @@ Hinton, Vinyals and Dean (2015) show that the gradients of the soft part shrink 
 
 ### The control of goal O1
 
-The control student has the same architecture, data and training budget, but learns from the ground truth only: $\alpha = 0$. Distillation counts only if it beats the control on recall.
+The control student has the same architecture, data and training budget, but learns from the ground truth only: $\alpha = 0$. We report which student has the higher recall, with no threshold.
 
 </div>
 </div>

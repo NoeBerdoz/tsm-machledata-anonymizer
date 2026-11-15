@@ -56,7 +56,7 @@ The same command works on Linux, macOS and Windows, in bash, zsh, fish or PowerS
 
 The script writes three files into the output folder. Running a model again replaces its old rows, and the other rows are kept.
 
-`results.csv` has one row per (model, dataset, cpu). Latency numbers only compare within one machine. The official numbers for the goals come from the reference laptop named in [benchmark-protocol.md](benchmark-protocol.md). Any teammate can add rows for their own laptop: the `cpu` column identifies them, and a rerun only replaces the row of the same CPU. The quality gate of the CI (#14) compares the student with the teacher in the same job (the quarter latency ratio, and the size), so it needs no reference machine.
+`results.csv` has one row per (model, dataset, cpu). Latency numbers only compare within one machine. The official numbers for the goals come from the reference laptop named in [benchmark-protocol.md](benchmark-protocol.md). Any teammate can add rows for their own laptop: the `cpu` column identifies them, and a rerun only replaces the row of the same CPU. The quality gate of the CI (#14) compares the student with the teacher in the same job. It checks the size (at least 8 times smaller, O3), and it reports the p95 latency ratio with no pass or fail on it. So it needs no reference machine.
 
 | Column | Meaning |
 |---|---|

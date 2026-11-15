@@ -2,7 +2,7 @@
 
 What off-the-shelf detectors already reach, before we train anything (issue #6). We ran four detectors through the evaluation script of [evaluation.md](evaluation.md) on samples of the two candidate T1 validation splits named in [datasets.md](datasets.md).
 
-These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), so the T2-dev rows, the latency and the two v0 thresholds of [smart-goals.md](smart-goals.md) come later. All rows below were measured on a development machine (Apple M5 Max), **not on the reference laptop**. Quality does not depend on the machine, but the wall times below only say how long a run takes here.
+These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), so the T2-dev rows, the latency, the 30-text latency sample and the one threshold that a rule still sets on T2-dev (the character precision of O2, see [smart-goals.md](smart-goals.md)) come later. All rows below were measured on a development machine (Apple M5 Max), **not on the reference laptop**. Quality does not depend on the machine, but the wall times below only say how long a run takes here.
 
 ## The detectors
 
@@ -191,7 +191,7 @@ uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/
 
 ## The vocabulary of our four languages
 
-`uv run --group baselines python -m pii_anonymizer.vocab` tokenizes the 103,718 French, German, Italian and English texts of the OpenPII-1M validation split with GLiNER2-PII's tokenizer. They use 77,347 of its 250,112 tokens (30.9 %, special tokens included). Pruned to them, the word embeddings drop from 192.1M to 59.4M parameters, about 59 MB in int8. This is a lower bound: a real pruning also keeps the tokens of the training texts.
+`uv run --group baselines python -m pii_anonymizer.vocab` tokenizes the 103,718 French, German, Italian and English texts of the OpenPII-1M validation split with GLiNER2-PII's tokenizer. They use 77,347 of its 250,112 tokens (30.9 %, special tokens included). Pruned to them, the word embeddings drop from 192.1M to 59.4M parameters, about 59 MB in int8. This is an estimate from validation texts, not the final list: a real pruning counts the tokens of the training texts. The final list of kept tokens comes from the training data, never from a test set.
 
 Many of these tokens are rare. Keeping only the tokens seen at least 10 times leaves 42,073 tokens (32.3M parameters), which still cover 98.8 % of the text. A word that loses its token would be cut into smaller tokens that remain, so recall must be measured after any pruning.
 
@@ -204,13 +204,14 @@ What this means for the size path, as estimates at one byte per parameter in int
 | Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
 | Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
 | Same student, both | 105M | about 91 MB | 13.6 times |
-| O3 target | | about 104 MB | 12 times |
+| O3 target | | about 155.5 MB (1,244 / 8) | 8 times |
+| Stretch goal | | about 104 MB | 12 times |
 
-So int8, the pruned vocabulary and six layers give about 9 times. O3 needs both extra steps, or a smaller student, and recall must be measured after each step.
+So int8, the pruned vocabulary and six layers give about 9 times, above the 8 times of O3. The stretch goal of 12 times needs int4 embeddings and dropping rare tokens: either one alone gives 11.6 times, both give 13.6 times. Recall must be measured after each step.
 
 ## Next steps
 
 - Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
 - Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
 - Give `rules.py` the AVS numbers with dashes and the lowercase IBANs that the engine's rules already accept.
-- Compute the two v0 thresholds on T2-dev.
+- Record the character precision threshold of O2 on T2-dev, before any tuning, and write the 30-text latency sample.
