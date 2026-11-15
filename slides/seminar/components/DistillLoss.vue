@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Slide 7: the distillation loss of Hinton, Vinyals and Dean (2015), built term by term over
+// Appendix: the distillation loss of Hinton, Vinyals and Dean (2015), built term by term over
 // the columns it compares. Each term of the formula sits over its two columns.
+// With still, the figure shows its last state at once, for questions after the talk.
 //   L = (1 - alpha) CE(y, p_S) + alpha tau^2 KL(p_T^tau || p_S^tau)
 //   0  the student's answer p_S for Dupont
 //   1  the first target: the ground truth y, and CE, which pulls the answer toward it
@@ -73,7 +74,10 @@ const beats: Record<number, Seg[]> = {
     { k: 'close', to: 1, at: 250, dur: 450 },
   ],
 }
-const { ch, fade, print } = useBeats({ target, beats })
+const props = withDefaults(defineProps<{ still?: boolean }>(), { still: false })
+const { ch, fade, print } = useBeats(
+  props.still ? { target: () => target(4), beats: {} } : { target, beats },
+)
 
 // ---------- what each state shows ----------
 const tHot = computed(() => softmax(ZT, ch.tau))
@@ -83,9 +87,9 @@ const tauText = computed(() => (Math.abs(ch.tau - Math.round(ch.tau)) < 0.005 ? 
 const vis = (v: number) => ({ opacity: v, visibility: v > 0.001 ? ('visible' as const) : ('hidden' as const) })
 const rise = (v: number, d = 8) => ({ ...vis(v), transform: `translateY(${(1 - v) * d}px)` })
 const bar = (v: number) => ({ transform: `scaleX(${Math.max(0, Math.min(1, v))})` })
-// the teacher's part fades back when alpha = 0. In print the page keeps the whole formula at
-// full strength, so the PDF never looks half rendered; the control callout says the rest.
-const klDim = computed(() => (print.value ? 1 : 1 - 0.62 * ch.ctl))
+// the teacher's part fades back when alpha = 0. In print and when still, the page keeps the whole
+// formula at full strength, so it never looks half rendered; the control callout says the rest.
+const klDim = computed(() => (print.value || props.still ? 1 : 1 - 0.62 * ch.ctl))
 const klPart = (v: number, d = 8) => ({ ...rise(v, d), opacity: v * klDim.value })
 const at = (x: number) => ({ left: x + 'px' })
 </script>

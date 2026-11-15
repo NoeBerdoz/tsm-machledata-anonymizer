@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 13: the roadmap set on the Poya path. The herd and its armailli stand at today's
+// Slide 12: the roadmap set on the Poya path. The herd and its armailli stand at today's
 // milestone and glide up the path one milestone per click:
 //   0  baselines, today   1  the fine-tuned teacher   2  the pipeline   3  the students
 //   4  the final talk
