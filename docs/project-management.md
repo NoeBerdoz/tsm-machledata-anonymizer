@@ -51,10 +51,10 @@ Keep "In progress" short: at most two cards per person.
 | Milestone | Content | Due |
 |---|---|---|
 | v0 | Architecture, project skeleton, evaluation script, data decisions, first baselines, first cloud training run, seminar talk | 2026-11-16 |
-| v1 | Fine-tuned teacher | 2026-11-30 |
+| v1 | Fine-tuned teacher, T2 and the 20 test prompts of O2 frozen | 2026-11-30 |
 | v2 | Distilled student and gold-label control | Around 2026-12-10 |
 | v3 | Quantized student | Around 2026-12-10 |
-| final | Final talk and report | Mid-December 2026, to confirm |
+| final | Final talk and report | Week 14 of the course plan, mid-December 2026, day to confirm |
 
 ## Contribution flow
 

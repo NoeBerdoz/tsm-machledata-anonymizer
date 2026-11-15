@@ -13,7 +13,7 @@ eyebrow: Appendix for readers
 
 ### How we measure it
 
-We trace each planted value and each detected span into the payload sent to OpenAI. A value the detector missed counts in O1. A detected value left visible is an app error.
+In test runs, we capture everything that leaves the laptop, the request to our backend and the Sentry events, and the payload sent to OpenAI. We trace each planted value and each detected span into them. A value the detector missed counts in O1. A detected value found in any capture is an app leak. Restored exactly means the stored value: the detected text with its spaces normalized.
 
 ### Reported, with no threshold
 
@@ -30,6 +30,10 @@ All leaks, detector misses included, for the student and for <span class="n">GLi
 ### Why we can reach it
 
 Our tests already cover masking, repeated values and restoration. The path to the cloud still needs testing. <span class="src">tests/test_engine.py, tests/test_app.py</span>
+
+### Outside the guarantee
+
+If OpenAI swaps one valid placeholder for another, such as PERSON_2 for PERSON_1, the app cannot see it. The list of bad replacements is written before testing.
 
 </div>
 </div>

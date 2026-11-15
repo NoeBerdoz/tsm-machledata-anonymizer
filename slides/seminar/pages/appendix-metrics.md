@@ -9,11 +9,11 @@ eyebrow: Appendix for readers
 
 ### T1
 
-The validation split of the training set, in French, German, Italian and English. We never use it for training. We train on OpenPII-1M and Gretel, so T1 is the OpenPII-1M validation split. Both candidates gave GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
+A fixed sample of the OpenPII-1M validation split: 1,000 texts, 250 in each of French, German, Italian and English, drawn with seed 42 from a pinned commit. We train on OpenPII-1M and Gretel, never on this split. Both candidates gave GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
 
 ### T2
 
-Our own set of about 200 snippets of what users send through our app: prompts, e-mails, documents, CSV tables, pasted code or logs. For an attached file (PDF, TXT, DOCX, CSV), the snippet is the text extracted from it, because that is what the detector receives. We plant values in them, including Swiss identifiers (AVS numbers starting with 756, Swiss IBANs, +41 phone numbers, postal codes), so we know the labels by construction. We also label any sensitive value a snippet already holds.
+Our own set of about 200 snippets of what users send through our app: prompts, e-mails, documents, CSV tables, pasted code or logs. For an attached file (PDF, TXT, DOCX, CSV), the snippet is the text extracted from it, because that is what the detector receives. We plant values in them, including Swiss identifiers (AVS numbers starting with 756, Swiss IBANs, +41 phone numbers, postal codes), so we know the labels by construction. We also label any sensitive value a snippet already holds. By 30 November, before any tuning, we freeze the annotation policy, groups, mix of types and formats, and hashes. Titles, ages, sex and gender count as personal data.
 
 </div>
 <div>

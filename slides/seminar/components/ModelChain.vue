@@ -13,7 +13,7 @@
 //      the regex rules beside it catch the AVS number, and the app sends placeholders
 // A model is a card, a step is an arrow with a verb. Facts: docs/project-management.md (v1 to
 // v3), docs/baselines.md (1,244 MB measured; titles, ages, sex and gender have no label in the
-// published model), docs/smart-goals.md (O3: at least 8 times smaller, at most 155.5 MB),
+// published model), docs/smart-goals.md (O3: at least 8 times smaller, at most about 155.6 MB),
 // src/pii_anonymizer/rules.py (AVS numbers by regex). The training rows are OpenPII-1M and
 // Gretel. Nothing on this slide claims a result of the teacher or the students: they come later.
 // The prompt stops after the AVS number: the type the student gives an address is not shown, so

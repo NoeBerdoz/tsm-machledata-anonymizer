@@ -17,7 +17,7 @@ We searched the rows for AVS numbers, Swiss IBANs and +41 phone numbers, and che
 
 So no public set can measure the 99 % recall on Swiss identifiers that O1 asks for.
 
-The scan reads only the validation splits. The 25,448 Swiss rows it finds in OpenPII-1M (`region = CH`) are validation rows, so with option A they are T1, and we never train on them. The train split has 102,406 Swiss rows (dataset viewer statistics, not scanned). These are the ones that are useful for training.
+The scan reads only the validation splits. The 25,448 Swiss rows it finds in OpenPII-1M (`region = CH`) are validation rows, T1 is sampled from this split, and we never train on it. The train split has 102,406 Swiss rows (dataset viewer statistics, not scanned). These are the ones that are useful for training.
 
 ## What else is missing
 
@@ -51,7 +51,7 @@ The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 m
 
 ## Decision and cost
 
-- **Training**: OpenPII-1M + Gretel. **T1**: OpenPII-1M validation. **Out-of-distribution**: Nemotron-PII, TAB, GraSCCo, SPY, BigCode PII.
+- **Training**: OpenPII-1M + Gretel. **T1**: a fixed sample of the OpenPII-1M validation split: `data/test/t1-openpii-1m.jsonl`, 1,000 texts, 250 in each of French, German, Italian and English, drawn with seed 42 from a pinned commit of the dataset. Its SHA-256 is recorded in `results/results.csv`. **Out-of-distribution**, optional, reported if time allows: Nemotron-PII, TAB, GraSCCo, SPY, BigCode PII.
 - **T2, ours**: 80 realistic and 120 planted snippets, about 260 Swiss values in each of the dev and final splits. The PDF and DOCX snippets must come from the app's own text extractor, so that the offsets match what the detector receives.
 - **Planted snippets**: we write about 40 templates by hand, and `src/pii_anonymizer/swiss.py` (#28) makes 3 variants of each with seeds 0, 1 and 2. It writes valid AVS, IBAN and phone values in several formats and keeps the offsets right. So the hand work goes to the 80 realistic snippets.
 - **Effort**: 9.5 minutes per hand-written snippet (measured, see above) for 80 realistic snippets and 40 templates, about 19 hours. Then about 4 hours for a second person to re-check 20 % (24 snippets), 2 hours for a small script that computes the offsets of the realistic snippets, and 3 hours for PDF and DOCX files. That is about 28 hours, so at least 3.5 person-days: we measured review, not writing.
@@ -60,5 +60,5 @@ The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 m
 
 - **Related snippets** share a `group` key in the JSONL file: all variants of a template, and snippets that share a person, a company, an address or a value. Apart from variants of one template, each snippet gets its own values, so most groups hold a single snippet.
 - **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by `source` (`prompt`, `email`, `pdf`, `docx`, `csv`, `txt`), by `kind` (`realistic` or `planted`) and by language, with seed 42.
-- **When**: before any tuning. After the split, we never move a snippet between the two parts.
+- **When**: by 30 November (v1), before any tuning, we freeze the annotation policy, the groups, the mix of types and formats, and the file hashes. The policy treats personal attributes as personal data, titles, ages, sex and gender included, so a model that masks them is not counted as over-masking. After the split, we never move a snippet between the two parts.
 - **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.

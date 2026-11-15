@@ -42,11 +42,11 @@ TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark proto
 #table(
   columns: (auto, 1fr, auto, auto),
   table.header[*Goal*][*Target*][*Measured*][*Met*],
-  [O1], [Student recall ≥ 95 % of teacher and at least GLiNER2-PII's, Swiss IDs ≥ 99 %], [TODO], [TODO],
-  [O2], [Char. precision ≥ GLiNER2-PII on the same set, utility through the app ≥ 90 % on 20 frozen test prompts, 5 stress prompts reported], [TODO], [TODO],
-  [O3], [At least 8 times smaller, at least 1.5 times faster (p95)], [TODO], [TODO],
-  [O4], [0 leaks added by the app, 100 % exact restoration of intact placeholders, every listed bad replacement flagged, 0 silent failures], [TODO], [TODO],
-  [O5], [0 models without the gate; refuses a degraded model, publishes a good one, one alert], [TODO], [TODO],
+  [O1], [Models alone: student recall ≥ 95 % of the teacher's and at least GLiNER2-PII's (80.6 % on T1). Regex and model: Swiss IDs ≥ 99 %, pooled], [TODO], [TODO],
+  [O2], [Char. precision ≥ GLiNER2-PII on the same set, utility through the app ≥ 90 % on 20 frozen test prompts, at least 18 solved without pseudonymization, those results frozen before any run with it. Pinned OpenAI model version and settings, 3 runs per condition, solved when 2 of 3 pass, every result kept. 5 stress prompts reported], [TODO], [TODO],
+  [O3], [At least 8 times smaller in exact bytes (at most about 155.6 MB), at least 1.5 times faster (p95)], [TODO], [TODO],
+  [O4], [0 leaks added by the app, in everything that leaves the device and in the backend's payload to OpenAI. 100 % restoration of intact placeholders to the stored value, spaces normalized. Every listed bad replacement flagged. 0 silent failures. Swaps between two valid placeholders are outside the guarantee.], [TODO], [TODO],
+  [O5], [Across the whole project, 0 installed versions without a passing MLflow gate record for the same file hash. Five scenarios by 7 December: a degraded model fails the frozen recall threshold and scores at least 3 recall points below the good model on T2-dev. A model without results is refused. A good model is published, and the app installs it and shows the installed version. The app keeps its last approved version when a download fails. An injected slowdown fires the alert.], [TODO], [TODO],
 )
 
 = MLOps pipeline

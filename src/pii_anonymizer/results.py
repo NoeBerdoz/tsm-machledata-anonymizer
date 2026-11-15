@@ -81,6 +81,14 @@ def summary_table(results_csv: Path) -> str:
     def percent(value: str) -> str:
         return f"{float(value) * 100:.1f} %" if value else ""
 
+    def recall(row: dict[str, str]) -> str:
+        # Round once, from the counts: the stored recall has 4 decimals already, and
+        # rounding it again can move the last digit (0.8065 would print 80.7 %).
+        protected, entities = row.get("n_protected"), row.get("n_entities")
+        if protected and entities and int(entities) > 0:
+            return f"{int(protected) / int(entities) * 100:.1f} %"
+        return percent(row["strict_recall"])
+
     by_cpu: dict[str, list[dict[str, str]]] = {}
     with open(results_csv, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
@@ -97,7 +105,7 @@ def summary_table(results_csv: Path) -> str:
         ]
         for row in by_cpu[cpu]:
             lines.append(
-                f"| {row['model']} | {row['dataset']} | {percent(row['strict_recall'])} "
+                f"| {row['model']} | {row['dataset']} | {recall(row)} "
                 f"| {percent(row['char_precision'])} | {row['size_mb']} "
                 f"| {row['latency_p95_ms']} |"
             )

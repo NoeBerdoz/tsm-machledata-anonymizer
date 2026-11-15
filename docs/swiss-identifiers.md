@@ -101,7 +101,7 @@ Recall on the three Swiss types:
 | privacy-filter | 99.4 % | 79.4 % | 96.7 % | 92.6 % |
 | regex+privacy-filter | 100 % | 98.1 % | 100 % | **99.5 %** |
 
-Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.2 % for GLiNER2, 80.3 % for `regex+gliner2`, 76.7 % for Privacy Filter and 78.1 % for `regex+privacy-filter`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
+Over all entities of the file (the Swiss ones and the others), the strict recall is 19.7 % for the regex, 57.7 % for Presidio, 78.3 % for GLiNER2, 80.3 % for `regex+gliner2`, 76.7 % for Privacy Filter and 78.1 % for `regex+privacy-filter`. The full rows are in `results/results.csv` and `results/recall_per_type.csv`.
 
 What each detector misses:
 
@@ -114,7 +114,7 @@ What each detector misses:
 
 With 99.2 %, the combined detector just reaches the 99 % of O1 on this set. `regex+privacy-filter` reaches 99.5 %. Adding dashes to the AVS rule would close most of the gap. That is a change to `rules.py`, outside this issue.
 
-On the two T1 samples, `regex+gliner2` gives the same strict recall as GLiNER2 alone (80.7 % on OpenPII-1M, 81.8 % on 500k), because those samples have almost no valid Swiss values for the regex to add. `regex+privacy-filter` adds 0.2 points to Privacy Filter (79.0 % against 78.8 % on OpenPII-1M, 70.0 % against 69.8 % on 500k).
+On the two T1 samples, `regex+gliner2` gives almost the same strict recall as GLiNER2 alone (80.7 % against 80.6 % on OpenPII-1M, 81.8 % for both on 500k), because those samples have almost no valid Swiss values for the regex to add. `regex+privacy-filter` adds 0.2 points to Privacy Filter (79.0 % against 78.8 % on OpenPII-1M, 70.0 % against 69.8 % on 500k).
 
 Privacy Filter's recall on this set by language, over all entities: 84.0 % in French, 75.7 % in German, 78.1 % in Italian and 71.5 % in English. The English rows include most of the Gretel documents, where it misses the IBANs in SWIFT and XML and many company names.
 
