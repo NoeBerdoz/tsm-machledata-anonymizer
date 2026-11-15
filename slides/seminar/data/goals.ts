@@ -23,6 +23,6 @@ export const goals: Goal[] = [
   { id: 'O1', name: 'Protection', figure: '95 %', caption: "of the teacher's recall", more: 'and 99 % of | Swiss IDs found' },
   { id: 'O2', name: 'Utility', figure: '90 %', caption: 'of solved test prompts | still work | with placeholders' },
   { id: 'O3', name: 'Compression', figure: '8x', caption: 'smaller than | the teacher', more: '1.5x faster | on the i5 laptop' },
-  { id: 'O4', name: 'End to end', figure: '100 %', caption: 'of intact placeholders | restored exactly', more: 'No leak added | by the app' },
+  { id: 'O4', name: 'End to end', figure: '0', caption: 'leaks added | by the app', more: 'Placeholders come back, | or the user is warned' },
   { id: 'O5', name: 'MLOps', figure: '0', caption: 'models reach the app | without passing | the quality gate', more: 'Shown by 7 Dec., | with one speed alert' },
 ]
