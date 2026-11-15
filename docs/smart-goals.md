@@ -58,12 +58,12 @@ The pseudonymization does not mask so much that the answers get worse.
 
 ### O3 Compression
 
-The delivered student is at least 8 times smaller than the fp32 teacher. We measure its speed and report it, but we do not promise a speed-up.
+The delivered student is at least 8 times smaller and at least 1.5 times faster than the fp32 teacher on a laptop CPU.
 
-- **S.** Size counts all files needed to run the model, weights and tokenizer. We measure the p95 latency of every model on the reference laptop CPU, an Intel Core i5-1130G7, with the frozen protocol of [benchmark-protocol.md](benchmark-protocol.md): 30 texts, 10 runs each, so 300 calls per model.
-- **M.** The teacher measures 1,244 MB, so the student must weigh at most 155.5 MB (1,244 / 8). We publish a compression curve with one point per step, at least 4, each with its recall, size and latency: the fp32 teacher, the teacher with the pruned vocabulary, the same in int8, and the distilled student in int8 with the pruned vocabulary. The options add 2 more points: int4 embeddings, and rare tokens dropped.
-- **A.** Our estimate for the minimum deliverable (6 layers, our four languages' tokens, int8) is about 137 MB, 9.1 times smaller, so we have about 19 MB of margin ([baselines.md](baselines.md)). The word embeddings are 63 % of the teacher, and our four languages use 77,347 of its 250,112 tokens. The int8 step must also quantize the word embeddings: the default dynamic quantization of PyTorch leaves them in float32. With the pruned vocabulary, the student is then only about 4 times smaller instead of 9 (1,244 / (237.6 + 42.7 + 29.5 + 4.9) = 3.95). We do not promise speed, because there is no measurement on the reference laptop yet, and size does not tell speed. Halving the layers made DistilBERT only 1.63 times faster (668 / 410).
-- **R.** The model runs before every request, on the user's laptop, and attached files can be long. Also, the model has to run where the data is allowed to be. Each curve point shows what one step costs in recall, size and latency, which is our advanced topic.
+- **S.** Size counts all files needed to run the model, weights and tokenizer. We measure the p95 latency of every model on the reference laptop CPU, an Intel Core i5-1130G7, with the frozen protocol of [benchmark-protocol.md](benchmark-protocol.md): 30 texts, 10 runs each, so 300 calls per model. We measure the teacher on the same laptop.
+- **M.** The teacher measures 1,244 MB, so the student must weigh at most 155.5 MB (1,244 / 8). The student's p95 latency must be at most two thirds of the teacher's p95, which means at least 1.5 times faster. We publish a compression curve with one point per step, at least 4, each with its recall, size and latency: the fp32 teacher, the teacher with the pruned vocabulary, the same in int8, and the distilled student in int8 with the pruned vocabulary. The options add 2 more points: int4 embeddings, and rare tokens dropped.
+- **A.** Our estimate for the minimum deliverable (6 layers, our four languages' tokens, int8) is about 137 MB, 9.1 times smaller, so we have about 19 MB of margin ([baselines.md](baselines.md)). The word embeddings are 63 % of the teacher, and our four languages use 77,347 of its 250,112 tokens. The int8 step must also quantize the word embeddings: the default dynamic quantization of PyTorch leaves them in float32. With the pruned vocabulary, the student is then only about 4 times smaller instead of 9 (1,244 / (237.6 + 42.7 + 29.5 + 4.9) = 3.95). The student has half the teacher's layers. With half the layers, DistilBERT ran 1.63 times faster (Sanh et al., 2019: 668 s against 410 s). Int8 on a laptop CPU usually adds more speed, but we have not measured it on our model. So 1.5 times leaves a margin. We do not ask for more, because there is no measurement on the reference laptop yet, and the smaller dictionary saves space, not time: a lookup costs almost nothing. The first measurement on the reference laptop comes with the latency sample from T2-dev.
+- **R.** The model runs before every request, on the user's laptop, and attached files can be long, so its speed matters to the user. Also, the model has to run where the data is allowed to be. Each curve point shows what one step costs in recall, size and latency, which is our advanced topic.
 - **T.** We evaluate it at the final talk, around mid-December 2026.
 
 ### O4 End-to-end protection in our app
@@ -98,7 +98,7 @@ The rules are frozen at the seminar talk. Some numbers depend on T2-dev, which d
 |---|---|---|
 | O1 | Recall at least 95 % of the fine-tuned teacher's, on T1 and on T2-final; Swiss IDs at least 99 % | Nothing |
 | O2 | Utility through the app at least 90 % (paired) | Character precision: GLiNER2-PII's on T2-dev, before tuning |
-| O3 | At least 8 times smaller (at most 155.5 MB), at least 4 curve points | The 30-text latency sample from T2-dev |
+| O3 | At least 8 times smaller (at most 155.5 MB), at least 1.5 times faster (p95 at most two thirds of the teacher's), at least 4 curve points | The 30-text latency sample from T2-dev |
 | O4 | 0 leaks added by the app, 100 % exact restoration, every listed corruption flagged, 0 silent failures | Nothing |
 | O5 | Refusal and publication demo in MLflow, app installs it, one alert, by 2026-12-07 | Demonstration thresholds, alert window and alert threshold, in `params.yaml` before the demonstration |
 | Data | Decided: OpenPII-1M plus Gretel, T1 = OpenPII-1M validation, 50,000 training rows | Nothing |
@@ -115,7 +115,7 @@ The rules are frozen at the seminar talk. Some numbers depend on T2-dev, which d
 
 ## Minimum deliverable and options
 
-The minimum deliverable is the baselines, the fine-tuned teacher, the vocabulary pruned to our four languages, the distilled student in int8, the app with its backend, the CI gate and the monitoring. The options are int4 embeddings and dropping rare tokens, which we add if time allows. Our stretch goals are 12 times smaller and 2 times faster than the teacher. They are not commitments. Owners and effort live on our kanban and Gantt chart.
+The minimum deliverable is the baselines, the fine-tuned teacher, the vocabulary pruned to our four languages, the distilled student in int8, the app with its backend, the CI gate and the monitoring. The options are int4 embeddings and dropping rare tokens, which we add if time allows. Our stretch goals go beyond O3: 12 times smaller and 2 times faster than the teacher. They are not commitments. Owners and effort live on our kanban and Gantt chart.
 
 ## Known limits
 

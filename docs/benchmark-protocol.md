@@ -17,7 +17,7 @@ The reference machine is Michael's laptop, an ordinary laptop. Michael runs the 
 
 Latency numbers only compare within one machine. Any teammate can still add rows measured on their own laptop. The `cpu` column of the results tells the machines apart, and a rerun only replaces the row of the same CPU. The same commands work on Linux, macOS and Windows.
 
-The quality gate of the CI (#14) runs the student and the teacher in the same job, on the same machine. It checks the size: the student must be at least 8 times smaller (O3). It also measures the ratio of the student's p95 latency to the teacher's and reports it, with no pass or fail on it. So it needs no reference machine.
+The quality gate of the CI (#14) runs the student and the teacher in the same job, on the same machine. It checks the size and the latency ratio of O3: the student must be at least 8 times smaller, and its p95 latency must be at most two thirds of the teacher's. So it needs no reference machine. The official numbers for the goal still come from the reference laptop.
 
 ## Inputs
 

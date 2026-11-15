@@ -41,7 +41,7 @@ TODO: per-type recall, reported with no threshold
 
 # Latency on the reference CPU (1 min)
 
-TODO: p50 and p95 of every curve point, reported
+TODO: p50 and p95 of every curve point, against the O3 target of 1.5 times faster
 
 ---
 

@@ -26,12 +26,15 @@ const CARD_W = [640, 660, 820, 660, 800, 640]
 const cardLeft = (i: number) => Math.max(0, Math.min(W - CARD_W[i], nodeX(i) - CARD_W[i] / 2))
 
 // Gate: values on T2-dev, as examples. Every bar starts at zero; the line is the goal. One row
-// per goal that the gate checks: O1 recall, O2 character precision, O3 size. Speed has no
-// threshold, so it is not in the gate. A fails on recall, so the gate refuses it.
+// per threshold that the gate checks: O1 recall, O2 character precision, O3 size and speed.
+// The speed row is the ratio of the teacher's p95 to the student's, both run on the same
+// machine. A fails on recall, so the gate refuses it.
 type Row = { name: string; goal: string; g: number; min: number; max: number; a: number; b: number; da: string; db: string; ex?: boolean }
 const GATE: Row[] = [
-  { name: 'O1 Recall vs teacher', goal: '95 %', g: 95, min: 0, max: 100, a: 88, b: 97, da: '88 %', db: '97 %' },  { name: 'O2 Character precision', goal: 'example', g: 0.8, min: 0, max: 1, a: 0.84, b: 0.86, da: '0.84', db: '0.86', ex: true },
+  { name: 'O1 Recall vs teacher', goal: '95 %', g: 95, min: 0, max: 100, a: 88, b: 97, da: '88 %', db: '97 %' },
+  { name: 'O2 Character precision', goal: 'example', g: 0.8, min: 0, max: 1, a: 0.84, b: 0.86, da: '0.84', db: '0.86', ex: true },
   { name: 'O3 Times smaller', goal: '8x', g: 8, min: 0, max: 12, a: 9, b: 9, da: '9x', db: '9x' },
+  { name: 'O3 Times faster', goal: '1.5x', g: 1.5, min: 0, max: 3, a: 1.8, b: 1.8, da: '1.8x', db: '1.8x' },
 ]
 const NG = GATE.length
 
