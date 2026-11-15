@@ -153,7 +153,7 @@ const CROSS = { x: mx(12), y: my(61) }
 const STAR = 'M8 0.9l2.1 4.4 4.8.6-3.5 3.3.9 4.8L8 11.6 3.7 14l.9-4.8L1.1 5.9l4.8-.6z'
 
 // Summary, one line per station
-const SUMMARY = ['DVC,\nGitHub Actions', 'Google Cloud,\nMLflow', 'A refused,\nB passes', 'Laptop runs\nversion 4', 'Sentry alerts\nwhen slow', 'People plan\nthe next run']
+const SUMMARY = ['DVC,\nGitHub Actions', 'Google Cloud,\nMLflow', 'A refused,\nB passes', 'Model runs\non the laptop', 'Sentry alerts\nwhen slow', 'Users review\nthe results']
 
 // The loop: from Review, round the right side, back along the bottom, up into Version
 const LOOP_Y = 168
@@ -281,7 +281,7 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
           <circle :cx="CROSS.x" :cy="CROSS.y" r="6" class="cross" :style="{ ...on(ch.alert), transformOrigin: `${CROSS.x}px ${CROSS.y}px`, transform: `scale(${2 - ch.alert})` }" />
         </svg>
         <div class="mon-notes" :style="on(ch.notes)">
-          <p>95 of 100 requests finish within this time.</p>
+          <p>The line shows how long 95 of 100 requests take, at most.</p>
           <p>Sentry never sees the prompt or the answer.</p>
         </div>
       </div>
@@ -299,7 +299,7 @@ const LOOP = `M ${nodeX(5) + 16} 12 H ${W - 38} Q ${W - 14} 12 ${W - 14} 36 V ${
           </svg>
         </span>
       </div>
-      <p class="review" :style="{ ...on(ch.review), transform: `translateY(${(1 - ch.review) * 8}px)` }">People review the results, then plan the next run.</p>
+      <p class="review" :style="{ ...on(ch.review), transform: `translateY(${(1 - ch.review) * 8}px)` }">Users review the results.</p>
     </div>
   </div>
 </template>
