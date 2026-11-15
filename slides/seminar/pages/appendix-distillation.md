@@ -15,7 +15,7 @@ $$p_i^{\tau} = \frac{e^{z_i/\tau}}{\sum_j e^{z_j/\tau}}$$
 
 At $\tau = 1$ this is the usual softmax. A higher $\tau$ makes the probabilities flatter. The student then also sees how the teacher ranks the wrong classes.
 
-### The example of slide 6 and of the loss page
+### The example of slide 7 and of the loss page
 
 The scores are made up: $z = (4.0,\ 2.2,\ 0.6,\ 0.0)$ for PERSON, LOCATION, ORGANIZATION and NONE. They show doubt in the teacher, not evidence that this Dupont is a place.
 

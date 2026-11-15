@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 11: our planned MLOps pipeline as a trail of six steps, built one step per click.
+// Slide 12: our planned MLOps pipeline as a trail of six steps, built one step per click.
 // Each step shows the real thing it produces, in a card that hangs under its station.
 //   0  Version  the DVC hash of the data, and the GitHub Actions tests on each merge
 //   1  Train    MLflow's loss curves for models A and B, trained on Google Cloud

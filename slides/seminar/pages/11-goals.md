@@ -5,17 +5,19 @@ clicks: 5
 
 # Five *SMART* goals
 
-Checked at the final talk in mid-December, MLOps by 7 December.
+We check O1 to O4 at the final talk, in mid-December.
 
 <Goals />
 
 <!--
-Target time 0:25. Speaker: to assign.
+Target time 0:30. Speaker: to assign.
 
-Our five SMART goals.
+Our five SMART goals. We check four at the final talk, in mid-December.
 [click] Protection: the student keeps 95 percent of the teacher's recall.
-[click] Utility: with placeholders, 90 percent of solved tasks still work.
-[click] Compression: 8 times smaller and 1.5 times faster, on a normal laptop.
-[click] End to end: the app adds no leak, and every intact placeholder is restored exactly.
-[click] MLOps: by 7 December, the gate refuses a bad model.
+[click] Utility: of the test prompts that work without placeholders, at least 90 percent still work with them.
+[click] Compression: 8 times smaller, and 1.5 times faster.
+[click] End to end: the app restores intact placeholders exactly, and adds no leak.
+[click] MLOps: zero models reach the app without passing the quality gate. By 7 December, we show the gate at work and trigger one speed alert.
+
+If asked: how do we count the zero? In the demo, we give the gate a bad model and a good one. It must refuse the bad one, so the app never installs it. It publishes the good one. The app installs it and shows its version. We fix these demonstration thresholds beforehand. The final student must pass the final thresholds after v3.
 -->

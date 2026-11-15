@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 5: most of the teacher is its dictionary, and we only need four of its languages.
+// Slide 6: most of the teacher is its dictionary, and we only need four of its languages.
 // Read on 2026-11-10 from the safetensors header and config of
 // fastino/gliner2-privacy-filter-PII-multi at commit 1cb4166 (docs/smart-goals.md):
 // 307.1M parameters in float32.
