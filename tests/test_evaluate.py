@@ -5,6 +5,7 @@ import pytest
 
 import pii_anonymizer.evaluate
 from pii_anonymizer.evaluate import evaluate
+from pii_anonymizer.results import summary_table
 from pii_anonymizer.spans import Span, load_dataset
 
 RECORDS = [
@@ -167,3 +168,38 @@ def test_each_cpu_keeps_its_own_row(tmp_path, monkeypatch):
     summary = (out / "summary.md").read_text()
     assert summary.count("| Model | Dataset |") == 2
     assert summary.index(f"## {reference} (reference)") < summary.index("## Other CPU")
+
+
+def test_summary_rounds_the_recall_once_from_the_counts(tmp_path):
+    # 5,867 of 7,275 is 80.65 %: it prints 80.6 %, not 80.7 % from the stored 0.8065.
+    results_csv = tmp_path / "results.csv"
+    with open(results_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "model",
+                "dataset",
+                "n_entities",
+                "n_protected",
+                "strict_recall",
+                "char_precision",
+                "size_mb",
+                "latency_p95_ms",
+                "cpu",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "model": "gliner2",
+                "dataset": "t1-openpii-1m",
+                "n_entities": "7275",
+                "n_protected": "5867",
+                "strict_recall": "0.8065",
+                "char_precision": "0.9823",
+                "size_mb": "1244.4",
+                "latency_p95_ms": "",
+                "cpu": "Test CPU",
+            }
+        )
+    assert "| gliner2 | t1-openpii-1m | 80.6 % |" in summary_table(results_csv)
