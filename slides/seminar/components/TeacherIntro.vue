@@ -79,8 +79,8 @@ const growAt = (i: number) => Math.max(0, Math.min(1, ch.grow * 1.45 - i * 0.15)
       <!-- 2 the two gaps, closed by the next slide -->
       <section class="part" :style="rise(ch.gaps)">
         <div class="ck">But, as published</div>
-        <p class="add"><span class="mono plus">-</span> it misses about 1 entity in 5</p>
-        <p class="add"><span class="mono plus">-</span> {{ sizeMB }}: our goal is 8 times smaller</p>
+        <p class="add"><span class="mono plus">-</span> it misses 1 entity in 5, such as titles and ages</p>
+        <p class="add"><span class="mono plus">-</span> it is heavy for a normal laptop: {{ sizeMB }}</p>
       </section>
     </div>
   </div>

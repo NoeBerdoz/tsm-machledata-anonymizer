@@ -5,7 +5,7 @@ clicks: 4
 
 # The pipeline comes before the student models
 
-Our plan, up to the final talk.
+Our roadmap, up to the final talk.
 
 <Route class="route-fig" />
 
