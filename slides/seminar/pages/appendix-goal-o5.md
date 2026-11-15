@@ -11,7 +11,7 @@ eyebrow: Appendix for readers
 
 <p class="goal-s">Every model version the app installs has a passing gate record in MLflow for the same file hash. We count the versions without one: the target is <span class="n">0</span>. By <span class="date">7 December 2026</span>, five scenarios must all pass.</p>
 
-- A degraded model, at least 3 recall points below the good one on T2-dev, fails the recall threshold.
+- A degraded model, at least 3 recall points below the good one on our development set, fails the recall threshold.
 - A model without evaluation results is refused.
 - A good model is published. The app installs it and shows its version.
 - When a download fails, the app keeps its last approved version.
@@ -23,7 +23,7 @@ eyebrow: Appendix for readers
 ### Why this goal
 
 <div class="why-row"><span class="k">Cloud</span><p>The kickoff asks for cloud training, deployment and monitoring. On 19 October, the teachers said laptop inference is enough if training runs in the cloud. <span class="src">docs/smart-goals.md</span></p></div>
-<div class="why-row"><span class="k">7 Dec.</span><p>22 days from 15 November. The gate must work before the final student arrives, around 10 December. <span class="src">docs/project-management.md</span></p></div>
+<div class="why-row"><span class="k">7 Dec.</span><p>22 days from 15 November. The gate must work before the final student arrives, around 10 December. <span class="src">docs/smart-goals.md</span></p></div>
 
 ### Why we can reach it
 

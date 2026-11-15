@@ -7,20 +7,20 @@ eyebrow: Appendix for readers
 <div class="appx cols">
 <div>
 
-### T1
+### The public test set
 
-A fixed sample of the OpenPII-1M validation split: 1,000 texts, 250 in each of French, German, Italian and English, drawn with seed 42 from a pinned commit. We train on OpenPII-1M and Gretel, never on this split. Both candidates gave GLiNER2 the same recall, and OpenPII-1M is the harder and cleaner test.
+1,000 OpenPII-1M validation texts, 250 per language (French, German, Italian, English), drawn with seed 42 from a pinned commit. We never use them for training. The two candidate public test sets gave similar recall: 80.6 % and 81.8 %. We chose OpenPII-1M because it is harder and cleaner.
 
-### T2
+### Our own test set
 
-Our own set of about 200 snippets of what users send through our app: prompts, e-mails, documents, CSV tables, pasted code or logs. For an attached file (PDF, TXT, DOCX, CSV), the snippet is the text extracted from it, because that is what the detector receives. We plant values in them, including Swiss identifiers (AVS numbers starting with 756, Swiss IBANs, +41 phone numbers, postal codes), so we know the labels by construction. We also label any sensitive value a snippet already holds. By 30 November, before any tuning, we freeze the annotation policy, groups, mix of types and formats, and hashes. Titles, ages, sex and gender count as personal data.
+About 200 app-like snippets of what users send through our app: prompts, e-mails, documents, CSV tables, pasted code or logs. For an attached file (PDF, TXT, DOCX, CSV), the snippet is the text extracted from it, because that is what the detector receives. We plant values in them, including Swiss identifiers (AVS numbers starting with 756, Swiss IBANs, +41 phone numbers, postal codes), so we know the labels by construction. We also label any sensitive value a snippet already holds. By 30 November, before any tuning, we freeze the annotation policy, groups, mix of types and formats, and hashes. Titles, ages, sex and gender count as personal data.
 
 </div>
 <div>
 
-### T2-dev and T2-final
+### Our development set and our final test set
 
-Before any tuning we split T2 into T2-dev, for thresholds and the gate, and a fixed T2-final, run only on the selected models. Related snippets stay on the same side.
+Before any tuning, we split our own test set in two. Our development set sets thresholds and runs the gate. Our final test set is kept apart and run once at the end, on the selected models. Related snippets stay on the same side.
 
 ### Recall, the primary metric
 

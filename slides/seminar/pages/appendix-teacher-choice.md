@@ -1,6 +1,6 @@
 ---
 eyebrow: Appendix for readers
-source: "T1 samples: 1,000 texts each. Swiss IDs: 781 values in 634 rows. Times: Apple M5 Max, CPU, 4 threads, texts of 12 to 177 words. Privacy Filter ran through the transformers pipeline, not OpenAI's own decoder."
+source: "Public test sets: 1,000 texts each. Swiss IDs: 781 values in 634 rows. Times: Apple M5 Max, CPU, 4 threads, texts of 12 to 177 words. Privacy Filter ran through the transformers pipeline, not OpenAI's own decoder."
 ---
 
 # Why GLiNER2-PII and not OpenAI's Privacy Filter

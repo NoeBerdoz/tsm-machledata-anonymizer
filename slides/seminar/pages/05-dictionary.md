@@ -24,7 +24,7 @@ Target time 0:35. Speaker: to assign.
 The teacher has 307 million parameters. Most of them, 63 percent, are its dictionary.
 [click] This dictionary has tokens for many languages.
 [click] Our model targets Switzerland. We need only French, German, Italian and English. They use under a third of the tokens.
-[click] O3 requires this step: we keep only the tokens of our training data. The model falls to about 174 million parameters.
+[click] We need this step to be 8 times smaller: we keep only the tokens of our training data. The model falls to about 174 million parameters.
 
 If asked: the four slices are only a picture. Many tokens serve several languages, and 77,347 counts each token once.
 -->

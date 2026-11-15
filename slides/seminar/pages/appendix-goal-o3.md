@@ -13,7 +13,7 @@ eyebrow: Appendix for readers
 
 ### How we measure it
 
-Speed is the p95 latency of both models on an Intel Core <span class="n">i5-1130G7</span>, 300 calls each, on 30 texts drawn from <span class="n">T2-dev</span> with a fixed seed, across its sources, before any timing. We time both models in the student's runtime when it can run the teacher. Otherwise the ratio is the speedup of the deployed system, and we name both runtimes. One curve point per step, at least 4: fp32 teacher, pruned vocabulary, int8, distilled student.
+Speed is the p95 latency of both models on an Intel Core <span class="n">i5-1130G7</span>, 300 calls each, on 30 texts drawn from our development set with a fixed seed, across its sources, before any timing. We time both models in the student's runtime when it can run the teacher. Otherwise the ratio is the speedup of the deployed system, and we name both runtimes. One curve point per step, at least 4: fp32 teacher, pruned vocabulary, int8, distilled student.
 
 </div>
 <div>
@@ -73,5 +73,5 @@ Appendix for readers, not presented.
 
 If asked: does 8 times smaller mean faster? Not by itself. That is why O3 also asks for 1.5 times faster, measured on the reference laptop. 2 times faster is a stretch goal.
 
-If asked: why only 1.5 times? Half the layers made DistilBERT 1.63 times faster, and we have no measurement on the reference laptop yet. It comes with the latency sample from T2-dev.
+If asked: why only 1.5 times? Half the layers made DistilBERT 1.63 times faster, and we have no measurement on the reference laptop yet. It comes with the latency sample from our development set.
 -->

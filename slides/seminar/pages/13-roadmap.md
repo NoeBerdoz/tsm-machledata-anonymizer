@@ -3,7 +3,7 @@ part: 5
 clicks: 4
 ---
 
-# The pipeline comes before the students
+# The pipeline comes before the student models
 
 Our plan, up to the final talk.
 

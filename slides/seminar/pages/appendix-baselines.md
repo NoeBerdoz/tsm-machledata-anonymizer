@@ -2,14 +2,14 @@
 eyebrow: Appendix for readers
 ---
 
-# All baselines on both T1 candidates and the Swiss set
+# All baselines on both candidate public test sets and the Swiss set
 
 <BaselineTables view="full" />
 
 <div class="appx cols bl-notes">
 <div>
 
-Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. T2 is in progress, so no row is on T2-dev yet. Each T1 sample is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. We chose OpenPII-1M validation as T1.
+Char. prec. is character precision. Privacy Filter ran through the transformers pipeline, not OpenAI's own constrained decoder. Our own test set is in progress, so no row is on our development set yet. Each candidate public test set is 1,000 texts of an ai4privacy validation split, 250 per language, with a fixed seed. We chose OpenPII-1M validation as the public test set.
 
 </div>
 <div>
@@ -77,7 +77,7 @@ eyebrow: Appendix for readers
 <div class="appx cols bl-notes">
 <div>
 
-p50 and p95 are the times that 50 and 95 of 100 calls stay under. Each detector made 5 warm-up calls, then 10 runs on each of 30 OpenPII-1M texts (12 to 177 words), so 300 timed calls. These 30 texts are a temporary sample until T2-dev exists.
+p50 and p95 are the times that 50 and 95 of 100 calls stay under. Each detector made 5 warm-up calls, then 10 runs on each of 30 OpenPII-1M texts (12 to 177 words), so 300 timed calls. These 30 texts are a temporary sample until our development set exists.
 
 </div>
 <div>

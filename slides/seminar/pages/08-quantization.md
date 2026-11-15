@@ -15,4 +15,6 @@ Next, we store each weight in fewer bytes: 0.4237 takes 4 bytes in float32. The 
 [click] Read back, it is 0.42. The error, 0.0037, is at most half a step.
 [click] Every weight is rounded the same way.
 [click] The teacher's weights: 1.23 gigabytes. In int8, about 0.31.
+
+If asked: 1.23 GB is the weights alone. With the 16 MB tokenizer, the files weigh 1,244 MB.
 -->

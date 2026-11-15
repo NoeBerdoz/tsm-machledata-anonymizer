@@ -9,7 +9,7 @@ eyebrow: Appendix for readers
 
 ### O2 Utility
 
-<p class="goal-s">By the final talk, at least <span class="figure-num">90 %</span> of the test prompts solved without pseudonymization stay solved with it. The student's character precision on <span class="n">T2-final</span> is at least <span class="n">GLiNER2-PII's</span> on the same set.</p>
+<p class="goal-s">By the final talk, at least <span class="figure-num">90 %</span> of the test prompts solved without pseudonymization stay solved with it. The student's character precision on our final test set is at least <span class="n">GLiNER2-PII's</span> on the same set.</p>
 
 ### How we measure it
 
@@ -74,5 +74,5 @@ No app result yet: the test prompts run once the app and the backend are ready. 
 <!--
 Appendix for readers, not presented.
 
-If asked: how can the precision threshold be frozen without T2? We freeze the rule today. The final check compares both models on T2-final. For the development gate, GLiNER2-PII's precision is recorded on T2-dev before any tuning.
+If asked: how can the precision threshold be frozen without our own test set? We freeze the rule today. The final check compares both models on our final test set. For the development gate, GLiNER2-PII's precision is recorded on our development set before any tuning.
 -->

@@ -13,7 +13,7 @@ PTQ rounds a model that is already trained, with no retraining. The weights are 
 
 ### Which tensors
 
-The weights go to int8. On the size path of slide 9, int4 for the word embeddings is an option. Any tensor left in float counts in the delivered size.
+The 137 MB estimate needs int8 word embeddings too. Keeping them in float32 gives only about 4 times smaller. Int4 embeddings are an option. Every part left in float counts in the delivered size.
 
 </div>
 <div>

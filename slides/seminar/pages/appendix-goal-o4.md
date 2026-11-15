@@ -33,7 +33,7 @@ Our tests already cover masking, repeated values and restoration. The path to th
 
 ### Outside the guarantee
 
-If OpenAI swaps one valid placeholder for another, such as PERSON_2 for PERSON_1, the app cannot see it. The list of bad replacements is written before testing.
+If OpenAI swaps one valid placeholder for another, such as <span class="ph">&lt;PERSON_2&gt;</span> for <span class="ph">&lt;PERSON_1&gt;</span>, the app cannot see it. The list of bad replacements is written before testing.
 
 </div>
 </div>

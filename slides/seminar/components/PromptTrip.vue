@@ -179,7 +179,7 @@ const chip = (v: number, x0: number, x1: number, y: number) => ({
 
       <!-- our model, on the laptop, between the chat and the cloud -->
       <div class="model" :style="rise(ch.model, 16)">
-        <div class="model-head eyebrow">Our model</div>
+        <div class="model-head eyebrow">Our app</div>
         <div class="cols"><span>Kept here</span><span>Sent</span></div>
         <div v-for="(p, i) in KEPT" :key="p.ph" class="row" :style="{ '--lit': i === 0 ? ch.restore : 0 }">
           <span class="row-v val" :style="{ opacity: rowOn(i), transform: `translateX(${(1 - rowOn(i)) * -10}px)` }">{{ p.t }}</span>

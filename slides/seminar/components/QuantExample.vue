@@ -105,7 +105,7 @@ const after = ['42', '-19', '7', '30']
       <p class="sz-h">The teacher's weights:<br />4 times smaller</p>
       <div class="bar-row"><span class="bar full" /><span class="bl"><b>1.23 GB</b><br /><span class="muted">measured</span></span></div>
       <div class="bar-row"><span class="bar est" /><span class="bl">about <b>0.31 GB</b><br /><span class="muted">estimated</span></span></div>
-      <p class="sz-c muted">The steps add a little.</p>
+      <p class="sz-c muted">Storing the steps adds a little.</p>
     </div>
   </div>
 </template>
@@ -556,7 +556,7 @@ const after = ['42', '-19', '7', '30']
   line-height: 1.3;
   font-size: 20px;
   font-weight: 500;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 .bar-row {
   display: flex;

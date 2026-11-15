@@ -18,5 +18,7 @@ Here, each word gets a type. Take Dupont.
 [click] The teacher gives a probability to each type: soft labels. They show its doubt: Dupont might be a place.
 [click] Small values almost vanish. A higher temperature, here 4, spreads the probabilities. So the student also learns that Dupont could be a place. In training, it learns from both: the ground truth and the teacher.
 
-If asked: how are the two targets mixed? Show the appendix page "The loss pulls the student toward two targets".
+If asked: how are the two targets mixed? Show the appendix page "Distillation in detail".
+
+If asked: GLiNER2 scores each piece of text against each type, as yes or no. This four-type example is a simplification. The appendix 'Distillation for GLiNER2 spans' shows how it works.
 -->
