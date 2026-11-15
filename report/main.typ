@@ -42,11 +42,11 @@ TODO: T1, T2-dev and T2-final, OOD benchmarks, reference CPU and benchmark proto
 #table(
   columns: (auto, 1fr, auto, auto),
   table.header[*Goal*][*Target*][*Measured*][*Met*],
-  [O1], [Student recall ≥ 95 % of teacher, Swiss IDs ≥ 99 %], [TODO], [TODO],
-  [O2], [Char. precision ≥ GLiNER2-PII, utility through the app ≥ 90 %], [TODO], [TODO],
+  [O1], [Student recall ≥ 95 % of teacher and at least GLiNER2-PII's, Swiss IDs ≥ 99 %], [TODO], [TODO],
+  [O2], [Char. precision ≥ GLiNER2-PII on the same set, utility through the app ≥ 90 % on 20 frozen test prompts, 5 stress prompts reported], [TODO], [TODO],
   [O3], [At least 8 times smaller, at least 1.5 times faster (p95)], [TODO], [TODO],
   [O4], [0 leaks added by the app, 100 % exact restoration of intact placeholders, every listed bad replacement flagged, 0 silent failures], [TODO], [TODO],
-  [O5], [Gate refuses and publishes, one alert], [TODO], [TODO],
+  [O5], [0 models without the gate; refuses a degraded model, publishes a good one, one alert], [TODO], [TODO],
 )
 
 = MLOps pipeline

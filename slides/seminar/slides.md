@@ -14,13 +14,13 @@ defaults:
 layout: cover
 ---
 
-<p class="eyebrow">On-device pseudonymizer for personal data (PII)</p>
+<p class="eyebrow">Personally identifiable information (PII)</p>
 
 <h1>Distilling and quantizing<br><em>a PII detector</em></h1>
 
 <p>How small can a pseudonymizer get before it starts to leak?</p>
 
-<p class="eyebrow cover-team">Noé Berdoz / Nicolas Hertling / Raul Santos Barreira / Michael Strefeler</p>
+<p class="eyebrow cover-team">Raul Santos Barreira / Michael Strefeler / Noé Berdoz / Nicolas Hertling</p>
 
 <!--
 Target time 0:15. Speaker: to assign.

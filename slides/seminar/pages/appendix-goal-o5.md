@@ -18,7 +18,7 @@ eyebrow: Appendix for readers
 
 ### How we check it
 
-Demonstration thresholds and the alert rule are written in advance in params.yaml. The gate must refuse a degraded model and publish a good one. The final student is accepted after v3, against the frozen thresholds of O1 to O3.
+Demonstration thresholds and the alert rule are written in advance in params.yaml. The gate must refuse a degraded model (at least 3 recall points lower) and a model without results, and publish a good one. If a download fails, the app keeps its last approved version. A demonstration approval never releases a model to users. The final student is accepted after v3, against the frozen thresholds of O1 to O3.
 
 </div>
 <div>

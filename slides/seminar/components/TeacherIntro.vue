@@ -3,15 +3,12 @@
 //   0  its model card: name, origin, job, licence, types and languages
 //   1  why this one: recall of four existing detectors on 1,000 public texts, before any
 //      training; GLiNER2-PII finds the most
-//   2  what we add, by 30 November: fine-tuning on our training set, because today it misses
-//      about 1 entity in 5 on T1 (recall 80.65 %), and on Swiss IDs in the formats our regex
-//      does not know (AVS numbers with dashes: the regex finds 0 of 12)
-//   3  its job: the fine-tuned model teaches a small model, the student, that runs on the laptop
+//   2  but, as published, two gaps that the next slide closes: it misses about 1 entity in 5
+//      on T1 (recall 80.65 %), and at 1,244 MB it is far from our goal of 8 times smaller
 // Sources: the model card of fastino/gliner2-privacy-filter-PII-multi on Hugging Face (base
 // GLiNER2, Apache 2.0, 42 types, 7 languages: EN, FR, ES, DE, IT, PT, NL); docs/baselines.md
 // (recall on OpenPII-1M, size 1,244 MB); results/recall_per_type.csv (5,867 of 7,275 entities
-// found on T1); docs/smart-goals.md and docs/swiss-identifiers.md (what we fine-tune on, the
-// dashed AVS numbers); docs/project-management.md (fine-tuned teacher due 2026-11-30).
+// found on T1); docs/smart-goals.md (the goal of O3: at least 8 times smaller).
 // Every bar starts at zero. The slide's one red is the headline's emphasis.
 import { useBeats, inOutCubic, type Channels, type Seg } from './lib/beats'
 import { detectors } from '../data/baseline'
@@ -31,10 +28,7 @@ function target(n: number): Channels {
   return {
     tests: n >= 1 ? 1 : 0,
     grow: n >= 1 ? 1 : 0,
-    fine: n >= 2 ? 1 : 0,
-    role: n >= 3 ? 1 : 0,
-    arrow: n >= 3 ? 1 : 0,
-    stud: n >= 3 ? 1 : 0,
+    gaps: n >= 2 ? 1 : 0,
   }
 }
 const beats: Record<number, Seg[]> = {
@@ -42,12 +36,7 @@ const beats: Record<number, Seg[]> = {
     { k: 'tests', to: 1, at: 0, dur: 300 },
     { k: 'grow', to: 1, at: 120, dur: 1000, ease: inOutCubic },
   ],
-  2: [{ k: 'fine', to: 1, at: 0, dur: 380 }],
-  3: [
-    { k: 'role', to: 1, at: 0, dur: 320 },
-    { k: 'arrow', to: 1, at: 260, dur: 520, ease: inOutCubic },
-    { k: 'stud', to: 1, at: 700, dur: 380 },
-  ],
+  2: [{ k: 'gaps', to: 1, at: 0, dur: 380 }],
 }
 const { ch, fade } = useBeats({ target, beats })
 
@@ -87,33 +76,11 @@ const growAt = (i: number) => Math.max(0, Math.min(1, ch.grow * 1.45 - i * 0.15)
         </div>
       </section>
 
-      <!-- 2 what we add -->
-      <section class="part" :style="rise(ch.fine)">
-        <div class="ck">What we add: fine-tuning, by 30 November</div>
-        <p class="add"><span class="mono plus">+</span> our training set, for the 1 entity in 5 it misses</p>
-        <p class="add"><span class="mono plus">+</span> Swiss IDs in formats our regex does not know</p>
-      </section>
-
-      <!-- 3 its job -->
-      <section class="part" :style="rise(ch.role)">
-        <div class="ck">Its job: teach a small model</div>
-        <div class="pair">
-          <div class="box teacher">
-            <div class="top"><span class="eyebrow ink">Teacher</span><span class="figure-num big">{{ sizeMB }}</span></div>
-            <p>GLiNER2-PII, fine-tuned</p>
-          </div>
-          <div class="link">
-            <span class="teaches" :style="vis(ch.arrow)">teaches</span>
-            <svg width="96" height="16" viewBox="0 0 96 16" aria-hidden="true">
-              <path d="M2 8 H88" pathLength="1" class="shaft" :style="{ strokeDashoffset: 1 - ch.arrow }" />
-              <path d="M82 3 L90 8 L82 13" class="head" :style="vis(ch.arrow > 0.9 ? 1 : 0)" />
-            </svg>
-          </div>
-          <div class="box student" :style="{ ...vis(ch.stud), transform: `translateX(${(1 - ch.stud) * 14}px)` }">
-            <div class="top"><span class="eyebrow ink">Student</span><span class="small">small</span></div>
-            <p>Runs on the laptop</p>
-          </div>
-        </div>
+      <!-- 2 the two gaps, closed by the next slide -->
+      <section class="part" :style="rise(ch.gaps)">
+        <div class="ck">But, as published</div>
+        <p class="add"><span class="mono plus">-</span> it misses about 1 entity in 5</p>
+        <p class="add"><span class="mono plus">-</span> {{ sizeMB }}: our goal is 8 times smaller</p>
       </section>
     </div>
   </div>
@@ -279,65 +246,8 @@ const growAt = (i: number) => Math.max(0, Math.min(1, ch.grow * 1.45 - i * 0.15)
 }
 
 /* teacher and student */
-.pair {
-  display: flex;
-  align-items: center;
-  margin-top: 12px;
-}
-.box {
-  flex: none;
-  width: 262px;
-  padding: 9px 16px 11px;
-  border-radius: 8px;
-}
-.box p {
-  margin-top: 4px;
-  font-size: 20px;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.small {
-  font-size: 20px;
-  color: var(--ink);
-}
-.teacher {
-  border: 2px solid var(--ink);
-  background: var(--card);
-}
 /* the student does not exist yet: a dashed frame */
-.student {
-  border: 1.5px dashed var(--ink);
-}
 .big {
   font-size: 22px;
-}
-.link {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.teaches {
-  font-size: 18px;
-  color: var(--ink);
-}
-.shaft {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-dasharray: 1;
-}
-.head {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 </style>

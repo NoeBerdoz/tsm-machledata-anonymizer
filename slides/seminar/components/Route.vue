@@ -1,12 +1,12 @@
 <script setup lang="ts">
-// Slide 13: the roadmap set on the Poya path. The herd and its armailli stand at today's
+// Slide 13: the roadmap set on the Poya path. The herd and its armailli stand at the first
 // milestone and glide up the path one milestone per click:
-//   0  baselines, today   1  the fine-tuned teacher   2  the pipeline   3  the students
+//   0  existing tools measured, last week   1  the fine-tuned teacher   2  the pipeline   3  the students
 //   4  the final talk
 // Each milestone is named by what it delivers. When the herd reaches it, its label turns from
 // grey to ink and the heart on its post pops red. A reached heart stays red: at click n, the
 // hearts of stations 0 to n are red.
-// Dates: docs/project-management.md (16 November, 30 November, around 10 December, and
+// Dates: docs/baselines.md (the runs of 9 and 10 November), docs/project-management.md (30 November, around 10 December, and
 // mid-December for the final talk, to confirm) and goal O5 (the pipeline by 7 December 2026).
 import { computed } from 'vue'
 import PoyaPath, { POYA_STATIONS } from './art/PoyaPath.vue'
@@ -30,7 +30,7 @@ const W = 1280
 const H = (W * 260) / 1280
 
 const stops = [
-  { name: 'Baselines measured', date: '16 Nov., today' },
+  { name: 'Existing tools measured', date: '9 and 10 Nov.' },
   { name: 'Teacher fine-tuned', date: '30 Nov.' },
   { name: 'Pipeline working', date: '7 Dec.' },
   { name: 'Student distilled, then quantized', date: 'About 10 Dec.' },

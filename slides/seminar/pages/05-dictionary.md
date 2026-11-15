@@ -2,7 +2,7 @@
 part: 2
 eyebrow: The teacher
 clicks: 3
-source: 'Counted from the published weights, and on 103,718 OpenPII-1M validation texts in our four languages. Estimates in the appendix.'
+source: 'Counted from the published weights, and on 103,718 OpenPII-1M validation texts in our four languages.'
 ---
 
 # Most of the teacher is *a dictionary*
