@@ -30,7 +30,7 @@ const W = 1280
 const H = (W * 260) / 1280
 
 const stops = [
-  { name: 'Existing tools measured', date: '9 and 10 Nov.' },
+  { name: 'Existing tools measured', date: '9 Nov.' },
   { name: 'Teacher fine-tuned', date: '30 Nov.' },
   { name: 'Pipeline working', date: '7 Dec.' },
   { name: 'Student distilled, then quantized', date: 'About 10 Dec.' },
