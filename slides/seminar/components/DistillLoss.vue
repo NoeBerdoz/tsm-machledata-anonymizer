@@ -7,7 +7,8 @@
 //   2  the second target: the teacher's soft labels at tau = 4, and KL, which pulls the
 //      student's soft labels toward them; both columns start at tau = 1 and soften together
 //   3  the weights: alpha mixes the two parts, tau^2 keeps the two parts balanced as tau changes
-//   4  the control student: alpha = 0, so the teacher's part is off; distillation must beat it
+//   4  the control student: alpha = 0, so the teacher's part is off; goal O1 reports which of
+//      the two students wins, with no threshold
 // Same example as slide 6, with made-up scores:
 //   teacher z_T = (4.0, 2.2, 0.6, 0.0)  tau 4  41.10 / 26.21 / 17.57 / 15.12 %
 //   student z_S = (2.0, 0.0, 0.0, 0.0)  tau 1  71.12 / 9.63 / 9.63 / 9.63 %
@@ -161,7 +162,7 @@ const at = (x: number) => ({ left: x + 'px' })
     </div>
 
     <Callout class="close" :style="rise(ch.close, 10)">
-      The control student uses <Tex e="\alpha = 0" />: no teacher. Distillation must beat it (goal O1).
+      The control student uses <Tex e="\alpha = 0" />: no teacher. We report which one wins (goal O1).
     </Callout>
   </div>
 </template>

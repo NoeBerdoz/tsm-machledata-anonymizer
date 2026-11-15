@@ -23,7 +23,7 @@ Pseudonymization, not anonymization: the mapping table on the device can put the
 
 # The compression curve (2 min)
 
-TODO: recall and character precision against size, one point per model (fp32, int8, distilled int8, and the options)
+TODO: recall and character precision against size, one point per step (fp32, pruned vocabulary, int8, distilled int8, then the options)
 
 ---
 
@@ -35,13 +35,13 @@ TODO: distilled student versus gold-label control at equal size and budget
 
 # Per-type recall and Swiss identifiers (1 min)
 
-TODO: per-type recall against the v0 floor
+TODO: per-type recall, reported with no threshold
 
 ---
 
 # Latency on the reference CPU (1 min)
 
-TODO: p50 and p95 against the O3 budget
+TODO: p50 and p95 of every curve point, against the O3 target of 1.5 times faster
 
 ---
 

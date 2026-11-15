@@ -7,9 +7,10 @@ GLiNER2-PII keeps 768 numbers for each of its 250,112 tokens, and these word emb
 63 % of its parameters. Most tokens belong to languages we do not need. This counts the
 distinct tokens that its tokenizer gives the French, German, Italian and English texts of
 the OpenPII-1M validation split (pinned commit), plus the special tokens, and prints what a
-vocabulary pruned to them would weigh in int8. It is a lower bound for a real pruning,
-which counts the training texts too. It also prints how many tokens remain if the rare ones
-are dropped, and which share of the text they still cover. See docs/baselines.md.
+vocabulary pruned to them would weigh in int8. It is an estimate from validation texts, not
+the final list: a real pruning counts the training texts. It also prints how many tokens
+remain if the rare ones are dropped, and which share of the text they still cover. See
+docs/baselines.md.
 """
 
 from collections import Counter

@@ -117,11 +117,27 @@ src: ./pages/appendix-teacher-choice.md
 ---
 
 ---
-src: ./pages/appendix-goals-o1-o3.md
+src: ./pages/appendix-goal-o1.md
 ---
 
 ---
-src: ./pages/appendix-goals-o4-o5.md
+src: ./pages/appendix-goal-o2.md
+---
+
+---
+src: ./pages/appendix-goal-o3.md
+---
+
+---
+src: ./pages/appendix-goal-o4.md
+---
+
+---
+src: ./pages/appendix-goal-o5.md
+---
+
+---
+src: ./pages/appendix-goal-thresholds.md
 ---
 
 ---

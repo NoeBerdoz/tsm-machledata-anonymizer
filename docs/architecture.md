@@ -14,7 +14,7 @@ We first planned to plug the anonymizer into Claude Code with hooks. We now buil
 
 ![Main application architecture](diagrams/architecture.png)
 
-The idea is simple: personal data never leaves the user's device. Only pseudonymized content goes to the cloud.
+The idea is simple: the personal data that the engine detects never leaves the user's device. Only pseudonymized content goes to the cloud.
 
 ### On the user's device (private zone)
 
@@ -26,7 +26,7 @@ The idea is simple: personal data never leaves the user's device. Only pseudonym
    The engine first finds the values (`detect()` in `engine.py`), then replaces them. The replacement (step 3) and the model can therefore change separately, and the evaluation script can measure `detect()` like any other detector.
 3. **Replacement.** Each value that the engine finds is replaced by a placeholder, such as `<PERSON_1>` or `<IBAN_1>`. The same value always gets the same placeholder. We chose placeholders over fake values (a fake name such as `Jean Martin` in place of the real one) in issue #17, for three reasons:
    - They work the same way for every type. Fake values would need a generator for each type (names, AVS numbers, IBANs, phone numbers).
-   - The restoration is exact. The LLM copies `<PERSON_1>` as it is, while it may shorten or change a fake name.
+   - The restoration is exact. The LLM usually copies `<PERSON_1>` as it is, while it may shorten or change a fake name.
    - A miss stays visible. A placeholder left in an answer is obvious, while a fake name left in an answer looks real.
 
    The price is that LLMs tend to write better answers from realistic text, and a placeholder does not tell the LLM whether to write "he" or "she". Goal O2 measures this cost, because its 20 app tasks run with and without pseudonymization ([smart-goals.md](smart-goals.md)). Fake values remain a possible continuation of the project, and step 2 already keeps the replacement apart from detection.
@@ -37,13 +37,13 @@ The idea is simple: personal data never leaves the user's device. Only pseudonym
 ### In the cloud
 
 5. **Backend API (FastAPI).** It receives the pseudonymized request and handles authentication and request control.
-6. **OpenAI Responses API.** It processes the pseudonymized prompt and sends back a response. The response contains the placeholders, never the real values.
+6. **OpenAI Responses API.** It processes the pseudonymized prompt and sends back a response. The response contains the placeholders, not the real values that the engine detected.
 
 ### Back on the device
 
 7. **Response restored locally.** The application reads the response, finds each placeholder in it, and looks it up in the mapping table. It then swaps it back to the real value, for example `<PERSON_1>` → `Marie Dupont`, and shows the restored response to the user.
 
-The restoration happens on the device because the mapping table never leaves it. Neither the backend nor OpenAI ever sees the real values.
+The restoration happens on the device because the mapping table never leaves it. Neither the backend nor OpenAI sees the real values that the engine detects.
 
 ## 2. Training and deployment pipeline (MLOps)
 
@@ -63,7 +63,7 @@ The pipeline runs on Agent Platform, Google Cloud's platform for training and ma
 1. **Data preparation.** Collect the training datasets, clean them and format them for training. The pipeline does not create the test sets: T1 and the split of T2 into T2-dev and T2-final are fixed in advance (see [smart-goals.md](smart-goals.md)) and versioned with DVC.
 2. **Teacher fine-tuning.** Fine-tune a large PII detection model on our data. This large model is the "teacher".
 3. **Distillation.** Train a smaller "student" model to copy the teacher.
-4. **Quantization.** Store the student's numbers with fewer bits, so that it is smaller and faster on a laptop.
+4. **Quantization.** Store the student's numbers with fewer bits, so that it is smaller and can be faster on a laptop.
 5. **Evaluation and quality gates.** Measure the student on T2-dev, then compare the results with thresholds fixed in advance. The metrics cover detection quality (how much personal data is found, and how much is masked by mistake) and performance (size and speed). The gates use T2-dev only: T2-final is kept for the final report.
 
 Two tools support every step:
@@ -73,7 +73,7 @@ Two tools support every step:
 
 ### Release
 
-- **PASS.** If every threshold is met, the model is published to the model registry (MLflow or Agent Platform, to decide).
+- **PASS.** If every threshold is met, the model is published to the MLflow model registry.
 - **FAIL.** If one threshold is not met, the model is rejected and is not delivered to users.
 
 ### Local application
@@ -103,13 +103,15 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 | Data and model versioning | DVC, remote on Cloud Storage | in progress (#8) |
 | Training | Agent Platform (custom training jobs) | chosen |
 | Experiment tracking | MLflow | planned |
-| Model registry | MLflow or Agent Platform | to decide |
+| Model registry | MLflow | chosen |
 | Monitoring | Sentry | planned |
 
 ## Still to decide
 
-- The datasets, and the teacher and student models.
-- The metrics and the values of the quality-gate thresholds.
+Since 2026-11-02, we decided the datasets and T1 ([test-set-decision.md](test-set-decision.md)), the teacher GLiNER2-PII and the goals ([smart-goals.md](smart-goals.md)), the metrics ([evaluation.md](evaluation.md)) and the model registry, MLflow ([smart-goals.md](smart-goals.md), O5). These points are still open:
+
+- How we build the student: how many layers it has, and how its weights start. The size estimates assume 6 layers.
+- The values of the thresholds that depend on T2-dev.
 - The tools marked "to decide" in the table above.
 - How and when the local application checks for a new model.
-- The exact measures that monitoring collects.
+- What monitoring measures beyond the pseudonymization time of O5.

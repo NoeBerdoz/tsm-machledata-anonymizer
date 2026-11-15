@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Slide 10: the five goals as five columns, read left to right. The slide opens on the five
+// Slide 11: the five goals as five columns, read left to right. The slide opens on the five
 // names; each click fills one goal with its target figure and what the figure means.
 //   0  O1 to O5, names only
 //   n  goal n gets its rule, its figure, its caption and its second condition (n = 1 to 5)
@@ -117,5 +117,6 @@ const rise = (v: number, d = 12) => ({
   font-size: 18px;
   line-height: 1.3;
   color: var(--muted);
+  text-wrap: balance;
 }
 </style>

@@ -18,5 +18,5 @@ Here is the student's answer for Dupont: a probability for each type.
 [click] First target: the ground truth. CE pulls the answer toward PERSON, 100 percent.
 [click] Second target: the teacher's soft labels, at temperature 4. KL pulls the student's soft labels toward them. So LOCATION goes up.
 [click] Alpha mixes the two parts. Tau squared keeps them balanced when tau changes.
-[click] With alpha zero, there is no teacher. That is our control student. Distillation must beat it: goal O1.
+[click] With alpha zero, there is no teacher. That is our control student. We report which one wins: goal O1.
 -->

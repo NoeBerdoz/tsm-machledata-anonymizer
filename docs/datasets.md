@@ -34,7 +34,7 @@ Notes.
 
   The 500k totals match the counts on its card.
 - We searched the rows of OpenPII-1M, open-pii-masking-500k, Gretel and Nemotron-PII for AVS numbers, Swiss IBANs, +41 phone numbers and CHE company numbers in #5, see [test-set-decision.md](test-set-decision.md). For the other datasets, "not searched" still means that none appears on the cards.
-- The 464k figure in [smart-goals.md](smart-goals.md) is the whole train split of open-pii-masking-500k, in all 8 languages. Its FR, DE, and IT rows are 263,344 over both splits, of which 210,573 (80 %) are in train.
+- An older version of [smart-goals.md](smart-goals.md) quoted 464k rows. That is the whole train split of open-pii-masking-500k, in all 8 languages. Its FR, DE, and IT rows are 263,344 over both splits, of which 210,573 (80 %) are in train.
 
 ## 2. What we saw in the rows
 
@@ -72,7 +72,7 @@ All the rows we read so far are English, but we train on FR, DE, and IT. We will
 
 | Set | Size | Languages | Entity types | License and access | Where |
 |---|---|---|---|---|---|
-| T1 | The validation split of the training dataset we choose at v0: 284,746 rows if OpenPII-1M (we sample FR, DE, IT, and EN from it), 116k rows if open-pii-masking-500k (FR, DE, IT, EN only) | FR, DE, IT, EN | The 19 ai4privacy types | The license of the source dataset. Never used for training. | see section 1 |
+| T1 | The validation split of OpenPII-1M (decided, see [test-set-decision.md](test-set-decision.md)): 284,746 rows, and we sample FR, DE, IT, and EN from it | FR, DE, IT, EN | The 19 ai4privacy types | The license of the source dataset. Never used for training. | see section 1 |
 | T2 | About 200 snippets of what users send through our app (prompts, e-mails, documents, CSV tables, pasted code or logs, and the text extracted from attached files), split into dev and a frozen final test. Pilot of 30 in `data/test/t2_pilot.jsonl`, see [test-set-decision.md](test-set-decision.md) | Mostly FR, DE, IT, EN with Swiss identifiers | Planted values (AVS 756..., Swiss IBAN, +41 phone numbers, postal codes) and incidental entities | Ours. No public dataset has Swiss IBANs or valid AVS numbers. Synthetic, so it can be published. | to be built before v0 |
 
 ## 5. What to watch
@@ -80,30 +80,30 @@ All the rows we read so far are English, but we train on FR, DE, and IT. We will
 - **BigCode PII** is the only gated set. Its terms allow use only to train or evaluate PII-removal models, and forbid sharing the data or any modified version. So it must never go into our repository, our data storage or an artifact. We report scores only.
 - **Llama license** on open-pii-masking-500k: it was built with Llama 3.1 and 3.3. If we distribute a student fine-tuned on it, its name must start with "Llama", and it must carry "Built with Llama". The Llama Acceptable Use Policy applies, and the card says commercial use or redistribution may need written permission. The metadata says CC BY 4.0, but that is not the whole story.
 - **OpenPII-1M license metadata** says `license: other` with the name cc-by-4.0, while the card body says CC BY 4.0 (copyright 2026 Ai Suisse SA). We treat it as CC BY 4.0.
-- **Enron and Loghub** have no open license, and they contain real personal data. We use them only for pseudo-labelling (the teacher labels them, and the student learns from these labels). We do not redistribute them, and we do not print their content in the report.
+- **Enron and Loghub** have no open license, and they contain real personal data. They are not in the decided plan. If we use them, it is only for pseudo-labelling (the teacher labels them, and the student learns from these labels). We do not redistribute them, and we do not print their content in the report.
 - **privaite-bench** is small and has no license. It is a point of comparison with PrivAiTe, not a benchmark we can rely on. It runs from a sibling PrivAiTe checkout.
 
 ## 6. Recommendation
 
-### Training set (open decision, we choose at v0)
+### Training set (decided: option A, see [test-set-decision.md](test-set-decision.md))
 
 **Option A: OpenPII-1M plus Gretel**, with T1 = the OpenPII-1M validation split.
 
 - Licenses: CC BY 4.0 and Apache 2.0. CC BY 4.0 requires attribution, and Apache 2.0 requires us to keep its license notice, so we credit both datasets in the model card and the report. Unlike the Llama license, they put no rule on how we name the models we publish.
 - Far more rows: 1.14M in train, 23 languages, and a newer release. Its train split has 272,768 FR, DE, and IT rows, against 210,573 for option B.
 - Gretel adds long financial documents with 29 types in FR, DE, and IT.
-- Weak point: neither dataset has Swiss identifiers.
+- Weak point: neither dataset has enough labelled Swiss identifiers.
 
-**Option B: open-pii-masking-500k, only the FR, DE, and IT rows** (this is what [smart-goals.md](smart-goals.md) says today).
+**Option B: open-pii-masking-500k, only the FR, DE, and IT rows** (not chosen).
 
 - 263,344 rows over both splits before filtering, 210,573 of them in train.
 - Smaller, so faster to train.
 - Weak points: the Llama Community License puts "Built with Llama" and a "Llama" model name on our published student. The control student would also have fewer rows.
 
-**Our recommendation is A**, for the license and the size. A short v0 run of the baselines on both validation splits will confirm it or not.
+**We chose A**, for the license and the size (see [test-set-decision.md](test-set-decision.md)).
 
 ### Test sets
 
-- **T1** = the validation split of the chosen training dataset (OpenPII-1M validation under Option A), sampled in FR, DE, IT, and EN. Never used for training. It is synthetic and in-distribution, so T1 is optimistic whichever option we take.
+- **T1** = the OpenPII-1M validation split, sampled in FR, DE, IT, and EN. Never used for training. It is synthetic and in-distribution, so T1 is optimistic.
 - **Out-of-distribution benchmarks**, reported only, with no pass/fail threshold: TAB (EN), GraSCCo (DE), SPY (EN), Nemotron-PII (EN, test split: structured and unstructured documents; we do not train on it because it is English only), BigCode PII (code, scores only, never shared), and privaite-bench (small, as a point of comparison).
 - **T2** (our own, with Swiss identifiers) is the main real evidence. It must be built before v0.

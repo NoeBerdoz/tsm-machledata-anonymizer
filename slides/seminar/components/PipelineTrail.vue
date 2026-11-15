@@ -25,12 +25,25 @@ const nodeX = (i: number) => INSET + (i * (W - 2 * INSET)) / (STEPS.length - 1)
 const CARD_W = [640, 660, 820, 660, 800, 640]
 const cardLeft = (i: number) => Math.max(0, Math.min(W - CARD_W[i], nodeX(i) - CARD_W[i] / 2))
 
+// Gate: values on T2-dev, as examples. Every bar starts at zero; the line is the goal. One row
+// per threshold that the gate checks: O1 recall, O2 character precision, O3 size and speed.
+// The speed row is the ratio of the teacher's p95 to the student's, both run on the same
+// machine. A fails on recall, so the gate refuses it.
+type Row = { name: string; goal: string; g: number; min: number; max: number; a: number; b: number; da: string; db: string; ex?: boolean }
+const GATE: Row[] = [
+  { name: 'O1 Recall vs teacher', goal: '95 %', g: 95, min: 0, max: 100, a: 88, b: 97, da: '88 %', db: '97 %' },
+  { name: 'O2 Character precision', goal: 'example', g: 0.8, min: 0, max: 1, a: 0.84, b: 0.86, da: '0.84', db: '0.86', ex: true },
+  { name: 'O3 Times smaller', goal: '8x', g: 8, min: 0, max: 12, a: 9, b: 9, da: '9x', db: '9x' },
+  { name: 'O3 Times faster', goal: '1.5x', g: 1.5, min: 0, max: 3, a: 1.8, b: 1.8, da: '1.8x', db: '1.8x' },
+]
+const NG = GATE.length
+
 // ---------- states ----------
 function target(n: number): Channels {
   const c: Channels = {
     fill: Math.min(n, 5), sum: n >= 6 ? 1 : 0, loop: n >= 6 ? 1 : 0, lift: n >= 6 ? 1 : 0,
     lede: n === 0 || n >= 6 ? 1 : 0,
-    hash: 1, check: 1, curves: 1, gA: 4, refuse: 1, gB: 4, pass: 1,
+    hash: 1, check: 1, curves: 1, gA: NG, refuse: 1, gB: NG, pass: 1,
     tag: 1, flip: 1, only: 1, chart: 1, alert: 1, notes: 1, stars: 4, review: 1,
   }
   STEPS.forEach((_, i) => (c['c' + i] = i === n ? 1 : 0))
@@ -49,10 +62,11 @@ const beats: Record<number, Seg[]> = {
   2: [
     ...step(2),
     ...reset('gA', 'refuse', 'gB', 'pass'),
-    { k: 'gA', to: 4, at: 640, dur: 680, ease: linear },
-    { k: 'refuse', to: 1, at: 1320, dur: 260 },
-    { k: 'gB', to: 4, at: 1520, dur: 600, ease: linear },
-    { k: 'pass', to: 1, at: 2120, dur: 260 },
+    // the rows of A grow one after the other, 170 ms each, then those of B, 150 ms each
+    { k: 'gA', to: NG, at: 640, dur: 170 * NG, ease: linear },
+    { k: 'refuse', to: 1, at: 640 + 170 * NG, dur: 260 },
+    { k: 'gB', to: NG, at: 840 + 170 * NG, dur: 150 * NG, ease: linear },
+    { k: 'pass', to: 1, at: 840 + 320 * NG, dur: 260 },
   ],
   3: [
     ...step(3),
@@ -123,14 +137,6 @@ const curve = (loss: (t: number) => number) =>
 const CURVE_A = curve((t) => 0.9 - 0.42 * (1 - Math.exp(-t * 3.2)) + 0.018 * Math.sin(t * 19))
 const CURVE_B = curve((t) => 0.9 - 0.78 * (1 - Math.exp(-t * 4.2)) + 0.014 * Math.sin(t * 23))
 
-// Gate: values on T2-dev, as examples. Every bar starts at zero; the line is the goal.
-type Row = { name: string; goal: string; g: number; min: number; max: number; a: number; b: number; da: string; db: string; ex?: boolean }
-const GATE: Row[] = [
-  { name: 'O1 Recall vs teacher', goal: '95 %', g: 95, min: 0, max: 100, a: 88, b: 97, da: '88 %', db: '97 %' },
-  { name: 'O2 Character precision', goal: 'example', g: 0.8, min: 0, max: 1, a: 0.84, b: 0.86, da: '0.84', db: '0.86', ex: true },
-  { name: 'O3 Times smaller', goal: '12x', g: 12, min: 0, max: 16, a: 13, b: 13, da: '13x', db: '13x' },
-  { name: 'O3 Times faster', goal: '4x', g: 4, min: 0, max: 6, a: 5, b: 5, da: '5x', db: '5x' },
-]
 const grow = (v: number, i: number) => clamp01(v - i)
 const toneA = (r: Row, i: number) => (r.a < r.g && ch.gA >= i + 1 ? 'fail' : ch.gA >= i + 1 ? 'pass' : 'plain')
 const toneB = (i: number) => (ch.gB >= i + 1 ? 'pass' : 'plain')
