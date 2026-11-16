@@ -182,7 +182,7 @@ checked on 2026-11-09):
 | Real cost of the three jobs of 2026-11-09 (*Billing* -> *Reports*, project `tsmmachledata-projet`, before credits) | **USD 0.20** (T4 0.12, n1-standard-4 0.07, disk 0.01) |
 
 The real cost is lower than the estimate because only the running time of the jobs is billed
-(9 + 3 + 6 = 18 min of T4, about USD 0.19 at list price, plus the disk), not the time from
+(9 + 3 + 6 = 18 min of a T4 on an n1-standard-4, about USD 0.19 at list price, plus the disk), not the time from
 submission to completion. The education credits covered all of it (USD 0.00 after credits).
 
 This is well within our USD 50 of credits. Delete the saved model when it is no longer needed:
