@@ -71,14 +71,20 @@ Two tools support every step:
 - **DVC** versions the data, the models and the pipeline stages. Its remote storage is a Cloud Storage bucket.
 - **MLflow** tracks each run: parameters, metrics and artifacts, so that runs can be compared.
 
+MLflow runs on a Debian VM in Iowa. The `e2-micro` and its 30 GB standard disk fit the shared Google Cloud Free Tier. Tracking and the model registry share a SQLite database on the retained disk. Authentication has its own SQLite database, and Caddy serves HTTPS.
+
+Training jobs upload model files directly to a private Standard Cloud Storage bucket in `europe-west4`, where training runs. This keeps the roughly 1.2 GB teacher and 140 MB student transfers off the small Iowa VM. A run reserves `<run.artifact_uri>/models/<sha256>/model.tar.gz` for each model. The release step will record the Cloud Storage object generation and sign delivery after a PASS for the same hash. See [the MLflow setup](gcp-setup.md#mlflow-tracking-and-model-registry).
+
 ### Release
 
-- **PASS.** If every threshold is met, the model is published to the MLflow model registry.
+- **PASS.** If every threshold is met, the model is published to the MLflow model registry. Delivery requires a passing gate record for the same file hash.
 - **FAIL.** If one threshold is not met, the model is rejected and is not delivered to users.
+
+Only admin can create registered models. Before NoeBerdoz/tsm-machledata-anonymizer#15 publishes, admin creates `pii-teacher` and `pii-student` and grants the publishing login access to both.
 
 ### Local application
 
-The local application downloads the approved model from the registry and runs it on the device.
+The registry identifies the approved model. The local application downloads the approved file from Cloud Storage through a signed URL and runs it on the device.
 
 ### Monitoring
 
@@ -102,8 +108,8 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 | Code and CI | GitHub, GitHub Actions | in place |
 | Data and model versioning | DVC, remote on Cloud Storage | in progress (#8) |
 | Training | Agent Platform (custom training jobs) | chosen |
-| Experiment tracking | MLflow | planned |
-| Model registry | MLflow | chosen |
+| Experiment tracking | MLflow on Compute Engine, SQLite for runs, Cloud Storage for files | setup ready for cloud proof |
+| Model registry | MLflow on the same VM and SQLite store | setup ready for cloud proof |
 | Monitoring | Sentry | planned |
 
 ## Still to decide
