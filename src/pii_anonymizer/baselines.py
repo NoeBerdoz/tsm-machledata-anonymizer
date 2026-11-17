@@ -179,30 +179,42 @@ def load_presidio():
 
 
 class Gliner2Detector:
-    """GLiNER2-PII as published, on the CPU, with the card's labels and threshold.
+    """The published GLiNER2-PII or a local int8 checkpoint with the card's detection settings.
 
     Long texts go through `extract_entities_long`, the library's documented way: it scans
     overlapping word chunks and gives offsets into the whole text.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, int8_dir: Path | None = None) -> None:
         disable_hf_telemetry()
         import torch
-        from gliner2 import GLiNER2
-        from huggingface_hub import snapshot_download
 
         set_torch_threads(torch)
 
-        local_dir = Path(
-            snapshot_download(
-                GLINER2_MODEL, revision=GLINER2_REVISION, allow_patterns=GLINER2_FILES
+        if int8_dir is None:
+            from gliner2 import GLiNER2
+            from huggingface_hub import snapshot_download
+
+            local_dir = Path(
+                snapshot_download(
+                    GLINER2_MODEL, revision=GLINER2_REVISION, allow_patterns=GLINER2_FILES
+                )
             )
-        )
-        self.model = GLiNER2.from_pretrained(str(local_dir))
-        self.model.to("cpu")
-        self.model.eval()
-        self.runtime = f"torch {torch.__version__} model@{GLINER2_REVISION[:7]}"
-        self.files = sorted(p for p in local_dir.rglob("*") if p.is_file())
+            self.model = GLiNER2.from_pretrained(str(local_dir))
+            self.model.to("cpu")
+            self.model.eval()
+            self.runtime = f"torch {torch.__version__} model@{GLINER2_REVISION[:7]}"
+            self.files = sorted(p for p in local_dir.rglob("*") if p.is_file())
+        else:
+            from pii_anonymizer.quantize_gliner2 import load_int8_model, read_int8_artifact
+
+            artifact = read_int8_artifact(int8_dir)
+            self.model = load_int8_model(int8_dir)
+            self.runtime = (
+                f"torch {torch.__version__} int8 {torch.backends.quantized.engine} "
+                f"source={artifact.source_model} sha256:{artifact.artifact_sha256}"
+            )
+            self.files = artifact.files
         self._no_grad = torch.inference_mode
 
     def detect(self, text: str, lang: str | None = None) -> list[Span]:
@@ -223,6 +235,13 @@ class Gliner2Detector:
 
 def load_gliner2():
     return Gliner2Detector()
+
+
+def load_gliner2_int8():
+    model_dir = os.environ.get("GLINER2_INT8_DIR")
+    if not model_dir:
+        raise ValueError("Set GLINER2_INT8_DIR to the int8 model folder")
+    return Gliner2Detector(Path(model_dir))
 
 
 def privacy_filter_spans(entities, text: str) -> list[Span]:
