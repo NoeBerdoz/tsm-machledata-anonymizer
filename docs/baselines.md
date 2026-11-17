@@ -2,13 +2,14 @@
 
 What off-the-shelf detectors already reach, before we train anything (issue #6). We ran four detectors through the evaluation script of [evaluation.md](evaluation.md) on samples of the two candidate T1 validation splits named in [datasets.md](datasets.md).
 
-These are **T1 candidate numbers only**. T2-dev does not exist yet (issue #5), so the T2-dev rows, the latency, the 30-text latency sample and the one threshold that a rule still sets on T2-dev (the character precision of O2, see [smart-goals.md](smart-goals.md)) come later. All rows below were measured on a development machine (Apple M5 Max), **not on the reference laptop**. Quality does not depend on the machine, but the wall times below only say how long a run takes here.
+These are **T1 candidate numbers only**. T2-dev does not exist yet (NoeBerdoz/tsm-machledata-anonymizer#5), so the T2-dev rows, the latency, the 30-text latency sample and the one threshold that a rule still sets on T2-dev (the character precision of O2, see [smart-goals.md](smart-goals.md)) come later. We measured all rows on a development machine (Apple M5 Max, ARM), **not on the reference laptop**. The wall times apply to this machine. The int8 results use QNNPACK.
 
 ## The detectors
 
 - **regex** (`src/pii_anonymizer/rules.py`): our rules for Swiss identifiers, pure Python. AVS numbers (756 and 10 digits, EAN-13 check digit), CH and LI IBANs (mod-97 checksum), Swiss phone numbers (+41, 0041 or 0, then nine digits in the usual groups) and e-mail addresses. Labels `AVS`, `IBAN`, `PHONE`, `EMAIL`.
 - **presidio**: Presidio's `AnalyzerEngine` 2.2.366 with the spaCy large models for English, French, German and Italian, the default recognizers and the default score threshold. The default configuration already gives the language-independent pattern recognizers (e-mail, IBAN, phone, IP, URL, date) to every language. We add the credit card recognizer to French and German, because the default lists it only for English and Italian. Presidio receives the true language of each text, which slightly favours it (see [evaluation.md](evaluation.md)).
 - **gliner2**: `fastino/gliner2-privacy-filter-PII-multi` as published, on the CPU, with the 42 labels of its model card and the card's threshold of 0.5. Texts go through `extract_entities_long`, the library's way to handle long texts. Our texts are short (at most 177 words), so each text fits in one chunk. On a long Gretel document, the library gave the last word an end one character past the text. We clip such a span to the text.
+- **gliner2-int8**: the same labels, threshold and span offsets, with a local [int8 checkpoint](#gliner2-int8).
 - **regex+gliner2**: the two detectors together. It masks every span that either of them finds, because goal O1 measures the Swiss identifiers caught by the regex and the model together. Its size is the size of GLiNER2, since the regex has no files.
 - **privacy-filter**: `openai/privacy-filter` as published, on the CPU, in its published bfloat16 weights. We run it through the token-classification pipeline of transformers 5.22.2 with `aggregation_strategy="simple"`, the documented way to get spans with character offsets. This takes the most likely tag of each token. It does not run the constrained Viterbi decoder of OpenAI's own repo, so the operating points of the model card are not used. The pipeline only knows B- and I- tags, and the model writes B-, I-, E- and S- tags, so the last token of an entity comes back as a separate span. We join spans of the same type that touch, and we strip the space that the tokens carry before a word. We checked the offsets by hand on accented and multilingual texts: they point at the right characters.
 - **regex+privacy-filter**: the regex and Privacy Filter together, built like `regex+gliner2`.
@@ -18,7 +19,7 @@ The code of the detectors is in `src/pii_anonymizer/baselines.py`. They need the
 
 ## The samples
 
-`uv run python -m pii_anonymizer.public_data data/test/` writes two T1 files (and the Gretel sample of [swiss-identifiers.md](swiss-identifiers.md)). Each T1 file holds 250 rows per language (FR, DE, IT, EN) of a validation split, drawn with a fixed seed (42). The labels stay as the datasets write them. The script reads a pinned commit of each dataset (`PARQUET_REVISIONS` in `public_data.py`), so it rebuilds the same files byte for byte. The models are pinned the same way (`GLINER2_REVISION` and `PRIVACY_FILTER_REVISION` in `baselines.py`), and the `runtime` column of `results/results.csv` names the model commit that was scored.
+`uv run python -m pii_anonymizer.public_data data/test/` writes two T1 files (and the Gretel sample of [swiss-identifiers.md](swiss-identifiers.md)). Each T1 file holds 250 rows per language (FR, DE, IT, EN) of a validation split, drawn with a fixed seed (42). The labels stay as the datasets write them. The script reads a pinned commit of each dataset (`PARQUET_REVISIONS` in `public_data.py`), so it rebuilds the same files byte for byte. The downloaded models are pinned the same way (`GLINER2_REVISION` and `PRIVACY_FILTER_REVISION` in `baselines.py`). The `runtime` column of `results/results.csv` records the commit for those downloads and the engine for the local int8 run.
 
 | File | Source | Texts | Entities | Words per text (median, max) |
 |---|---|---|---|---|
@@ -103,6 +104,40 @@ GLiNER2 reaches 81 % and 82 %, with a precision of 97 to 98 %. It finds almost e
 - **AVS numbers**: some are missed (`756.8602.4112.23`), and so are French social security numbers written in groups (`1 42 10 49647 462 12`).
 - **Long city names**: only part of `Linz Urfahr` or `Swansea Three Crosses` is masked, so the entity counts as a leak.
 - **False positives**: few. Common nouns as last names (`women`, `famiglia`), and words such as `credit card` tagged as `payment_card`.
+
+### gliner2-int8
+
+The converter applies dynamic int8 quantization to the linear layers and 8-bit weight-only quantization to the input word table. The checkpoint holds the quantized weights, tokenizer and configs. It loads offline from that folder. The run below uses the published checkpoint at `1cb4166`.
+
+```sh
+uv run --group baselines python -m pii_anonymizer.quantize_gliner2 <fp32-folder> gliner2-int8
+GLINER2_INT8_DIR=gliner2-int8 uv run --group baselines python -m pii_anonymizer.evaluate gliner2-int8 data/test/t1-openpii-1m.jsonl results/
+```
+
+Use a new output folder. The measured published folder weighed 1,244,444,426 bytes. The int8 folder measured 337,560,744 bytes, including its tokenizer and manifest, a 72.87 % reduction. The manifest records the source model, artifact digest and emitted files.
+
+We scored both folders on T1 on the Apple M5 Max (ARM). The fp32 runs used CPU PyTorch and the int8 runs used QNNPACK.
+
+| T1 sample | Detector | Protected | Strict recall | Char. precision |
+|---|---|---|---|---|
+| OpenPII-1M | `gliner2` | 5,867 / 7,275 | 80.65 % | 98.23 % |
+| OpenPII-1M | `gliner2-int8` | 4,619 / 7,275 | 63.49 % | 98.58 % |
+| Swiss, all gold types | `gliner2` | 4,393 / 5,614 | 78.25 % | 89.59 % |
+| Swiss, all gold types | `gliner2-int8` | 3,477 / 5,614 | 61.93 % | 92.16 % |
+
+On a pilot of 20 OpenPII-1M texts, exact spans (offsets and label) changed on 18 texts. The int8 model added 10 spans and dropped 51. The most frequent dropped labels were `last_name`, `person`, `first_name` and `full_name`.
+
+We quantized different parts of the same model and scored each on all 1,000 OpenPII-1M texts with QNNPACK on the Apple M5 Max (ARM). Layers outside the listed parts stayed in fp32.
+
+| Quantized weights | Protected | Strict recall | Char. precision | Folder bytes |
+|---|---:|---:|---:|---:|
+| Word embeddings only | 5,869 / 7,275 | 80.67 % | 98.24 % | 670,253,225 |
+| All linear layers | 4,588 / 7,275 | 63.07 % | 98.56 % | 911,817,077 |
+| Word embeddings and encoder linear layers | 4,644 / 7,275 | 63.84 % | 98.60 % | 415,505,545 |
+
+Embedding-only PTQ is a recall control. O3's 155.6 MB limit needs the linear layers in int8 too. With the word embeddings already in int8, quantizing the encoder's linear layers cost 16.8 recall points on QNNPACK (Apple M5 Max, ARM). The projected student weighs about 355 MB with embedding-only PTQ and about 150 MB with full int8 PTQ. We projected from the measured folders by subtracting six encoder layers of weights, shrinking the word table and its row metadata to the pruned vocabulary, and allowing 4.9 MB for the tokenizer.
+
+On the temporary T1 latency sample on the Apple M5 Max (ARM), p95 was 138.27 ms for fp32 and 340.04 ms for full int8 with QNNPACK. Embedding-only PTQ with QNNPACK took 163.20 ms at p95. The int8 scorer path added about 7.5 % to fp32 p95 on this Mac, so NoeBerdoz/tsm-machledata-anonymizer#73 must time fp32 and int8 through comparable paths.
 
 ### privacy-filter
 
@@ -195,19 +230,19 @@ uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/
 
 Many of these tokens are rare. Keeping only the tokens seen at least 10 times leaves 42,073 tokens (32.3M parameters), which still cover 98.8 % of the text. A word that loses its token would be cut into smaller tokens that remain, so recall must be measured after any pruning.
 
-What this means for the size path, as estimates at one byte per parameter in int8 and half a byte in int4, with the GLiNER2 heads (29.5M) kept. O3 counts the tokenizer too, so the teacher weighs 1,244 MB with its 16 MB tokenizer. We assume that a pruned tokenizer shrinks with its vocabulary.
+The size projections start from the measured full int8 folder and keep the GLiNER2 heads. O3 counts the tokenizer too, so the teacher weighs 1,244 MB with its 16 MB tokenizer. We assume that a pruned tokenizer shrinks with its vocabulary and estimate int4 by halving the bytes of the word weights.
 
 | Model | Parameters | Size | Smaller than 1,244 MB |
 |---|---|---|---|
-| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 179 MB | 6.9 times |
-| Student, 6 layers, pruned vocabulary, int8 | 132M | about 137 MB | 9.1 times |
-| Same student, embeddings in int4 | 132M | about 107 MB | 11.6 times |
-| Same student, tokens seen fewer than 10 times dropped | 105M | about 108 MB | 11.6 times |
-| Same student, both | 105M | about 91 MB | 13.6 times |
+| Teacher, 12 layers, pruned vocabulary, int8 | 174M | about 192 MB | 6.47 times |
+| Student, 6 layers, pruned vocabulary, int8 | 132M | about 150 MB | 8.31 times |
+| Same student, embeddings in int4 | 132M | about 120 MB | 10.37 times |
+| Same student, tokens seen fewer than 10 times dropped | 105M | about 120 MB | 10.37 times |
+| Same student, both | 105M | about 104 MB | 11.98 times |
 | O3 target | | about 155.6 MB (1,244,444,426 bytes / 8) | 8 times |
 | Stretch goal | | about 104 MB | 12 times |
 
-So int8, the pruned vocabulary and six layers give about 9 times, above the 8 times of O3. The stretch goal of 12 times needs int4 embeddings and dropping rare tokens: either one alone gives 11.6 times, both give 13.6 times. Recall must be measured after each step.
+Full int8 with the pruned vocabulary and six layers leaves about 6 MB of estimated margin for O3. Combining int4 embeddings with dropping rare tokens gets close to the stretch goal. We need to measure size and recall on the actual student.
 
 ## Next steps
 
