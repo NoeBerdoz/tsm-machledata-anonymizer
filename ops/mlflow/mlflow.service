@@ -1,0 +1,25 @@
+[Unit]
+Description=MLflow tracking server and model registry
+After=network.target
+
+[Service]
+User=mlflow
+Group=mlflow
+StateDirectory=mlflow
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/mlflow
+Environment=MLFLOW_AUTH_CONFIG_PATH=/etc/mlflow/auth.ini
+EnvironmentFile=/etc/mlflow/service.env
+EnvironmentFile=/etc/mlflow/origin.env
+EnvironmentFile=-/etc/mlflow/bootstrap.env
+ExecStart=/opt/mlflow/venv/bin/mlflow server --app-name basic-auth --enable-workspaces --host 127.0.0.1 --port 5000 --workers 1 --backend-store-uri sqlite:////var/lib/mlflow/tracking.db --no-serve-artifacts --default-artifact-root gs://tsmmachledata-projet-mlflow/runs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target
