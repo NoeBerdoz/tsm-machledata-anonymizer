@@ -309,7 +309,7 @@ Give a teammate the HTTPS URL and share the `team` password through the password
 )
 ```
 
-Set both Actions secrets before opening, updating, reopening or marking the same-repository PR ready. Remove the old URI repository variable if it exists. Changes to the MLflow ops or workflow files trigger the exact PR head. Keep the PR open for review. Manual dispatch becomes available after the workflow reaches the default branch. [GitHub Actions events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request).
+The PR stays a draft until the server runs, and draft PRs skip the proof. Set both Actions secrets, then mark the PR ready for review: that runs the proof on the exact PR head. Remove the old URI repository variable if it exists. Keep the PR open for review. Manual dispatch becomes available after the workflow reaches the default branch. [GitHub Actions events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request).
 
 ```bash
 test -n "$URI" &&
