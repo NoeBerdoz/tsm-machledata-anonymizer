@@ -1,0 +1,53 @@
+name: Quantization tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/pii_anonymizer/quantiz*.py'
+      - 'src/pii_anonymizer/baselines.py'
+      - 'src/pii_anonymizer/evaluate.py'
+      - 'src/pii_anonymizer/results.py'
+      - 'src/pii_anonymizer/spans.py'
+      - 'src/pii_anonymizer/benchmark.py'
+      - 'tests/test_quantiz*.py'
+      - 'tests/test_baselines.py'
+      - 'tests/test_evaluate.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/quantization.yml'
+  pull_request:
+    paths:
+      - 'src/pii_anonymizer/quantiz*.py'
+      - 'src/pii_anonymizer/baselines.py'
+      - 'src/pii_anonymizer/evaluate.py'
+      - 'src/pii_anonymizer/results.py'
+      - 'src/pii_anonymizer/spans.py'
+      - 'src/pii_anonymizer/benchmark.py'
+      - 'tests/test_quantiz*.py'
+      - 'tests/test_baselines.py'
+      - 'tests/test_evaluate.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/quantization.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quantization:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - name: Install dependencies
+        run: uv sync --locked --group gliner2-tests
+      - name: Run quantization tests
+        run: uv run pytest tests/test_quantization.py tests/test_quantize_gliner2.py
