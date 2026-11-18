@@ -54,7 +54,7 @@ The same command works on Linux, macOS and Windows, in bash, zsh, fish or PowerS
 
 ## Output files
 
-The script writes three files into the output folder. A rerun replaces rows for the same detector, dataset and CPU. For `gliner2-int8`, the runtime record also has to match, so each checkpoint and quantization engine keeps its own rows.
+The script writes three files into the output folder. A rerun replaces rows for the same detector, dataset and CPU. For `gliner2-int8`, the runtime record also has to match, so each checkpoint and activation policy keeps its own rows.
 
 `results.csv` has one row per detector, dataset and CPU, with separate runtime records for `gliner2-int8`. Latency numbers only compare within one machine. The official numbers for the goals come from the reference laptop named in [benchmark-protocol.md](benchmark-protocol.md). The quality gate of the CI (NoeBerdoz/tsm-machledata-anonymizer#14) compares the student with the teacher in the same job. It checks the size (at least 8 times smaller, O3) and the latency ratio (student p95 at most two thirds of the teacher's, O3). So it needs no reference machine.
 
@@ -62,7 +62,7 @@ The script writes three files into the output folder. A rerun replaces rows for 
 |---|---|
 | `model`, `dataset` | the detector name and the test set name |
 | `dataset_sha256` | the hash of the test set file, to check that two rows used the same data |
-| `runtime` | the runtime and its version. For `gliner2-int8`, it includes the engine, source model and one SHA-256 digest covering the weights, tokenizer and inference configs |
+| `runtime` | the runtime and its version. For `gliner2-int8`, it includes the engine, activation range, number of float-activation linears, source model and one SHA-256 digest covering the weights, tokenizer and inference configs |
 | `n_texts`, `n_entities`, `n_protected` | the counts behind the recall |
 | `strict_recall`, `char_precision` | the metrics above, between 0 and 1 |
 | `size_bytes`, `size_mb` | the size on disk. For converted GLiNER2 checkpoints, the manifest lists the files counted |
