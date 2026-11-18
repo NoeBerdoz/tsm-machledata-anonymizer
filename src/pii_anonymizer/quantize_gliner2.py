@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from hashlib import file_digest, sha256
@@ -19,6 +20,7 @@ from pii_anonymizer.quantization import load_quantized_weights, quantize_weights
 
 WEIGHTS_FILE = "model-int8.pt"
 MANIFEST_FILE = "quantization.json"
+FLOAT_ACTIVATION_PATTERN = re.compile(r"encoder\.encoder\.layer\.\d+\.output\.dense")
 # Files from converters that predate the manifest, including optional tokenizer assets.
 LEGACY_FILES = (
     WEIGHTS_FILE,
@@ -154,7 +156,12 @@ def load_int8_model(folder: Path) -> nn.Module:
         model = Int8SpanExtractor(config, **options)
     else:
         model = AutoExtractor.from_config(config, **options)
-    load_quantized_weights(model, model.encoder.get_input_embeddings(), weights)
+    model.quantization_runtime = load_quantized_weights(
+        model,
+        model.encoder.get_input_embeddings(),
+        weights,
+        float_activation_pattern=FLOAT_ACTIVATION_PATTERN,
+    )
     model.encoder.config.vocab_size = model.encoder.get_input_embeddings().num_embeddings
     return model
 

@@ -12,6 +12,7 @@ from gliner2 import AutoExtractor, ExtractorConfig  # noqa: E402
 from tokenizers import Tokenizer  # noqa: E402
 from tokenizers.models import WordLevel  # noqa: E402
 from tokenizers.pre_tokenizers import Whitespace  # noqa: E402
+from torch import nn  # noqa: E402
 from transformers import DebertaV2Config, PreTrainedTokenizerFast  # noqa: E402
 
 from pii_anonymizer.evaluate import DETECTORS, evaluate  # noqa: E402
@@ -21,6 +22,8 @@ from pii_anonymizer.quantize_gliner2 import (  # noqa: E402
     load_int8_model,
     main,
 )
+
+pytestmark = pytest.mark.usefixtures("isolate_quantized_engine")
 
 
 def tiny_model(architecture, **options):
@@ -69,6 +72,7 @@ def test_gliner2_int8_folder_loads_without_original_weights(tmp_path, monkeypatc
     model = load_int8_model(destination)
     assert model.architecture == architecture
     assert model.encoder.get_input_embeddings().weight().dtype == torch.quint8
+    assert type(model.encoder.encoder.layer[0].output.dense) is nn.Linear
     if architecture == "span":
         with torch.inference_mode():
             logits = model._compute_span_scores_core(
@@ -81,6 +85,9 @@ def test_gliner2_int8_folder_loads_without_original_weights(tmp_path, monkeypatc
     (destination / "build.log").write_text("local notes")
     detector = DETECTORS["gliner2-int8"]()
     assert set(detector.files) == emitted
+    policy = detector.model.quantization_runtime
+    assert f"int8 {policy.engine} activation_range={policy.activation_range}" in detector.runtime
+    assert "float_activation_layers=1 " in detector.runtime
     assert f"source={source.name} sha256:{manifest['artifact_sha256']}" in detector.runtime
     assert all(
         0 <= span.start < span.end <= len("Alice writes")

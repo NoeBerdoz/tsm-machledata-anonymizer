@@ -210,8 +210,11 @@ class Gliner2Detector:
 
             artifact = read_int8_artifact(int8_dir)
             self.model = load_int8_model(int8_dir)
+            policy = self.model.quantization_runtime
             self.runtime = (
-                f"torch {torch.__version__} int8 {torch.backends.quantized.engine} "
+                f"torch {torch.__version__} int8 {policy.engine} "
+                f"activation_range={policy.activation_range} "
+                f"float_activation_layers={policy.float_activation_layers} "
                 f"source={artifact.source_model} sha256:{artifact.artifact_sha256}"
             )
             self.files = artifact.files
