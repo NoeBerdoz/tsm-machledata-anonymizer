@@ -1,4 +1,4 @@
-"""The results files: one CSV row per (model, dataset), and a Markdown summary."""
+"""Write evaluation CSV rows and a Markdown summary."""
 
 import csv
 from collections.abc import Sequence
@@ -29,7 +29,16 @@ RESULT_COLUMNS = [
     "date",
 ]
 
-PER_TYPE_COLUMNS = ["model", "dataset", "label", "n_entities", "n_protected", "recall"]
+PER_TYPE_COLUMNS = [
+    "model",
+    "dataset",
+    "label",
+    "n_entities",
+    "n_protected",
+    "recall",
+    "cpu",
+    "runtime",
+]
 
 # The CPU of the reference laptop (docs/benchmark-protocol.md), matched as a substring.
 REFERENCE_CPU = "i5-1130G7"
@@ -104,8 +113,13 @@ def summary_table(results_csv: Path) -> str:
             "|---|---|---|---|---|---|",
         ]
         for row in by_cpu[cpu]:
+            model = row["model"]
+            if model == "gliner2-int8":
+                _, separator, digest = row.get("runtime", "").rpartition(" sha256:")
+                if separator:
+                    model = f"{model} ({digest[:12]})"
             lines.append(
-                f"| {row['model']} | {row['dataset']} | {recall(row)} "
+                f"| {model} | {row['dataset']} | {recall(row)} "
                 f"| {percent(row['char_precision'])} | {row['size_mb']} "
                 f"| {row['latency_p95_ms']} |"
             )

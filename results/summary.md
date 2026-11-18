@@ -8,10 +8,13 @@
 | engine-cpu | t1-openpii-1m-200 | 63.3 % | 86.6 % | 2497.3 | 6615.18 |
 | gliner2 | t1-open-pii-500k | 81.8 % | 96.7 % | 1244.4 |  |
 | gliner2 | t1-open-pii-500k-200 | 82.6 % | 98.1 % | 1244.4 |  |
-| gliner2 | t1-openpii-1m | 80.6 % | 98.2 % | 1244.4 |  |
+| gliner2 | t1-openpii-1m | 80.6 % | 98.2 % | 1244.4 | 138.27 |
 | gliner2 | t1-openpii-1m-200 | 81.9 % | 98.5 % | 1244.4 | 138.29 |
 | gliner2 | t1-swiss | 78.3 % | 89.6 % | 1244.4 |  |
 | gliner2 | t1-swiss-200 | 77.1 % | 91.7 % | 1244.4 |  |
+| gliner2-int8 (17326bd4e2ff) | t1-openpii-1m | 79.7 % | 98.2 % | 337.6 |  |
+| gliner2-int8 (17326bd4e2ff) | t1-openpii-1m-200 | 80.8 % | 98.8 % | 337.6 | 424.23 |
+| gliner2-int8 (17326bd4e2ff) | t1-swiss | 77.0 % | 89.4 % | 337.6 |  |
 | presidio | t1-open-pii-500k | 63.5 % | 89.0 % | 2357.4 |  |
 | presidio | t1-open-pii-500k-200 | 65.9 % | 89.7 % | 2357.4 |  |
 | presidio | t1-openpii-1m | 54.3 % | 85.7 % | 2357.4 |  |
