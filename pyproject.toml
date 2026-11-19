@@ -5,9 +5,11 @@ description = "On-device PII anonymizer for AI agents"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.165.0",
     "pypdf>=6.21.4",
     "python-docx>=1.2.0",
     "streamlit>=1.66.1",
+    "uvicorn>=0.54.0",
 ]
 
 [build-system]
@@ -17,6 +19,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "dvc[gs]>=3.67.1",
+    "httpx2>=2.16.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
