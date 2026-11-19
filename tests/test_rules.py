@@ -7,7 +7,9 @@ def found(text):
     return [(s.label, text[s.start : s.end]) for s in find_all(text)]
 
 
-@pytest.mark.parametrize("avs", ["756.9217.0769.85", "7569217076985", "756 9217 0769 85"])
+@pytest.mark.parametrize(
+    "avs", ["756.9217.0769.85", "7569217076985", "756 9217 0769 85", "756-9217-0769-85"]
+)
 def test_valid_avs_matches(avs):
     assert found(f"AVS {avs}, merci") == [("AVS", avs)]
 
@@ -16,6 +18,7 @@ def test_valid_avs_matches(avs):
     "text",
     [
         "756.9217.0769.86",  # wrong check digit
+        "756-9217-0769-86",  # wrong check digit, with dashes
         "757.9217.0769.85",  # not 756
         "756.9217.0769.851",  # one digit too many
         "1756.9217.0769.85",  # part of a longer number
@@ -37,6 +40,8 @@ def test_ean13_check_digit():
         "CH93 0076 2011 6238 5295 7",
         "CH9300762011623852957",
         "LI21 0881 0000 2324 013A A",
+        "ch93 0076 2011 6238 5295 7",
+        "li21 0881 0000 2324 013a a",
     ],
 )
 def test_valid_iban_matches(iban):
@@ -52,6 +57,23 @@ def test_valid_iban_matches(iban):
     ],
 )
 def test_invalid_iban_does_not_match(text):
+    assert [label for label, _ in found(text) if label == "IBAN"] == []
+
+
+def test_iban_glued_to_the_word_before_matches():
+    text = "MartineCH93 0076 2011 6238 5295 7 Zurich"
+    assert found(text) == [("IBAN", "CH93 0076 2011 6238 5295 7")]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "MartineCH94 0076 2011 6238 5295 7",  # glued, wrong checksum
+        "Zürich12 3456 7890 1234 5678 9",  # a word ending in "ch", then digits
+        "1CH93 0076 2011 6238 5295 7",  # part of a longer number
+    ],
+)
+def test_glued_text_that_is_not_an_iban_does_not_match(text):
     assert [label for label, _ in found(text) if label == "IBAN"] == []
 
 
