@@ -18,6 +18,21 @@ A test set is a JSONL file: one JSON record per line.
 
 The loader refuses a file with a duplicate `id` or an entity that does not fit inside its text, and it gives the line number.
 
+## Scripted O4 requests
+
+The O4 fixtures live in `data/test/o4_requests/`, versioned together in DVC. Its UTF-8 manifest, `requests.jsonl`, has one line per request. This example uses a shortened prompt and a single attachment.
+
+```json
+{"id":"o4-fr","lang":"fr","prompt":"Vérifie Élise Burnier.","files":["suivi.txt"],"values":[{"id":"o4-fr-001","label":"PERSON","value":"Élise Burnier","occurrences":[{"source":"prompt","start":8,"end":21},{"source":"suivi.txt","start":23,"end":36}]}]}
+```
+
+- `files` lists the attachments in upload order, as paths relative to the manifest. The app uses their filenames.
+- `values` holds 100 distinct planted values across the manifest. Each has a globally unique `id`, an entity type (`label`), and the exact `value`. All repetitions of that value in the request share its ID.
+- Each occurrence identifies its source as `prompt` or the attachment's filename. Offsets are zero-based Python string indices with an exclusive `end`. Use the manifest prompt verbatim and extract each attachment with `pii_anonymizer.files.read_text(filename, bytes)`. Every `text[start:end]` slice must equal `value`.
+- The French request repeats a name and IBAN across the prompt and two files. Its notes contain the literal `<PERSON_1>` as fixture text outside the planted values.
+
+Generate the files locally with `uv run python scripts/generate_o4_requests.py`. The test in `tests/test_o4_requests.py` generates its own copy in a temporary directory, so it runs without a DVC download.
+
 ## Detector interface
 
 A detector takes one text and returns the character spans to mask, each with a type (`Span(start, end, label)`). It also gives its runtime and version (`runtime`, for example `"torch 2.9.1"`) and the files it needs to run (`files`, used for the size). The `Detector` protocol in `spans.py` has the exact signature:
