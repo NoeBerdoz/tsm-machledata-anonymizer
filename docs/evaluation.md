@@ -33,6 +33,21 @@ The O4 fixtures live in `data/test/o4_requests/`, versioned together in DVC. Its
 
 Generate the files locally with `uv run python scripts/generate_o4_requests.py`. The test in `tests/test_o4_requests.py` generates its own copy in a temporary directory, so it runs without a DVC download.
 
+### Leak and restoration checks
+
+With the `gliner2-tests` dependencies and the published GLiNER2-PII checkpoint already available locally, run:
+
+```sh
+uv run --no-sync python scripts/generate_o4_requests.py
+HF_HUB_OFFLINE=1 uv run --no-sync python -m pii_anonymizer.o4 gliner2 data/test/o4_requests/requests.jsonl
+```
+
+For the delivered student, set `GLINER2_INT8_DIR` to its checkpoint folder and use `gliner2-int8` in place of `gliner2`.
+
+The harness drives the Streamlit app with the fixture uploads and runs the real file extraction, regex rules, masking and restoration. It supplies the selected model's spans in place of the app's Ollama detector. It captures the client request, forwards it through the backend route in process, and captures the current backend's Ollama payload. A fake reply echoes every placeholder occurrence, including literal placeholder text, so the harness can compare each displayed value with the local mapping after normalizing whitespace. The Sentry capture is reserved for the monitoring integration.
+
+The JSON report traces occurrences and mask spans by source and offset. A planted ID is detected when all its occurrences meet the coverage rule below. Each detected ID whose full value is present in a capture counts once as an app leak. The overall leak count includes all detector misses, including partial matches. `restored` and `intact` give the restoration counts for generated placeholders. Changed literal tokens appear in the per-request restoration failures.
+
 ## Detector interface
 
 A detector takes one text and returns the character spans to mask, each with a type (`Span(start, end, label)`). It also gives its runtime and version (`runtime`, for example `"torch 2.9.1"`) and the files it needs to run (`files`, used for the size). The `Detector` protocol in `spans.py` has the exact signature:
