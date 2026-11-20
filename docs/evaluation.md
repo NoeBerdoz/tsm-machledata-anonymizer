@@ -110,3 +110,23 @@ An empty cell means "not measured" or "undefined", never zero.
 `recall_per_type.csv` uses the same keys as `results.csv` and adds the gold label. Quantized engines can change recall, so each CPU keeps its own counts. Older rows may have empty CPU and runtime fields. Each row has the number of gold entities of that label, the number protected, and the recall.
 
 `summary.md` is made from `results.csv`. It has one small Markdown table per CPU, with recall, precision, size and p95 latency for every row. Local int8 rows show a short artifact digest beside the detector name. The reference laptop's table comes first.
+
+## O4 response corruptions
+
+Inject each example into a mocked backend response. The response on screen must keep the corrupt text as sent, and the app must show a warning identifying it. A warning counts as a flagged corruption only.
+
+| Corruption | Example | Prior coverage |
+|---|---|---|
+| Unknown number | `<PERSON_3>` | Restoration and app |
+| Missing angle brackets | `PERSON_1` | Restoration |
+| Changed label case | `<person_1>` | Restoration |
+| Missing closing bracket | `<PERSON_1` | Restoration |
+| Square brackets | `[PERSON_2]` | Restoration |
+| Hyphen separator | `<PERSON-1>` | Restoration |
+| Space separator | `<PERSON 1>` | Restoration |
+| Spaces inside brackets | `< PERSON_1 >` | Restoration |
+| Changed case and separator on another label | `<email-1>` | Restoration |
+
+The examples come from the restoration tests in NoeBerdoz/tsm-machledata-anonymizer#85 (`tests/test_engine.py`). The app test for the unknown number already used a mocked backend as of NoeBerdoz/tsm-machledata-anonymizer#84. The cases now run through the app in `tests/test_app.py`. For square brackets, the warning identifies the inner `PERSON_2` while the response keeps `[PERSON_2]`.
+
+Swapping two valid placeholders from the same request is outside the guarantee. For example, the app has no way to tell that `<PERSON_2>` should have been `<PERSON_1>` when both were sent.
