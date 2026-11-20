@@ -9,6 +9,7 @@ StateDirectory=mlflow
 StateDirectoryMode=0700
 WorkingDirectory=/var/lib/mlflow
 Environment=MLFLOW_AUTH_CONFIG_PATH=/etc/mlflow/auth.ini
+Environment=MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false
 EnvironmentFile=/etc/mlflow/service.env
 EnvironmentFile=/etc/mlflow/origin.env
 EnvironmentFile=-/etc/mlflow/bootstrap.env
