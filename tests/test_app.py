@@ -139,13 +139,13 @@ def test_response_corruption_is_shown_with_a_warning(monkeypatch, token):
     monkeypatch.setattr(
         engine, "ask_model", lambda _: [("PERSON", "Marie Dupont"), ("PERSON", "Hans Müller")]
     )
-    monkeypatch.setattr(client, "ask_backend", lambda _: f"<PERSON_1> et {token}")
+    monkeypatch.setattr(client, "ask_backend", lambda _: f"<PERSON_1> et {token}.")
     page = run_with_prompt("Marie Dupont, Hans Müller, marie@example.ch")
     assert page.code[0].value == "<PERSON_1>, <PERSON_2>, <EMAIL_1>"
-    assert page.code[1].value == f"Marie Dupont et {token}"
+    assert page.code[1].value == f"Marie Dupont et {token}."
     warning = page.warning[0].value
     assert warning.startswith("The response contains placeholders")
-    assert warning.endswith(f"`{token.strip('[]')}`")
+    assert warning.partition("They are shown as they are: ")[2] == f"`{token.strip('[]')}`"
 
 
 def test_values_not_found_are_shown_and_nothing_is_sent(monkeypatch, fake_model):
