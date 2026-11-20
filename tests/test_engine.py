@@ -295,6 +295,26 @@ def test_every_placeholder_comes_back_to_exactly_its_value():
     assert unknown == []
 
 
+@pytest.mark.parametrize(
+    "token",
+    [
+        "<PERSON_3>",
+        "PERSON_1",
+        "<person_1>",
+        "<PERSON_1",
+        "[PERSON_2]",
+        "<PERSON-1>",
+        "<PERSON 1>",
+        "< PERSON_1 >",
+        "<email-1>",
+    ],
+)
+def test_unknown_or_changed_placeholder_is_shown_as_it_is_and_reported(token):
+    response, unknown = restore(f"Bonjour {token}.", MAPPING, [])
+    assert response == f"Bonjour {token}."
+    assert unknown == [token.strip("[]")]
+
+
 def test_placeholder_written_by_the_user_is_kept_without_warning():
     """The input already had <PERSON_1>, so pseudonymize gave the real name <PERSON_2>."""
     sent = ["<PERSON_2> a lu la note sur <PERSON_1>."]
