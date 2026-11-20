@@ -24,14 +24,14 @@ The idea is simple: the personal data that the engine detects never leaves the u
    - **Our ML model** for contextual entities, such as names or addresses, which need context to be found. This is the model we train ourselves: a student distilled from a larger teacher and quantized, produced by the pipeline in part 2.
 
    The engine first finds the values (`detect()` in `engine.py`), then replaces them. The replacement (step 3) and the model can therefore change separately, and the evaluation script can measure `detect()` like any other detector.
-3. **Replacement.** Each value that the engine finds is replaced by a placeholder, such as `<PERSON_1>` or `<IBAN_1>`. The same value always gets the same placeholder. We chose placeholders over fake values (a fake name such as `Jean Martin` in place of the real one) in issue #17, for three reasons:
+3. **Replacement.** Each value that the engine finds is replaced by a placeholder, such as `<PERSON_1>` or `<IBAN_1>`. The same text of the same type always gets the same placeholder. We chose placeholders over fake values (a fake name such as `Jean Martin` in place of the real one) in issue #17, for three reasons:
    - They work the same way for every type. Fake values would need a generator for each type (names, AVS numbers, IBANs, phone numbers).
    - The restoration is exact. The LLM usually copies `<PERSON_1>` as it is, while it may shorten or change a fake name.
    - A miss stays visible. A placeholder left in an answer is obvious, while a fake name left in an answer looks real.
 
    The price is that LLMs tend to write better answers from realistic text, and a placeholder does not tell the LLM whether to write "he" or "she". Goal O2 measures this cost, because its 20 test prompts run with and without pseudonymization ([smart-goals.md](smart-goals.md)). Fake values remain a possible continuation of the project, and step 2 already keeps the replacement apart from detection.
 
-   The engine records each pair in a **mapping table** (placeholder ↔ real value), which is kept on the device only.
+   The engine records each pair in a **mapping table** (placeholder ↔ real value), which is kept on the device only. The key of a value is its type and its exact text, spaces and case included, so the restoration writes back exactly what was replaced: `Marie Dupont`, `MARIE DUPONT` and a name broken over two lines get three placeholders. A placeholder that the LLM damages, such as `<PERSON-1>` or `<PERSON 1>`, is not restored but shown as it is, with a warning.
 4. **Privacy boundary.** Only the pseudonymized content goes past this point.
 
 ### In the cloud
