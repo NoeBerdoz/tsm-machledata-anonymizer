@@ -2,10 +2,12 @@
 
 Pure standard library. Labels: AVS, IBAN, PHONE, EMAIL.
 
-- AVS: the Swiss social security number, 756 then 10 digits, written plain or with dots or
-  spaces (756.1234.5678.97). The last digit is an EAN-13 check digit.
+- AVS: the Swiss social security number, 756 then 10 digits, written plain or with dots,
+  spaces or dashes (756.1234.5678.97, 756-1234-5678-97). The last digit is an EAN-13 check
+  digit.
 - IBAN: Swiss (CH) and Liechtenstein (LI) IBANs, 21 characters, spaces allowed between
-  characters (CH93 0076 2011 6238 5295 7). The mod-97 checksum must hold.
+  characters (CH93 0076 2011 6238 5295 7), in upper or lower case. It may be glued to the word
+  before it, as in fixed-width records (MartineCH57 ...). The mod-97 checksum must hold.
 - PHONE: Swiss numbers starting with +41, 0041 or a national 0, then nine digits in the usual
   groups (079 123 45 67, +41 79 123 45 67, +41 (0)79 123 45 67), separated by spaces, dots,
   dashes or slashes.
@@ -18,10 +20,12 @@ import sys
 
 from pii_anonymizer.spans import Span
 
-_SEP = r"[ .]?"
+_SEP = r"[ .-]?"
 _AVS = re.compile(rf"(?<![\d.])756{_SEP}\d{{4}}{_SEP}\d{{4}}{_SEP}\d{{2}}(?![\d])")
 
-_IBAN = re.compile(r"(?<![0-9A-Za-z])(?:CH|LI)\d{2}(?: ?[0-9A-Z]){17}(?![0-9A-Za-z])")
+# A letter may come before the country code (MartineCH57 ...): the mod-97 checksum keeps out
+# the words that happen to end in "ch" before digits.
+_IBAN = re.compile(r"(?<![0-9])(?:CH|LI)\d{2}(?: ?[0-9A-Z]){17}(?![0-9A-Za-z])", re.IGNORECASE)
 
 _PHONE_SEP = r"[ ./-]?"
 _PHONE_GROUPS = rf"[1-9]\d{_PHONE_SEP}\d{{3}}{_PHONE_SEP}\d{{2}}{_PHONE_SEP}\d{{2}}"
@@ -56,7 +60,7 @@ def iban_ok(iban: str) -> bool:
 def find_avs(text: str) -> list[Span]:
     spans = []
     for match in _AVS.finditer(text):
-        if ean13_ok(re.sub(r"[ .]", "", match.group())):
+        if ean13_ok(re.sub(r"[ .-]", "", match.group())):
             spans.append(Span(match.start(), match.end(), "AVS"))
     return spans
 

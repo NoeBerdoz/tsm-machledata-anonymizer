@@ -275,5 +275,4 @@ Int8 weight storage with the pruned vocabulary and six layers leaves about 6 MB 
 
 - Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
 - Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
-- Give `rules.py` the AVS numbers with dashes and the lowercase IBANs that the engine's rules already accept.
 - Record the character precision threshold of O2 on T2-dev, before any tuning, and write the 30-text latency sample.
