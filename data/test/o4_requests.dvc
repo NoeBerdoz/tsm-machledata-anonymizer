@@ -1,0 +1,6 @@
+outs:
+- md5: 012622e4ed8fa03d6bf0946f85014eb5.dir
+  size: 849382
+  nfiles: 6
+  hash: md5
+  path: o4_requests
