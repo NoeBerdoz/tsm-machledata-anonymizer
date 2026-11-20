@@ -9,7 +9,6 @@ See docs/evaluation.md.
 
 import argparse
 import datetime
-import hashlib
 import platform
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -39,6 +38,7 @@ from pii_anonymizer.results import (
     RESULT_COLUMNS,
     cell,
     replace_rows,
+    sha256_file,
     summary_table,
 )
 from pii_anonymizer.spans import Detector, Example, load_dataset
@@ -96,8 +96,12 @@ def evaluate(
     dataset_path: Path,
     out_dir: Path,
     latency_ids: Path = LATENCY_IDS,
+    *,
+    benchmark_job: str = "",
+    model_file: Path | None = None,
 ) -> dict[str, str]:
     """Score the detector, measure its size and latency, and write the results files."""
+    model_sha256 = sha256_file(model_file) if model_file is not None else ""
     examples = load_dataset(dataset_path)
     predictions = [detect_example(detector, e.text, e.lang) for e in examples]
     scores = score(examples, predictions)
@@ -115,13 +119,15 @@ def evaluate(
     row = {
         "model": model,
         "dataset": dataset,
-        "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest(),
+        "dataset_sha256": sha256_file(dataset_path),
         "runtime": detector.runtime,
         "n_texts": cell(scores.n_texts),
         "n_entities": cell(scores.n_entities),
         "n_protected": cell(scores.n_protected),
         "strict_recall": cell(scores.strict_recall),
         "char_precision": cell(scores.char_precision),
+        "correct_chars": cell(scores.correct_chars),
+        "predicted_chars": cell(scores.predicted_chars),
         "size_bytes": cell(size),
         "size_mb": cell(size / 1e6 if size is not None else None, digits=1),
         "threads": cell(THREADS),
@@ -129,6 +135,8 @@ def evaluate(
         "latency_calls": cell(latency.calls if latency else None),
         "latency_p50_ms": cell(latency.p50_ms if latency else None, digits=2),
         "latency_p95_ms": cell(latency.p95_ms if latency else None, digits=2),
+        "latency_p95_ms_raw": str(latency.p95_ms) if latency else "",
+        "latency_ids_sha256": sha256_file(latency_ids) if latency else "",
         "latency_p50_ms_per_100_words": cell(
             latency.p50_ms_per_100_words if latency else None, digits=2
         ),
@@ -139,6 +147,8 @@ def evaluate(
         "os": platform.platform(),
         "python": platform.python_version(),
         "date": datetime.date.today().isoformat(),
+        "benchmark_job": benchmark_job,
+        "model_sha256": model_sha256,
     }
     per_type = [
         {
@@ -148,6 +158,9 @@ def evaluate(
             "n_entities": cell(total),
             "n_protected": cell(protected),
             "recall": cell(protected / total),
+            "dataset_sha256": row["dataset_sha256"],
+            "benchmark_job": benchmark_job,
+            "model_sha256": model_sha256,
         }
         for label, (total, protected) in sorted(scores.per_type.items())
     ]
@@ -172,13 +185,23 @@ def main(argv: list[str] | None = None) -> None:
         default=LATENCY_IDS,
         help="file with the snippet IDs of the latency sample",
     )
+    parser.add_argument("--benchmark-job", default="", help="unique ID of this evaluation job")
+    parser.add_argument("--model-file", type=Path, help="exact model archive used for this run")
     args = parser.parse_args(argv)
     if args.detector not in DETECTORS:
         parser.error(f"unknown detector {args.detector!r}")
 
     set_thread_variables()
     detector = DETECTORS[args.detector]()
-    row = evaluate(args.detector, detector, args.dataset, args.out_dir, args.latency_ids)
+    row = evaluate(
+        args.detector,
+        detector,
+        args.dataset,
+        args.out_dir,
+        args.latency_ids,
+        benchmark_job=args.benchmark_job,
+        model_file=args.model_file,
+    )
     print(
         f"{row['model']} on {row['dataset']}: strict recall {row['strict_recall']}, "
         f"char precision {row['char_precision'] or 'undefined'}, "

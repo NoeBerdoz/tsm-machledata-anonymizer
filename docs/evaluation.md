@@ -65,16 +65,33 @@ The script writes three files into the output folder. Running a model again repl
 | `runtime` | the runtime and its version |
 | `n_texts`, `n_entities`, `n_protected` | the counts behind the recall |
 | `strict_recall`, `char_precision` | the metrics above, between 0 and 1 |
+| `correct_chars`, `predicted_chars` | the counts behind character precision |
 | `size_bytes`, `size_mb` | the size on disk |
 | `threads` | the thread count of the protocol |
 | `latency_inputs`, `latency_calls` | the texts timed and the calls recorded |
 | `latency_p50_ms`, `latency_p95_ms` | latency per call |
+| `latency_p95_ms_raw`, `latency_ids_sha256` | p95 before rounding for display and the hash of the latency sample ID file |
 | `latency_p50_ms_per_100_words`, `latency_p95_ms_per_100_words` | latency per 100 words |
 | `cpu` | the CPU model name, read from the operating system |
 | `os`, `python`, `date` | the OS, the Python version and the day of the measurement |
+| `benchmark_job`, `model_sha256` | evaluation job ID and SHA-256 of the model archive, when supplied |
 
 An empty cell means "not measured" or "undefined", never zero.
 
 `recall_per_type.csv` has one row per (model, dataset, label), because quality does not depend on the machine. Each row has the number of gold entities of that label, the number protected, and the recall.
 
 `summary.md` is made from `results.csv`. It has one small Markdown table per CPU, with recall, precision, size and p95 latency for every row. The reference laptop's table comes first.
+
+## Quality gate
+
+Use a fresh results directory for each evaluation job. Evaluate the candidate and fine-tuned teacher without regex and the candidate with regex under the name `regex+<candidate>`. Pass the same unique `--benchmark-job` to all evaluations and the same `--model-file` to both candidate evaluations. The job loads the candidate from that archive and keeps the archive unchanged through the gate. Size is measured over the detector's runtime files.
+
+```sh
+uv run python -m pii_anonymizer.gate student --model-file model.tar.gz \
+  --thresholds release --benchmark-job "$BENCHMARK_JOB" --git-sha "$(git rev-parse HEAD)" \
+  --results-dir "$RESULTS_DIR"
+```
+
+The gate matches evaluation rows to the frozen T2-dev SHA-256 from `params.yaml` and records the T2-dev DVC pointer in MLflow. Release checks use exact counts and compare p95 latencies from the same job and sample. The `demonstration` profile uses its own model-only recall floor. Missing evidence or an unset threshold fails the gate. The command exits with 0 after recording PASS and 1 for a failed gate or tracking error.
+
+For publishing, look up a finished run in the gate experiment by the immutable parameters `model_sha256` (the SHA-256 of the exact archive bytes), `gate_profile` (`release` or `demonstration`) and `gate_status = 'PASS'`. The Git SHA, DVC hash and parameter file SHA-256 are recorded by the tracked run.
