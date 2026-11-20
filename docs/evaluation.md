@@ -84,7 +84,9 @@ An empty cell means "not measured" or "undefined", never zero.
 
 ## Quality gate
 
-Use a fresh results directory for each evaluation job. Evaluate the candidate and fine-tuned teacher without regex and the candidate with regex under the name `regex+<candidate>`. Pass the same unique `--benchmark-job` to all evaluations and the same `--model-file` to both candidate evaluations. The job loads the candidate from that archive and keeps the archive unchanged through the gate. Size is measured over the detector's runtime files.
+Use a fresh results directory for each evaluation job. Evaluate the candidate and fine-tuned teacher without regex and the candidate with regex under the name `regex+<candidate>`. Pass the same unique `--benchmark-job` to all evaluations and the same `--model-file` to both candidate evaluations.
+
+Load the candidate from the packaged checkpoint and keep its files and archive unchanged throughout the job. The supplied `.tar.gz` must contain exactly the regular files listed by the detector, with matching paths relative to their common model root and matching bytes. Package the contents of that root, for example `tar -czf model.tar.gz -C checkpoint .`. The evaluator verifies these files before recording the archive SHA-256. Size is measured over the detector's runtime files.
 
 ```sh
 uv run python -m pii_anonymizer.gate student --model-file model.tar.gz \
@@ -92,6 +94,6 @@ uv run python -m pii_anonymizer.gate student --model-file model.tar.gz \
   --results-dir "$RESULTS_DIR"
 ```
 
-The gate matches evaluation rows to the frozen T2-dev SHA-256 from `params.yaml` and records the T2-dev DVC pointer in MLflow. Release checks use exact counts and compare p95 latencies from the same job and sample. The `demonstration` profile uses its own model-only recall floor. Missing evidence or an unset threshold fails the gate. The command exits with 0 after recording PASS and 1 for a failed gate or tracking error.
+The gate matches evaluation rows to the frozen T2-dev SHA-256 from `params.yaml` and records the T2-dev DVC pointer in MLflow. Release checks use exact counts and compare p95 latencies from the same job and sample, with 30 inputs and 300 timed calls per detector. The `demonstration` profile uses its own model-only recall floor. Missing evidence or an unset threshold fails the gate. The command exits with 0 after recording PASS and 1 for a failed gate or tracking error.
 
 For publishing, look up a finished run in the gate experiment by the immutable parameters `model_sha256` (the SHA-256 of the exact archive bytes), `gate_profile` (`release` or `demonstration`) and `gate_status = 'PASS'`. The Git SHA, DVC hash and parameter file SHA-256 are recorded by the tracked run.

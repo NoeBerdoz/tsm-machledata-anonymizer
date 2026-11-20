@@ -1,5 +1,6 @@
 import hashlib
 import json
+import tarfile
 from pathlib import Path
 
 import pytest
@@ -87,9 +88,10 @@ def gate_inputs(tmp_path, monkeypatch):
         for label, protected, total in [("AVS", 9, 10), ("IBAN", 25, 25), ("PHONE", 65, 65)]
     ]
 
-    def run(profile="release", model="student"):
-        replace_rows(tmp_path / "results.csv", RESULT_COLUMNS, [student, teacher])
-        replace_rows(tmp_path / "recall_per_type.csv", PER_TYPE_COLUMNS, swiss)
+    def run(profile="release", model="student", *, use_fixture_results=True):
+        if use_fixture_results:
+            replace_rows(tmp_path / "results.csv", RESULT_COLUMNS, [student, teacher])
+            replace_rows(tmp_path / "recall_per_type.csv", PER_TYPE_COLUMNS, swiss)
         argv = [
             model,
             "--model-file",
@@ -165,6 +167,18 @@ def test_release_fails_a_missed_check(gate_inputs, capsys, check, row, key, valu
     assert f"{check}: FAIL" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(("inputs", "calls"), [("1", "300"), ("30", "10"), ("1", "10")])
+def test_release_rejects_nonprotocol_latency_counts(gate_inputs, capsys, inputs, calls):
+    student, teacher, _, _, run_gate = gate_inputs
+    for row in (student, teacher):
+        row.update(latency_inputs=inputs, latency_calls=calls)
+    run = run_gate()
+    assert run.data.params["gate_status"] == "FAIL"
+    assert "p95 latency: FAIL - latency protocol requires 30 inputs and 300 calls" in (
+        capsys.readouterr().out
+    )
+
+
 @pytest.mark.parametrize(("protected", "result"), [("940", "PASS"), ("939", "FAIL")])
 def test_demonstration_uses_its_own_recall_floor(gate_inputs, capsys, protected, result):
     student, _, _, _, run_gate = gate_inputs
@@ -211,27 +225,58 @@ def test_unset_threshold_fails(gate_inputs, capsys):
     )
 
 
-def test_evaluator_writes_exact_evidence_for_one_job(tmp_path, monkeypatch):
-    class Detector:
+@pytest.fixture
+def archived_detector(tmp_path):
+    def make_detector(archive_contents=b"model weights", member_name="weights.bin"):
+        model_dir = tmp_path / "loaded"
+        model_dir.mkdir()
+        weights = model_dir / "weights.bin"
+        weights.write_bytes(b"model weights")
+        packed_weights = tmp_path / "to-package.bin"
+        packed_weights.write_bytes(archive_contents)
+        archive = tmp_path / "model.tar.gz"
+        with tarfile.open(archive, "w:gz") as bundle:
+            bundle.add(packed_weights, arcname=member_name)
+        return LoadedDetector(model_dir), archive
+
+    class LoadedDetector:
         runtime = "test"
-        files = []
+
+        def __init__(self, model_dir):
+            self.files = [model_dir, model_dir / "weights.bin"]
 
         def detect(self, text):
             return [Span(0, 3, "AVS")]
 
+    return make_detector
+
+
+@pytest.fixture
+def one_entity_dataset(tmp_path):
     dataset = tmp_path / "t2-dev.jsonl"
     dataset.write_text(
         json.dumps({"id": "1", "text": "abc", "entities": [{"start": 0, "end": 2, "label": "AVS"}]})
         + "\n"
     )
-    archive = tmp_path / "model.tar.gz"
-    archive.write_bytes(b"packaged model")
+    return dataset
+
+
+def test_evaluator_writes_exact_evidence_for_one_job(
+    tmp_path, monkeypatch, one_entity_dataset, archived_detector
+):
+    detector, archive = archived_detector()
     ids = tmp_path / "ids.txt"
     ids.write_text("1\n")
     monkeypatch.setattr(evaluate, "measure_latency", lambda *args: Latency(10, 1.0, 1.2345, 0, 0))
 
     row = evaluate.evaluate(
-        "regex+student", Detector(), dataset, tmp_path, ids, benchmark_job=JOB, model_file=archive
+        "regex+student",
+        detector,
+        one_entity_dataset,
+        tmp_path,
+        ids,
+        benchmark_job=JOB,
+        model_file=archive,
     )
 
     assert row["correct_chars"] == "2"
@@ -242,4 +287,59 @@ def test_evaluator_writes_exact_evidence_for_one_job(tmp_path, monkeypatch):
     swiss = gate._job_rows(tmp_path / "recall_per_type.csv", JOB)
     assert len(swiss) == 1
     assert swiss[0]["model_sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
-    assert swiss[0]["dataset_sha256"] == hashlib.sha256(dataset.read_bytes()).hexdigest()
+    assert swiss[0]["dataset_sha256"] == hashlib.sha256(one_entity_dataset.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize(
+    ("name", "contents", "member", "reason"),
+    [
+        ("regex", b"model weights", "weights.bin", "detector has no model files to verify"),
+        ("student", b"other weights", "weights.bin", "model archive differs from weights.bin"),
+        ("student", b"model weights", "other.bin", "unexpected model archive entry: other.bin"),
+    ],
+)
+def test_evaluator_cli_refuses_unverified_archive(
+    tmp_path,
+    monkeypatch,
+    capsys,
+    one_entity_dataset,
+    archived_detector,
+    name,
+    contents,
+    member,
+    reason,
+):
+    detector, archive = archived_detector(contents, member)
+    monkeypatch.setitem(evaluate.DETECTORS, "student", lambda: detector)
+    with pytest.raises(SystemExit, match="2"):
+        evaluate.main([name, str(one_entity_dataset), str(tmp_path), "--model-file", str(archive)])
+    assert reason in capsys.readouterr().err
+    assert not (tmp_path / "results.csv").exists()
+
+
+def test_demonstration_cli_with_verified_archive(
+    tmp_path, monkeypatch, capsys, gate_inputs, one_entity_dataset, archived_detector
+):
+    _, _, _, params, run_gate = gate_inputs
+    config = yaml.safe_load(params.read_text())
+    config["quality_gate"]["t2_dev_sha256"] = hashlib.sha256(
+        one_entity_dataset.read_bytes()
+    ).hexdigest()
+    params.write_text(yaml.safe_dump(config))
+    detector, archive = archived_detector()
+    monkeypatch.setitem(evaluate.DETECTORS, "teacher", lambda: detector)
+    evaluate.main(
+        [
+            "teacher",
+            str(one_entity_dataset),
+            str(tmp_path),
+            "--benchmark-job",
+            JOB,
+            "--model-file",
+            str(archive),
+        ]
+    )
+    run = run_gate("demonstration", "teacher", use_fixture_results=False)
+    assert run.data.params["model_sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
+    assert run.data.params["gate_status"] == "PASS"
+    assert "PASS (demonstration)" in capsys.readouterr().out

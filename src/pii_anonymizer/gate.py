@@ -14,12 +14,14 @@ from pathlib import Path
 import mlflow
 import yaml
 
+from pii_anonymizer.benchmark import RUNS_PER_INPUT
 from pii_anonymizer.results import sha256_file
 from pii_anonymizer.tracking import TrackingInputError, tracked_run
 
 DATASET = "t2-dev"
 SWISS_LABELS = ("AVS", "IBAN", "PHONE")
 PROFILES = ("release", "demonstration")
+LATENCY_INPUTS = 30
 
 
 class GateInputError(ValueError):
@@ -178,6 +180,14 @@ def _evaluate_gate(
         for key in ("cpu", "threads", "latency_ids_sha256", "latency_inputs", "latency_calls"):
             if not student.get(key) or student[key] != teacher.get(key):
                 raise GateInputError(f"teacher and candidate latency measurements differ in {key}")
+        calls = LATENCY_INPUTS * RUNS_PER_INPUT
+        if (student["latency_inputs"], student["latency_calls"]) != (
+            str(LATENCY_INPUTS),
+            str(calls),
+        ):
+            raise GateInputError(
+                f"latency protocol requires {LATENCY_INPUTS} inputs and {calls} calls"
+            )
         actual = _ratio(student.get("latency_p95_ms_raw"), "candidate p95")
         reference = _ratio(teacher.get("latency_p95_ms_raw"), "teacher p95")
         if actual <= 0 or reference <= 0:

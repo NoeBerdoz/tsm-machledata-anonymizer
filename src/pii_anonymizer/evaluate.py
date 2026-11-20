@@ -9,9 +9,12 @@ See docs/evaluation.md.
 
 import argparse
 import datetime
+import hashlib
+import os
 import platform
+import tarfile
 from collections.abc import Callable, Sequence
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from pii_anonymizer.baselines import (
     load_engine,
@@ -59,6 +62,49 @@ DETECTORS: dict[str, Callable[[], Detector]] = {
 LATENCY_IDS = Path(__file__).with_name("latency_ids.txt")
 
 
+class ModelArchiveError(ValueError):
+    """The supplied archive could not be verified against the detector's files."""
+
+
+def _verified_model_sha256(model_file: Path, detector_files: Sequence[Path]) -> str:
+    paths = [Path(os.path.abspath(path)) for path in detector_files]
+    files = set()
+    roots = []
+    for path in paths:
+        if path.is_dir():
+            roots.append(path)
+            files.update(p for p in path.rglob("*") if p.is_file())
+        elif path.is_file():
+            roots.append(path.parent)
+            files.add(path)
+        else:
+            raise ModelArchiveError(f"detector file is missing: {path}")
+    if not files:
+        raise ModelArchiveError("the detector has no model files to verify")
+
+    root = Path(os.path.commonpath(roots))
+    expected = {path.relative_to(root).as_posix(): path for path in files}
+    try:
+        with model_file.open("rb") as handle:
+            with tarfile.open(fileobj=handle, mode="r|gz") as archive:
+                for member in archive:
+                    if member.isdir():
+                        continue
+                    loaded = expected.pop(PurePosixPath(member.name).as_posix(), None)
+                    if loaded is None or not member.isfile():
+                        raise ModelArchiveError(f"unexpected model archive entry: {member.name}")
+                    with archive.extractfile(member) as archived:
+                        digest = hashlib.file_digest(archived, "sha256").hexdigest()
+                    if digest != sha256_file(loaded):
+                        raise ModelArchiveError(f"model archive differs from {member.name}")
+            if expected:
+                raise ModelArchiveError(f"model archive is missing {min(expected)}")
+            handle.seek(0)
+            return hashlib.file_digest(handle, "sha256").hexdigest()
+    except (OSError, tarfile.TarError, EOFError) as exc:
+        raise ModelArchiveError(f"cannot verify model archive {model_file}: {exc}") from exc
+
+
 def read_ids(path: Path) -> list[str]:
     """One snippet ID per line. Blank lines and lines starting with # are ignored."""
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -101,7 +147,7 @@ def evaluate(
     model_file: Path | None = None,
 ) -> dict[str, str]:
     """Score the detector, measure its size and latency, and write the results files."""
-    model_sha256 = sha256_file(model_file) if model_file is not None else ""
+    model_sha256 = _verified_model_sha256(model_file, detector.files) if model_file else ""
     examples = load_dataset(dataset_path)
     predictions = [detect_example(detector, e.text, e.lang) for e in examples]
     scores = score(examples, predictions)
@@ -186,22 +232,25 @@ def main(argv: list[str] | None = None) -> None:
         help="file with the snippet IDs of the latency sample",
     )
     parser.add_argument("--benchmark-job", default="", help="unique ID of this evaluation job")
-    parser.add_argument("--model-file", type=Path, help="exact model archive used for this run")
+    parser.add_argument("--model-file", type=Path, help="tar.gz of the detector's model files")
     args = parser.parse_args(argv)
     if args.detector not in DETECTORS:
         parser.error(f"unknown detector {args.detector!r}")
 
     set_thread_variables()
     detector = DETECTORS[args.detector]()
-    row = evaluate(
-        args.detector,
-        detector,
-        args.dataset,
-        args.out_dir,
-        args.latency_ids,
-        benchmark_job=args.benchmark_job,
-        model_file=args.model_file,
-    )
+    try:
+        row = evaluate(
+            args.detector,
+            detector,
+            args.dataset,
+            args.out_dir,
+            args.latency_ids,
+            benchmark_job=args.benchmark_job,
+            model_file=args.model_file,
+        )
+    except ModelArchiveError as exc:
+        parser.error(str(exc))
     print(
         f"{row['model']} on {row['dataset']}: strict recall {row['strict_recall']}, "
         f"char precision {row['char_precision'] or 'undefined'}, "
