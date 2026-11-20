@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from pii_anonymizer import engine
+from pii_anonymizer import client, engine
 from pii_anonymizer.feedback import FEEDBACK_FILE
 
 APP = Path(engine.__file__).with_name("app.py")
@@ -12,7 +12,8 @@ APP = Path(engine.__file__).with_name("app.py")
 
 @pytest.fixture(autouse=True)
 def fake_model(monkeypatch, tmp_path):
-    """Replace Ollama, record what it receives, and keep the feedback file out of the repo."""
+    """Replace Ollama and the backend, record what the backend receives, and keep the feedback
+    file out of the repo."""
     monkeypatch.chdir(tmp_path)
     received = []
 
@@ -21,7 +22,7 @@ def fake_model(monkeypatch, tmp_path):
         return "Bonjour <PERSON_1>"
 
     monkeypatch.setattr(engine, "ask_model", lambda _: [("PERSON", "Marie Dupont")])
-    monkeypatch.setattr(engine, "answer", answer)
+    monkeypatch.setattr(client, "ask_backend", answer)
     return received
 
 
@@ -40,7 +41,7 @@ def test_shows_pseudonymized_content_response_and_mapping():
     assert page.dataframe[0].value["Real value"].tolist() == ["Marie Dupont", "marie@example.ch"]
 
 
-def test_the_model_only_receives_pseudonymized_content(fake_model):
+def test_the_backend_only_receives_pseudonymized_content(fake_model):
     run_with_prompt("Marie Dupont, marie@example.ch")
     assert fake_model == ["<PERSON_1>, <EMAIL_1>"]
 
@@ -62,14 +63,36 @@ def test_removing_a_rating_records_nothing():
     assert not FEEDBACK_FILE.exists()
 
 
-@pytest.mark.parametrize("failing", ["ask_model", "answer"])
-def test_shows_nothing_when_the_model_fails(monkeypatch, failing):
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(FileNotFoundError("local model is missing"), id="missing-model"),
+        pytest.param(OSError("connection refused"), id="connection-error"),
+        pytest.param(TimeoutError("timed out"), id="timeout"),
+        pytest.param(ValueError("cut answer"), id="malformed-output"),
+    ],
+)
+def test_nothing_is_sent_when_the_engine_fails(monkeypatch, fake_model, error):
     def fail(_):
-        raise OSError("connection refused")
+        raise error
 
-    monkeypatch.setattr(engine, failing, fail)
+    monkeypatch.setattr(engine, "ask_model", fail)
     page = run_with_prompt("marie@example.ch")
-    assert "connection refused" in page.error[0].value
+    message = page.error[0].value
+    assert "The local model could not finish, so nothing was sent" in message
+    assert str(error) in message
+    assert not page.code
+    assert fake_model == []
+
+
+def test_shows_nothing_when_the_backend_fails(monkeypatch):
+    def fail(_):
+        raise OSError("HTTP Error 401: Unauthorized")
+
+    monkeypatch.setattr(client, "ask_backend", fail)
+    # The fake model finds "Marie Dupont": it must be in the prompt, or nothing is sent at all.
+    page = run_with_prompt("Marie Dupont")
+    assert "401" in page.error[0].value
     assert not page.code
 
 
@@ -79,7 +102,7 @@ def test_a_failed_run_removes_the_previous_result(monkeypatch):
     def fail(_):
         raise OSError("connection refused")
 
-    monkeypatch.setattr(engine, "answer", fail)
+    monkeypatch.setattr(client, "ask_backend", fail)
     page = page.button[0].click().run()
     assert page.error
     assert not page.code
@@ -92,22 +115,65 @@ def test_asks_for_input_when_empty():
 def test_response_with_an_image_is_shown_as_plain_text(monkeypatch):
     """Markdown would load the image, and send the restored name in its address."""
     image = "![](https://example.com/x.png?q=<PERSON_1>)"
-    monkeypatch.setattr(engine, "answer", lambda _: image)
+    monkeypatch.setattr(client, "ask_backend", lambda _: image)
     page = run_with_prompt("Marie Dupont")
     assert page.code[1].value == "![](https://example.com/x.png?q=Marie Dupont)"
     assert not any("example.com" in element.value for element in page.markdown)
 
 
-def test_unknown_placeholder_is_shown_with_a_warning(monkeypatch):
-    monkeypatch.setattr(engine, "answer", lambda _: "<PERSON_1> et <PERSON_3>")
-    page = run_with_prompt("Marie Dupont")
-    assert page.code[1].value == "Marie Dupont et <PERSON_3>"
-    assert "<PERSON_3>" in page.warning[0].value
+@pytest.mark.parametrize(
+    "token",
+    [
+        pytest.param("<PERSON_3>", id="unknown-number"),
+        pytest.param("PERSON_1", id="missing-brackets"),
+        pytest.param("<person_1>", id="changed-case"),
+        pytest.param("<PERSON_1", id="missing-closing-bracket"),
+        pytest.param("[PERSON_2]", id="square-brackets"),
+        pytest.param("<PERSON-1>", id="hyphen-separator"),
+        pytest.param("<PERSON 1>", id="space-separator"),
+        pytest.param("< PERSON_1 >", id="inner-spaces"),
+        pytest.param("<email-1>", id="email-case-and-separator"),
+    ],
+)
+def test_response_corruption_is_shown_with_a_warning(monkeypatch, token):
+    monkeypatch.setattr(
+        engine, "ask_model", lambda _: [("PERSON", "Marie Dupont"), ("PERSON", "Hans Müller")]
+    )
+    monkeypatch.setattr(client, "ask_backend", lambda _: f"<PERSON_1> et {token}.")
+    page = run_with_prompt("Marie Dupont, Hans Müller, marie@example.ch")
+    assert page.code[0].value == "<PERSON_1>, <PERSON_2>, <EMAIL_1>"
+    assert page.code[1].value == f"Marie Dupont et {token}."
+    warning = page.warning[0].value
+    assert warning.startswith("The response contains placeholders")
+    assert warning.partition("They are shown as they are: ")[2] == f"`{token.strip('[]')}`"
 
 
-def test_values_not_found_are_shown_with_a_warning(monkeypatch):
+def test_values_not_found_are_shown_and_nothing_is_sent(monkeypatch, fake_model):
     monkeypatch.setattr(engine, "ask_model", lambda _: [("PERSON", "Claire Favre")])
     page = run_with_prompt("Favre Claire")
     assert "1 of the values" in page.warning[0].value
     assert page.code[0].value == "Claire Favre"
     assert page.code[1].value == "Favre Claire"
+    assert len(page.code) == 2  # no response
+    assert fake_model == []
+
+
+class FakeUpload:
+    def __init__(self, name, data):
+        self.name, self._data = name, data
+
+    def getvalue(self):
+        return self._data
+
+
+@pytest.mark.parametrize("data", [b"   ", b"%PDF-broken"])
+def test_nothing_is_sent_when_a_file_is_skipped_or_unreadable(monkeypatch, fake_model, data):
+    """AppTest cannot upload files, so the uploader returns them directly."""
+    import streamlit as st
+
+    name = "scan.pdf" if data.startswith(b"%PDF") else "empty.txt"
+    monkeypatch.setattr(st, "file_uploader", lambda *_, **__: [FakeUpload(name, data)])
+    page = run_with_prompt("Marie Dupont")
+    assert name in page.error[0].value
+    assert not page.code
+    assert fake_model == []

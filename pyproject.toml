@@ -5,9 +5,11 @@ description = "On-device PII anonymizer for AI agents"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.165.0",
     "pypdf>=6.21.4",
     "python-docx>=1.2.0",
     "streamlit>=1.66.1",
+    "uvicorn>=0.54.0",
 ]
 
 [build-system]
@@ -17,16 +19,24 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "dvc[gs]>=3.67.1",
+    "httpx2>=2.16.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
+]
+# CPU runtime used by the quantization round-trip test.
+quantization = [
+    "torch>=2.9.0,<2.16",
+]
+gliner2-tests = [
+    { include-group = "quantization" },
+    "gliner2[local]>=2.1.0",
 ]
 # The off-the-shelf detectors of the baselines (issue #6). Not installed by default:
 # uv sync --group baselines
 baselines = [
+    { include-group = "gliner2-tests" },
     "datasets>=4.0.0",
-    "gliner2[local]>=2.1.0",
     "presidio-analyzer>=2.2.366",
-    "torch>=2.9.0",
     "en-core-web-lg",
     "fr-core-news-lg",
     "de-core-news-lg",

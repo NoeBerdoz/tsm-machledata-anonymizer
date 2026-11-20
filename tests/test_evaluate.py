@@ -162,12 +162,46 @@ def test_each_cpu_keeps_its_own_row(tmp_path, monkeypatch):
     assert rows[reference]["strict_recall"] == "1.0000"
     assert rows["Other CPU"]["strict_recall"] == "0.5000"
 
-    # Quality does not depend on the machine: one set of per-type rows.
-    assert len(read_csv(out / "recall_per_type.csv")) == 2
+    per_type = read_csv(out / "recall_per_type.csv")
+    assert len(per_type) == 4
+    person_counts = {r["cpu"]: r["n_protected"] for r in per_type if r["label"] == "PERSON"}
+    assert person_counts == {"Other CPU": "0", reference: "1"}
 
     summary = (out / "summary.md").read_text()
     assert summary.count("| Model | Dataset |") == 2
     assert summary.index(f"## {reference} (reference)") < summary.index("## Other CPU")
+
+
+def test_int8_checkpoints_keep_their_own_rows(tmp_path):
+    dataset = write_dataset(tmp_path / "t1.jsonl")
+    out = tmp_path / "results"
+    no_ids = tmp_path / "no-ids.txt"
+    teacher = IbanOnly()
+    student = MasksEverything()
+    teacher.runtime = "torch int8 qnnpack source=teacher sha256:aaaaaaaaaaaa"
+    student.runtime = "torch int8 qnnpack source=student sha256:bbbbbbbbbbbb"
+
+    evaluate("gliner2-int8", teacher, dataset, out, no_ids)
+    evaluate("gliner2-int8", student, dataset, out, no_ids)
+    evaluate("gliner2-int8", teacher, dataset, out, no_ids)
+
+    results = read_csv(out / "results.csv")
+    assert [r["runtime"] for r in results] == [student.runtime, teacher.runtime]
+    per_type = read_csv(out / "recall_per_type.csv")
+    assert len(per_type) == 4
+    person_counts = {r["runtime"]: r["n_protected"] for r in per_type if r["label"] == "PERSON"}
+    assert person_counts == {teacher.runtime: "0", student.runtime: "1"}
+    assert "gliner2-int8 (aaaaaaaaaaaa)" in (out / "summary.md").read_text()
+
+
+def test_old_per_type_rows_keep_an_empty_cpu(tmp_path):
+    path = tmp_path / "recall_per_type.csv"
+    path.write_text("model,dataset,label,n_entities,n_protected,recall\nregex,t1,PERSON,1,0,0\n")
+
+    evaluate("regex", MasksEverything(), write_dataset(tmp_path / "t1.jsonl"), tmp_path)
+
+    person_counts = {r["cpu"]: r["n_protected"] for r in read_csv(path) if r["label"] == "PERSON"}
+    assert person_counts == {"": "0", "Test CPU": "1"}
 
 
 def test_summary_rounds_the_recall_once_from_the_counts(tmp_path):

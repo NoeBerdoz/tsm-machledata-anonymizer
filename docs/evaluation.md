@@ -18,6 +18,21 @@ A test set is a JSONL file: one JSON record per line.
 
 The loader refuses a file with a duplicate `id` or an entity that does not fit inside its text, and it gives the line number.
 
+## Scripted O4 requests
+
+The O4 fixtures live in `data/test/o4_requests/`, versioned together in DVC. Its UTF-8 manifest, `requests.jsonl`, has one line per request. This example uses a shortened prompt and a single attachment.
+
+```json
+{"id":"o4-fr","lang":"fr","prompt":"Vérifie Élise Burnier.","files":["suivi.txt"],"values":[{"id":"o4-fr-001","label":"PERSON","value":"Élise Burnier","occurrences":[{"source":"prompt","start":8,"end":21},{"source":"suivi.txt","start":23,"end":36}]}]}
+```
+
+- `files` lists the attachments in upload order, as paths relative to the manifest. The app uses their filenames.
+- `values` holds 100 distinct planted values across the manifest. Each has a globally unique `id`, an entity type (`label`), and the exact `value`. All repetitions of that value in the request share its ID.
+- Each occurrence identifies its source as `prompt` or the attachment's filename. Offsets are zero-based Python string indices with an exclusive `end`. Use the manifest prompt verbatim and extract each attachment with `pii_anonymizer.files.read_text(filename, bytes)`. Every `text[start:end]` slice must equal `value`.
+- The French request repeats a name and IBAN across the prompt and two files. Its notes contain the literal `<PERSON_1>` as fixture text outside the planted values.
+
+Generate the files locally with `uv run python scripts/generate_o4_requests.py`. The test in `tests/test_o4_requests.py` generates its own copy in a temporary directory, so it runs without a DVC download.
+
 ## Detector interface
 
 A detector takes one text and returns the character spans to mask, each with a type (`Span(start, end, label)`). It also gives its runtime and version (`runtime`, for example `"torch 2.9.1"`) and the files it needs to run (`files`, used for the size). The `Detector` protocol in `spans.py` has the exact signature:
@@ -32,7 +47,7 @@ class Detector(Protocol):
 
 `lang` is the `lang` of the record. When a record has no `lang`, the script calls `detect(text)` and the detector gets `None`. The regex and GLiNER2 ignore the language. Presidio needs it, because it runs one spaCy model per language. So Presidio receives the true language of each text, which our app will not always know. This slightly favours Presidio in the comparison.
 
-To make a detector available to the command line, add a function that loads it to the `DETECTORS` dict in `evaluate.py`. The script loads it once, before any timing. The function imports the detector's heavy libraries itself, so that the script can set the thread variables first. The baselines (`regex`, `presidio`, `gliner2`, and `regex+gliner2`, the union of the two) are in `baselines.py` and `rules.py`, and [baselines.md](baselines.md) describes them.
+To make a detector available to the command line, add a function that loads it to the `DETECTORS` dict in `evaluate.py`. The script loads it once, before any timing. The function imports the detector's heavy libraries itself, so that the script can set the thread variables first. The baselines are in `baselines.py` and `rules.py`. See [baselines.md](baselines.md) for the detectors and how to run them.
 
 ## Metrics
 
@@ -54,18 +69,18 @@ The same command works on Linux, macOS and Windows, in bash, zsh, fish or PowerS
 
 ## Output files
 
-The script writes three files into the output folder. Running a model again replaces its old rows, and the other rows are kept.
+The script writes three files into the output folder. A rerun replaces rows for the same detector, dataset and CPU. For `gliner2-int8`, the runtime record also has to match, so each checkpoint and activation policy keeps its own rows.
 
-`results.csv` has one row per (model, dataset, cpu). Latency numbers only compare within one machine. The official numbers for the goals come from the reference laptop named in [benchmark-protocol.md](benchmark-protocol.md). Any teammate can add rows for their own laptop: the `cpu` column identifies them, and a rerun only replaces the row of the same CPU. The quality gate of the CI (#14) compares the student with the teacher in the same job. It checks the size (at least 8 times smaller, O3) and the latency ratio (student p95 at most two thirds of the teacher's, O3). So it needs no reference machine.
+`results.csv` has one row per detector, dataset and CPU, with separate runtime records for `gliner2-int8`. Latency numbers only compare within one machine. The official numbers for the goals come from the reference laptop named in [benchmark-protocol.md](benchmark-protocol.md). The quality gate of the CI (NoeBerdoz/tsm-machledata-anonymizer#14) compares the student with the teacher in the same job. It checks the size (at least 8 times smaller, O3) and the latency ratio (student p95 at most two thirds of the teacher's, O3). So it needs no reference machine.
 
 | Column | Meaning |
 |---|---|
 | `model`, `dataset` | the detector name and the test set name |
 | `dataset_sha256` | the hash of the test set file, to check that two rows used the same data |
-| `runtime` | the runtime and its version |
+| `runtime` | the runtime and its version. For `gliner2-int8`, it includes the engine, activation range, number of float-activation linears, source model and one SHA-256 digest covering the weights, tokenizer and inference configs |
 | `n_texts`, `n_entities`, `n_protected` | the counts behind the recall |
 | `strict_recall`, `char_precision` | the metrics above, between 0 and 1 |
-| `size_bytes`, `size_mb` | the size on disk |
+| `size_bytes`, `size_mb` | the size on disk. For converted GLiNER2 checkpoints, the manifest lists the files counted |
 | `threads` | the thread count of the protocol |
 | `latency_inputs`, `latency_calls` | the texts timed and the calls recorded |
 | `latency_p50_ms`, `latency_p95_ms` | latency per call |
@@ -75,6 +90,26 @@ The script writes three files into the output folder. Running a model again repl
 
 An empty cell means "not measured" or "undefined", never zero.
 
-`recall_per_type.csv` has one row per (model, dataset, label), because quality does not depend on the machine. Each row has the number of gold entities of that label, the number protected, and the recall.
+`recall_per_type.csv` uses the same keys as `results.csv` and adds the gold label. Quantized engines can change recall, so each CPU keeps its own counts. Older rows may have empty CPU and runtime fields. Each row has the number of gold entities of that label, the number protected, and the recall.
 
-`summary.md` is made from `results.csv`. It has one small Markdown table per CPU, with recall, precision, size and p95 latency for every row. The reference laptop's table comes first.
+`summary.md` is made from `results.csv`. It has one small Markdown table per CPU, with recall, precision, size and p95 latency for every row. Local int8 rows show a short artifact digest beside the detector name. The reference laptop's table comes first.
+
+## O4 response corruptions
+
+Inject each example into a mocked backend response. The response on screen must keep the corrupt text as sent, and the app must show a warning identifying it. A warning counts as a flagged corruption only.
+
+| Corruption | Example | Prior coverage |
+|---|---|---|
+| Unknown number | `<PERSON_3>` | Restoration and app |
+| Missing angle brackets | `PERSON_1` | Restoration |
+| Changed label case | `<person_1>` | Restoration |
+| Missing closing bracket | `<PERSON_1` | Restoration |
+| Square brackets | `[PERSON_2]` | Restoration |
+| Hyphen separator | `<PERSON-1>` | Restoration |
+| Space separator | `<PERSON 1>` | Restoration |
+| Spaces inside brackets | `< PERSON_1 >` | Restoration |
+| Changed case and separator on another label | `<email-1>` | Restoration |
+
+The examples come from the restoration tests in NoeBerdoz/tsm-machledata-anonymizer#85 (`tests/test_engine.py`). The app test for the unknown number already used a mocked backend as of NoeBerdoz/tsm-machledata-anonymizer#84. The cases now run through the app in `tests/test_app.py`. For square brackets, the warning identifies the inner `PERSON_2` while the response keeps `[PERSON_2]`.
+
+Swapping two valid placeholders from the same request is outside the guarantee. For example, the app has no way to tell that `<PERSON_2>` should have been `<PERSON_1>` when both were sent.

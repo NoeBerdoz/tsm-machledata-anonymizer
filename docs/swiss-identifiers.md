@@ -105,22 +105,31 @@ Over all entities of the file (the Swiss ones and the others), the strict recall
 
 What each detector misses:
 
-- **regex**: every AVS number with dashes (12 of 12) and every lowercase IBAN (21 of 21). `rules.py` does not know these two formats yet. It also misses 3 IBANs glued to other text in Gretel's fixed-width records, such as `MartineCH57 2623 ...`, because the rule wants a word boundary.
+- **regex**: every AVS number with dashes (12 of 12) and every lowercase IBAN (21 of 21). It also misses 3 IBANs glued to other text in Gretel's fixed-width records, such as `MartineCH57 2623 ...`, because the rule wanted a word boundary. Issue #45 added these three cases to `rules.py`, after this measurement: the `regex` and `regex+gliner2` rows still have to be measured again.
 - **presidio**: almost every AVS number (it has no Swiss recognizer). It finds the 12 of 28 compact ones only, as other numbers. Its IBAN recognizer finds the lowercase IBANs too, and misses the same 2 glued ones as the regex. It finds every phone number.
 - **gliner2**: about a quarter of the AVS numbers in every format, and a fifth of the IBANs, mostly inside SWIFT messages (`:25:CH29 2205 ...`) and XML (`<identifier>CH52...</identifier>`). It misses every phone number written `+41 (0)55 923 54 99` (0 of 35), and finds all the other phone formats.
 - **regex+gliner2**: 6 values left, 4 AVS numbers with dashes and 2 glued IBANs. The two detectors cover each other's gaps: the regex finds what GLiNER2 misses in every other format, and GLiNER2 finds 8 of the 12 dashed AVS numbers and all lowercase IBANs.
 - **privacy-filter**: one AVS number, a compact one of which it masks only the middle digits. It misses a fifth of the IBANs (44 of 214), all in Gretel's documents, mostly inside SWIFT messages (19) and XML (13), and a few glued to other text. It finds 33 of the 35 phone numbers written `+41 (0)55 923 54 99`, which GLiNER2 misses, and misses 13 phone numbers in all, in no single format.
 - **regex+privacy-filter**: 4 values left, all IBANs: 2 lowercase ones and the 2 glued ones that the regex also misses. Every AVS number and every phone number is masked.
 
-With 99.2 %, the combined detector just reaches the 99 % of O1 on this set. `regex+privacy-filter` reaches 99.5 %. Adding dashes to the AVS rule would close most of the gap. That is a change to `rules.py`, outside this issue.
+With 99.2 %, the combined detector just reaches the 99 % of O1 on this set. `regex+privacy-filter` reaches 99.5 %. Adding dashes to the AVS rule should close most of the gap. Issue #45 did it, and the new numbers are still to be measured.
 
 On the two T1 samples, `regex+gliner2` gives almost the same strict recall as GLiNER2 alone (80.7 % against 80.6 % on OpenPII-1M, 81.8 % for both on 500k), because those samples have almost no valid Swiss values for the regex to add. `regex+privacy-filter` adds 0.2 points to Privacy Filter (79.0 % against 78.8 % on OpenPII-1M, 70.0 % against 69.8 % on 500k).
 
 Privacy Filter's recall on this set by language, over all entities: 84.0 % in French, 75.7 % in German, 78.1 % in Italian and 71.5 % in English. The English rows include most of the Gretel documents, where it misses the IBANs in SWIFT and XML and many company names.
 
+## Two sets of rules, until issue #66
+
+Since issue #45, `rules.py` accepts AVS numbers with dashes, lowercase IBANs and IBANs glued to the word before them, so it finds every format the engine's rules find. Two sets remain, on purpose, until the engine runs our own model (issue #66):
+
+- `rules.py` is the `regex` baseline and the regex half of `regex+gliner2`. It only looks for Swiss identifiers and e-mail addresses, and checks every AVS number and IBAN, so that O1 measures the Swiss types.
+- The rules in `engine.py` are wider, because `qwen3:4b` only looks for names, addresses, birth dates and health data. They also mask foreign IBANs, foreign phone numbers and AVS-shaped numbers with a wrong check digit, which the app must not send either.
+
+When issue #66 puts our model behind `detect()`, the model finds the foreign values, and the engine uses `rules.py` instead of its own copy.
+
 ## Limits
 
 - The text around the values is still synthetic. It comes from generated datasets, not from real documents or prompts.
-- The regex looks almost perfect on these values, because the values and the regex both come from our own idea of the formats. Its misses are the two formats from the review of PR #19 that it does not know yet, and 3 IBANs glued to other text. So the numbers that matter are the models' and the combined `regex+gliner2`.
+- The regex looks almost perfect on these values, because the values and the regex both come from our own idea of the formats. Its misses were the two formats from the review of PR #19 and 3 IBANs glued to other text, which issue #45 added. So the numbers that matter are the models' and the combined `regex+gliner2`.
 - The values are random fake numbers. Any match with a real AVS number or a real account is by chance and is never tied to a real person.
 - OpenPII-1M already holds some Swiss-looking values. We saw a Swiss company number `CHE-274.594.068` labelled `TAXNUM`, and Swiss places such as Jaun with the postcode 4524. The script leaves them as they are. The scan of the public datasets for Swiss identifiers is in docs/test-set-decision.md (PR #24).
