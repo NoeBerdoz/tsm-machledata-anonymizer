@@ -64,7 +64,13 @@ def test_removing_a_rating_records_nothing():
 
 
 @pytest.mark.parametrize(
-    "error", [OSError("connection refused"), TimeoutError("timed out"), ValueError("cut answer")]
+    "error",
+    [
+        pytest.param(FileNotFoundError("local model is missing"), id="missing-model"),
+        pytest.param(OSError("connection refused"), id="connection-error"),
+        pytest.param(TimeoutError("timed out"), id="timeout"),
+        pytest.param(ValueError("cut answer"), id="malformed-output"),
+    ],
 )
 def test_nothing_is_sent_when_the_engine_fails(monkeypatch, fake_model, error):
     def fail(_):
@@ -72,7 +78,9 @@ def test_nothing_is_sent_when_the_engine_fails(monkeypatch, fake_model, error):
 
     monkeypatch.setattr(engine, "ask_model", fail)
     page = run_with_prompt("marie@example.ch")
-    assert str(error) in page.error[0].value
+    message = page.error[0].value
+    assert "The local model could not finish, so nothing was sent" in message
+    assert str(error) in message
     assert not page.code
     assert fake_model == []
 
@@ -113,11 +121,31 @@ def test_response_with_an_image_is_shown_as_plain_text(monkeypatch):
     assert not any("example.com" in element.value for element in page.markdown)
 
 
-def test_unknown_placeholder_is_shown_with_a_warning(monkeypatch):
-    monkeypatch.setattr(client, "ask_backend", lambda _: "<PERSON_1> et <PERSON_3>")
-    page = run_with_prompt("Marie Dupont")
-    assert page.code[1].value == "Marie Dupont et <PERSON_3>"
-    assert "<PERSON_3>" in page.warning[0].value
+@pytest.mark.parametrize(
+    "token",
+    [
+        pytest.param("<PERSON_3>", id="unknown-number"),
+        pytest.param("PERSON_1", id="missing-brackets"),
+        pytest.param("<person_1>", id="changed-case"),
+        pytest.param("<PERSON_1", id="missing-closing-bracket"),
+        pytest.param("[PERSON_2]", id="square-brackets"),
+        pytest.param("<PERSON-1>", id="hyphen-separator"),
+        pytest.param("<PERSON 1>", id="space-separator"),
+        pytest.param("< PERSON_1 >", id="inner-spaces"),
+        pytest.param("<email-1>", id="email-case-and-separator"),
+    ],
+)
+def test_response_corruption_is_shown_with_a_warning(monkeypatch, token):
+    monkeypatch.setattr(
+        engine, "ask_model", lambda _: [("PERSON", "Marie Dupont"), ("PERSON", "Hans Müller")]
+    )
+    monkeypatch.setattr(client, "ask_backend", lambda _: f"<PERSON_1> et {token}.")
+    page = run_with_prompt("Marie Dupont, Hans Müller, marie@example.ch")
+    assert page.code[0].value == "<PERSON_1>, <PERSON_2>, <EMAIL_1>"
+    assert page.code[1].value == f"Marie Dupont et {token}."
+    warning = page.warning[0].value
+    assert warning.startswith("The response contains placeholders")
+    assert warning.partition("They are shown as they are: ")[2] == f"`{token.strip('[]')}`"
 
 
 def test_values_not_found_are_shown_and_nothing_is_sent(monkeypatch, fake_model):
