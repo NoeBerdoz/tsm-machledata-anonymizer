@@ -20,6 +20,7 @@ from pii_anonymizer.baselines import (
     load_engine,
     load_engine_cpu,
     load_gliner2,
+    load_gliner2_int8,
     load_presidio,
     load_privacy_filter,
     load_regex,
@@ -52,6 +53,7 @@ DETECTORS: dict[str, Callable[[], Detector]] = {
     "regex": load_regex,
     "presidio": load_presidio,
     "gliner2": load_gliner2,
+    "gliner2-int8": load_gliner2_int8,
     "regex+gliner2": load_regex_gliner2,
     "privacy-filter": load_privacy_filter,
     "regex+privacy-filter": load_regex_privacy_filter,
@@ -200,6 +202,8 @@ def evaluate(
         {
             "model": model,
             "dataset": dataset,
+            "cpu": row["cpu"],
+            "runtime": detector.runtime,
             "label": label,
             "n_entities": cell(total),
             "n_protected": cell(protected),
@@ -212,10 +216,12 @@ def evaluate(
     ]
 
     results_csv = out_dir / "results.csv"
-    # Latency depends on the machine, so each CPU keeps its own row.
-    replace_rows(results_csv, RESULT_COLUMNS, [row], key=("model", "dataset", "cpu"))
-    # Quality does not depend on the machine.
-    replace_rows(out_dir / "recall_per_type.csv", PER_TYPE_COLUMNS, per_type)
+    # Quantization can change recall by CPU, and this detector accepts local checkpoints.
+    key = ("model", "dataset", "cpu")
+    if model == "gliner2-int8":
+        key += ("runtime",)
+    replace_rows(results_csv, RESULT_COLUMNS, [row], key=key)
+    replace_rows(out_dir / "recall_per_type.csv", PER_TYPE_COLUMNS, per_type, key=key)
     (out_dir / "summary.md").write_text(summary_table(results_csv), encoding="utf-8")
     return row
 

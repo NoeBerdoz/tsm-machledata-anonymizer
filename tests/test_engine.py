@@ -80,10 +80,27 @@ def test_value_found_in_one_text_is_hidden_in_the_others(monkeypatch):
 
 
 def test_value_broken_over_two_lines_is_found(model):
+    """Found, but kept apart from the one-line form, so each comes back exactly (issue #31)."""
     model(("PERSON", "Marie Dupont"))
     results, mapping, _ = pseudonymize(["Marie\nDupont et Marie Dupont"])
-    assert results == ["<PERSON_1> et <PERSON_1>"]
-    assert mapping == {"<PERSON_1>": "Marie Dupont"}
+    assert results == ["<PERSON_1> et <PERSON_2>"]
+    assert mapping == {"<PERSON_1>": "Marie\nDupont", "<PERSON_2>": "Marie Dupont"}
+
+
+def test_pseudonymize_then_restore_gives_back_the_exact_text(model):
+    model(("PERSON", "Marie Dupont"))
+    text = "Marie\nDupont, MARIE  DUPONT et Marie Dupont, Marie Dupont."
+    texts, mapping, _ = pseudonymize([text])
+    assert texts == ["<PERSON_1>, <PERSON_2> et <PERSON_3>, <PERSON_3>."]
+    assert restore(texts[0], mapping, texts) == (text, [])
+
+
+def test_same_text_under_two_labels_gets_two_placeholders(monkeypatch):
+    spans = [Span(0, 4, "PERSON"), Span(8, 12, "HEALTH")]
+    monkeypatch.setattr(engine, "_detect", lambda texts: ([spans], []))
+    texts, mapping, _ = pseudonymize(["Rose et Rose"])
+    assert texts == ["<PERSON_1> et <HEALTH_1>"]
+    assert mapping == {"<PERSON_1>": "Rose", "<HEALTH_1>": "Rose"}
 
 
 def test_overlapping_values_leave_nothing_visible(model):
@@ -173,10 +190,10 @@ def test_too_long_content_is_refused_before_ollama_can_cut_it():
 
 def test_placeholder_already_in_the_input_is_never_given_to_a_value(model):
     model(("PERSON", "Marie Dupont"))
-    text = "Marie Dupont a lu la note sur <PERSON_1> et person_2."
+    text = "Marie Dupont a lu la note sur <PERSON_1>, person_2 et <PERSON-3>."
     results, mapping, _ = pseudonymize([text])
-    assert results == ["<PERSON_3> a lu la note sur <PERSON_1> et person_2."]
-    assert mapping == {"<PERSON_3>": "Marie Dupont"}
+    assert results == ["<PERSON_4> a lu la note sur <PERSON_1>, person_2 et <PERSON-3>."]
+    assert mapping == {"<PERSON_4>": "Marie Dupont"}
 
 
 def test_detect_returns_the_spans_of_the_model_and_the_rules(model):
@@ -279,7 +296,18 @@ def test_every_placeholder_comes_back_to_exactly_its_value():
 
 
 @pytest.mark.parametrize(
-    "token", ["<PERSON_3>", "PERSON_1", "<person_1>", "<PERSON_1", "[PERSON_2]"]
+    "token",
+    [
+        "<PERSON_3>",
+        "PERSON_1",
+        "<person_1>",
+        "<PERSON_1",
+        "[PERSON_2]",
+        "<PERSON-1>",
+        "<PERSON 1>",
+        "< PERSON_1 >",
+        "<email-1>",
+    ],
 )
 def test_unknown_or_changed_placeholder_is_shown_as_it_is_and_reported(token):
     response, unknown = restore(f"Bonjour {token}.", MAPPING, [])
@@ -292,6 +320,18 @@ def test_placeholder_written_by_the_user_is_kept_without_warning():
     sent = ["<PERSON_2> a lu la note sur <PERSON_1>."]
     response, unknown = restore("<PERSON_2> parle de <PERSON_1>.", {"<PERSON_2>": "Marie"}, sent)
     assert response == "Marie parle de <PERSON_1>."
+    assert unknown == []
+
+
+@pytest.mark.parametrize("text", ["phone 1", "Person 2 of 3", "EMAIL-1"])
+def test_ordinary_text_is_not_taken_for_a_damaged_placeholder(text):
+    assert restore(text, MAPPING, []) == (text, [])
+
+
+def test_damaged_placeholder_written_by_the_user_is_kept_without_warning():
+    sent = ["<PERSON_2> a lu la note sur <PERSON-1>."]
+    response, unknown = restore("<PERSON_2> parle de <PERSON-1>.", {"<PERSON_2>": "Marie"}, sent)
+    assert response == "Marie parle de <PERSON-1>."
     assert unknown == []
 
 

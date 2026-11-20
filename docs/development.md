@@ -111,13 +111,15 @@ The two packages share files. If you installed the server in the default environ
 
 ### The baselines group
 
-The off-the-shelf detectors of [baselines.md](baselines.md) (Presidio, GLiNER2-PII) need heavy libraries, so they live in a separate dependency group, `baselines`. `uv sync` and the CI do not install it. To install it:
+The off-the-shelf detectors of [baselines.md](baselines.md) (Presidio, GLiNER2-PII) need heavy libraries, so they live in a separate dependency group, `baselines`. To install it:
 
 ```sh
 uv sync --group baselines
 ```
 
 It downloads about 2.5 GB: PyTorch (CPU only), Transformers, Presidio, Hugging Face `datasets`, and the four large spaCy models for English, French, German and Italian (400 to 570 MB each). The environment then takes about 3.3 GB on disk. The first GLiNER2 run downloads the model from Hugging Face, 1.2 GB more. A plain `uv sync` removes the group again.
+
+The default CI job uses the development dependencies. A job for changes to the quantization code, evaluation code, tests, dependencies or workflows installs `gliner2-tests` and checks the saved weights of a tiny model and the round trip of tiny GLiNER2 checkpoints. To run the PyTorch round trip by itself, install `quantization` and run `uv run pytest tests/test_quantization.py`. See [baselines.md](baselines.md#gliner2-int8) for the command to quantize a checkpoint.
 
 ## Checks
 

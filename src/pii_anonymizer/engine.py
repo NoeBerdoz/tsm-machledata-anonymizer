@@ -69,10 +69,19 @@ CHECKS = {"IBAN": _valid_iban, "PHONE": _plausible_phone}
 
 MODEL_LABELS = ["PERSON", "ADDRESS", "DATE_OF_BIRTH", "HEALTH"]
 
-# Also matches the forms that a model writes instead of <PERSON_1>: PERSON_1, <person_1>.
+# Also matches the forms that a model writes instead of <PERSON_1>: PERSON_1, <person_1>, and
+# inside brackets <PERSON-1>, <PERSON 1>. A space or a hyphen needs the brackets, so plain text
+# such as "phone 1" is left alone.
+_LABELS = "|".join([*RULES, *MODEL_LABELS])
 _PLACEHOLDER_LIKE = re.compile(
-    r"<?\b(?:" + "|".join([*RULES, *MODEL_LABELS]) + r")_\d+\b>?", re.IGNORECASE
+    rf"<?\b(?:{_LABELS})_\d+\b>?|<\s*(?:{_LABELS})[\s_-]*\d+\s*>", re.IGNORECASE
 )
+
+
+def _token_id(token: str) -> str:
+    """PERSON_1 for <PERSON_1>, <person-1> or < PERSON 1 >: the number a token reserves."""
+    return re.sub(r"[\s<>_-]+", "_", token).strip("_").upper()
+
 
 SYSTEM_PROMPT = """You find personal data in a text. Return each value of these types, copied \
 exactly as it is written in the text:
@@ -264,40 +273,41 @@ def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]
     values that the model found but that are not in the texts as it wrote them.
 
     The texts share one mapping, so a value gets the same placeholder in all of them, and a
-    value that the model finds in one text is also hidden in the others.
+    value that the model finds in one text is also hidden in the others. The key of a value is
+    its label and its exact text, so restore() writes back exactly what was replaced: "Marie
+    Dupont" and "MARIE DUPONT", or a name broken over two lines, get placeholders of their own.
     """
     detected, missed = _detect(texts)
 
-    # A text about this project can already contain <PERSON_1>: that number is skipped, so
-    # the restoration never swaps the literal text for a real value.
-    taken = {
-        m.group().strip("<>").upper() for text in texts for m in _PLACEHOLDER_LIKE.finditer(text)
-    }
+    # A text about this project can already contain <PERSON_1> or <PERSON-1>: that number is
+    # skipped, so the restoration never swaps the literal text for a real value.
+    taken = {_token_id(m.group()) for text in texts for m in _PLACEHOLDER_LIKE.finditer(text)}
 
-    placeholders: dict[str, str] = {}
+    placeholders: dict[tuple[str, str], str] = {}
     counts: Counter[str] = Counter()
     results = []
     for text, spans in zip(texts, detected, strict=True):
         parts, position = [], 0
         for start, end, label in ((span.start, span.end, span.label) for span in spans):
-            value = " ".join(text[start:end].split())
-            if value not in placeholders:
+            key = (label, text[start:end])
+            if key not in placeholders:
                 counts[label] += 1
                 while f"{label}_{counts[label]}" in taken:
                     counts[label] += 1
-                placeholders[value] = f"<{label}_{counts[label]}>"
-            parts += [text[position:start], placeholders[value]]
+                placeholders[key] = f"<{label}_{counts[label]}>"
+            parts += [text[position:start], placeholders[key]]
             position = end
         results.append("".join(parts) + text[position:])
 
-    return results, {placeholder: value for value, placeholder in placeholders.items()}, missed
+    return results, {token: value for (_, value), token in placeholders.items()}, missed
 
 
 def restore(response: str, mapping: dict[str, str], sent: list[str]) -> tuple[str, list[str]]:
     """Return the response with the real values put back, and the placeholders left as they are.
 
     A placeholder that was never sent (<PERSON_3>) or that the model changed (PERSON_1,
-    <person_1>) stays as it is and is reported, unless it was already in the sent texts. One
+    <person_1>, <PERSON-1>, <PERSON 1>) stays as it is and is reported, unless it was already
+    in the sent texts. One
     pass, so a real value that looks like a placeholder is never replaced in turn.
     """
     literal = {m.group() for text in sent for m in _PLACEHOLDER_LIKE.finditer(text)}

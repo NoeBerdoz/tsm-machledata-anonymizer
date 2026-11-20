@@ -156,6 +156,7 @@ Repeat step 1 to read back the reserved IPv4. Then create the VM and bucket.
 test -n "$IP" &&
   (gc compute instances describe "$V" --zone="$Z" >/dev/null 2>&1 ||
     gc compute instances create "$V" --zone="$Z" --network=mlflow-net --tags=mlflow \
+      --metadata=block-project-ssh-keys=TRUE \
       --machine-type=e2-micro --image-family=debian-12 --image-project=debian-cloud \
       --boot-disk-type=pd-standard --boot-disk-size=30GB --no-boot-disk-auto-delete \
       --address="$IP" --no-service-account --no-scopes) &&

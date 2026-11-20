@@ -135,7 +135,7 @@ def account(username, auth, expected=(200,)):
 
 
 def wait_for_admin(expected):
-    deadline = time.monotonic() + 120
+    deadline = time.monotonic() + 360  # an e2-micro needs over two minutes to start MLflow
     while True:
         try:
             status, _ = account("admin", admin, expected=expected)
