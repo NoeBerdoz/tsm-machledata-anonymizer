@@ -22,6 +22,8 @@ from pii_anonymizer.spans import Detector, Span, check_span
 APP = Path(engine.__file__).with_name("app.py")
 PLACEHOLDER = re.compile(r"<[A-Z_]+_\d+>")
 SEPARATOR = "\n--- O4 ---\n"
+BOUNDARIES = ("backend", "sentry", "llm")
+RESTORABLE_LABELS = {*engine.RULES, *engine.MODEL_LABELS}
 LABELS = {
     "full_name": "PERSON",
     "first_name": "PERSON",
@@ -39,6 +41,21 @@ class Upload:
 
     def getvalue(self) -> bytes:
         return self.data
+
+
+@dataclass
+class RequestRun:
+    request: dict
+    sources: dict[str, str]
+    detected: dict[str, list[Span]]
+    captures: dict[str, list[dict]]
+    restoration: dict
+
+
+def placeholder_label(label: str) -> str:
+    adapted = LABELS.get(label.lower(), label.upper())
+    # The app has no generic token. Use a restorable label for the remaining categories.
+    return adapted if adapted in RESTORABLE_LABELS else "PERSON"
 
 
 def strings(value: object) -> Iterator[str]:
@@ -60,12 +77,16 @@ def trace(
     masked = {name: coverage(text, detected[name]) for name, text in sources.items()}
     captured_strings = {name: list(strings(payloads)) for name, payloads in captures.items()}
 
-    def found_in(text):
+    def found_in(text, label):
         value = " ".join(text.split())
+        compact = label == "IBAN"
+        if compact:
+            value = value.replace(" ", "")
         return [
             name
             for name, fields in captured_strings.items()
-            if value and any(value in field for field in fields)
+            if value
+            and any(value in (field.replace(" ", "") if compact else field) for field in fields)
         ]
 
     values = []
@@ -84,14 +105,17 @@ def trace(
                 "id": planted["id"],
                 "detected": all(item["detected"] for item in occurrences),
                 "occurrences": occurrences,
-                "found_in": found_in(planted["value"]),
+                "found_in": found_in(planted["value"], planted["label"]),
             }
         )
     return {
         "values": values,
         "spans": {
             name: [
-                {**asdict(span), "found_in": found_in(sources[name][span.start : span.end])}
+                {
+                    **asdict(span),
+                    "found_in": found_in(sources[name][span.start : span.end], span.label),
+                }
                 for span in spans
             ]
             for name, spans in detected.items()
@@ -118,13 +142,13 @@ def check_restoration(tokens: list[str], displayed: str, mapping: dict[str, str]
     }
 
 
-def run_request(request: dict, directory: Path, detector: Detector) -> dict:
+def run_request(request: dict, directory: Path, detector: Detector) -> RequestRun:
     paths = [directory / file for file in request["files"]]
     uploads = [Upload(path.name, path.read_bytes()) for path in paths]
     sources: dict[str, str] = {}
     detected: dict[str, list[Span]] = {}
     # Connect the Sentry test transport to captures["sentry"].append when it lands.
-    captures: dict[str, list[dict]] = {"backend": [], "sentry": [], "llm": []}
+    captures: dict[str, list[dict]] = {name: [] for name in BOUNDARIES}
     tokens: list[str] = []
     original_spans, original_detect = engine._spans, engine._detect
 
@@ -134,7 +158,7 @@ def run_request(request: dict, directory: Path, detector: Detector) -> dict:
             check_span(span, text)
         # Supply offsets directly. The app still adds its own rules and merges overlaps.
         return original_spans(text, patterns) + [
-            (span.start, span.end, LABELS.get(span.label, span.label.upper())) for span in spans
+            (span.start, span.end, placeholder_label(span.label)) for span in spans
         ]
 
     def record_detection(texts):
@@ -191,19 +215,27 @@ def run_request(request: dict, directory: Path, detector: Detector) -> dict:
         )
 
     result = page.session_state["result"]
-    return {
-        "id": request["id"],
-        "capture_counts": {name: len(payloads) for name, payloads in captures.items()},
-        **trace(request, sources, detected, captures),
-        "restoration": check_restoration(tokens, page.code[len(sources)].value, result["mapping"]),
-    }
+    restoration = check_restoration(tokens, page.code[len(sources)].value, result["mapping"])
+    return RequestRun(request, sources, detected, captures, restoration)
 
 
 def run(manifest: Path, detector: Detector) -> dict:
-    requests = [
+    runs = [
         run_request(json.loads(line), manifest.parent, detector)
         for line in manifest.read_text(encoding="utf-8").splitlines()
         if line.strip()
+    ]
+    captures = {
+        name: [payload for item in runs for payload in item.captures[name]] for name in BOUNDARIES
+    }
+    requests = [
+        {
+            "id": item.request["id"],
+            "capture_counts": {name: len(payloads) for name, payloads in item.captures.items()},
+            **trace(item.request, item.sources, item.detected, captures),
+            "restoration": item.restoration,
+        }
+        for item in runs
     ]
     values = [value for request in requests for value in request["values"]]
     if not values or len({value["id"] for value in values}) != len(values):

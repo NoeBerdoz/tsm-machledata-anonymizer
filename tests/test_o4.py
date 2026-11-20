@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from pii_anonymizer import engine, o4
+from pii_anonymizer.baselines import GLINER2_LABELS
 from pii_anonymizer.spans import Span
 
 GENERATOR = Path(__file__).resolve().parents[1] / "scripts" / "generate_o4_requests.py"
@@ -14,17 +15,41 @@ class FakeDetector:
     runtime = "fake"
     files = ()
 
-    def __init__(self, names):
+    def __init__(self, names, label="full_name"):
         self.names = names
+        self.label = label
         self.languages = set()
 
     def detect(self, text, lang=None):
         self.languages.add(lang)
         return [
-            Span(match.start(), match.end(), "full_name")
+            Span(match.start(), match.end(), self.label)
             for name in self.names
             for match in re.finditer(re.escape(name), text)
         ]
+
+
+def single_value_request(identifier, prompt, value, label="PERSON"):
+    start = prompt.index(value)
+    return {
+        "id": identifier,
+        "lang": "en",
+        "prompt": prompt,
+        "files": [],
+        "values": [
+            {
+                "id": f"{identifier}-1",
+                "label": label,
+                "value": value,
+                "occurrences": [{"source": "prompt", "start": start, "end": start + len(value)}],
+            }
+        ],
+    }
+
+
+def write_manifest(path, *requests):
+    path.write_text("".join(json.dumps(request) + "\n" for request in requests), encoding="utf-8")
+    return path
 
 
 def test_runs_generated_requests_and_restores_repeats_and_literal(tmp_path):
@@ -147,3 +172,51 @@ def test_checks_each_displayed_placeholder_with_spaces_normalized():
     )
 
     assert result == {"intact": 2, "restored": 1, "failures": [person]}
+
+
+def test_finds_compact_ibans_within_a_decoded_capture_field():
+    iban = "CH05 4438 5535 0877 0501 0"
+    request = single_value_request("transfer", iban, iban, "IBAN")
+    captures = {
+        "backend": [{"text": "CH0544385535", "other": "087705010"}],
+        "llm": [{"text": "Use CH0544385535087705010."}],
+    }
+    report = o4.trace(request, {"prompt": iban}, {"prompt": [Span(0, len(iban), "IBAN")]}, captures)
+
+    assert report["values"][0]["found_in"] == ["llm"]
+    assert report["spans"]["prompt"][0]["found_in"] == ["llm"]
+
+
+def test_finds_a_stale_value_in_a_later_request_and_counts_it_once(monkeypatch, tmp_path):
+    first = single_value_request("first", "First: Ada Green", "Ada Green")
+    later = single_value_request("later", "Later: Jules Simon", "Jules Simon")
+    manifest = write_manifest(tmp_path / "requests.jsonl", first, later)
+    original_answer = engine.answer
+
+    def leak(text):
+        if text.startswith("Later:"):
+            text += "\nAda Green\nAda Green"
+        return original_answer(text)
+
+    monkeypatch.setattr(engine, "answer", leak)
+    report = o4.run(manifest, FakeDetector(["Ada Green", "Jules Simon"]))
+
+    assert report["detected"] == 2
+    assert report["app_leaks"] == report["all_leaks"] == ["first-1"]
+    assert report["requests"][0]["values"][0]["found_in"] == ["llm"]
+    assert report["requests"][1]["values"][0]["found_in"] == []
+
+
+def test_restores_a_literal_tagged_as_account_id(tmp_path):
+    literal = "<PERSON_1>"
+    request = single_value_request("example", f"Ada Green used {literal}.", "Ada Green")
+    manifest = write_manifest(tmp_path / "requests.jsonl", request)
+
+    report = o4.run(manifest, FakeDetector(["Ada Green", literal], label="account_id"))
+
+    assert report["restored"] == report["intact"] == 2
+    assert report["requests"][0]["restoration"]["failures"] == []
+    assert {o4.placeholder_label(label) for label in GLINER2_LABELS} <= {
+        *engine.MODEL_LABELS,
+        *engine.RULES,
+    }
