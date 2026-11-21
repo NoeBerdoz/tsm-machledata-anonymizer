@@ -1,7 +1,4 @@
-# Agent Platform custom job: one n1-standard-4 with one NVIDIA T4, in europe-west4.
-# Launched with: gcloud ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
-# Cloud Storage is mounted at /gcs/ in the job: the script is read from the bucket,
-# and the model and summary.json are written back to it.
+# Agent Platform JobSpec template. cloud_training.py supplies args, identity and timeout.
 workerPoolSpecs:
   - machineSpec:
       machineType: n1-standard-4
@@ -9,14 +6,34 @@ workerPoolSpecs:
       acceleratorCount: 1
     replicaCount: 1
     containerSpec:
-      # Google's prebuilt PyTorch GPU image. Check it is still available, and take the most
-      # recent "PyTorch GPU" europe-docker.pkg.dev URI from:
-      # https://cloud.google.com/vertex-ai/docs/training/pre-built-containers
-      imageUri: europe-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
-      command: ["bash", "-c"]
-      args:
-        - >-
-          pip install --quiet torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124 &&
-          pip install --quiet "gliner2[train]" datasets &&
-          python /gcs/tsm-machledata-anonymizer-training/smoke/train.py
-          /gcs/tsm-machledata-anonymizer-training/smoke/output
+      imageUri: europe-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310@sha256:db53e742b58d126fae7ca6fdb62997d71acdb1e0d13df5e267fa633f9c2fc40f
+      command:
+        - bash
+        - -c
+        - |
+          set -euo pipefail
+          umask 077
+          inputs=${1:?Pass the input directory}
+          outputs=${2:?Pass the output directory}
+          revision=${3:?Pass the Git SHA}
+          export MLFLOW_TRACKING_URI="${4:?Pass the tracking URI}"
+          export MLFLOW_TRACKING_USERNAME=training
+          export MLFLOW_SUPPRESS_PRINTING_URL_TO_STDOUT=true
+          export HF_HUB_DISABLE_TELEMETRY=1
+          work=$(mktemp -d)
+          cp "$inputs"/{train.py,tracking.py,params.yaml} "$work/"
+          curl -fsSL https://astral.sh/uv/0.13.9/install.sh | UV_UNMANAGED_INSTALL="$work/bin" sh
+          export UV_PYTHON_INSTALL_DIR="$work/python"
+          export UV_CACHE_DIR="$work/cache"
+          "$work/bin/uv" venv --python 3.11.18 --seed "$work/venv"
+          python="$work/venv/bin/python"
+          "$python" -m pip install --quiet torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+            --index-url https://download.pytorch.org/whl/cu124
+          "$python" -m pip install --quiet 'torch==2.6.0' 'gliner2[train]==2.1.0' 'datasets==5.1.0' \
+            'transformers==5.22.2' 'peft==0.21.2' 'huggingface-hub==2.4.0' \
+            'mlflow-skinny==3.18.0' 'PyYAML==6.0.3' 'google-cloud-secret-manager==2.26.0'
+          cd "$work"
+          "$python" train.py params.yaml "$revision"
+          mkdir -p "$outputs"
+          cp model.tar.gz training.json "$outputs/"
+        - train

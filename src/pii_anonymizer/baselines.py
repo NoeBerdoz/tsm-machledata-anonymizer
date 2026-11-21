@@ -179,31 +179,33 @@ def load_presidio():
 
 
 class Gliner2Detector:
-    """The published GLiNER2-PII or a local int8 checkpoint with the card's detection settings.
+    """GLiNER2-PII with the model card's detection settings.
 
     Long texts go through `extract_entities_long`, the library's documented way: it scans
     overlapping word chunks and gives offsets into the whole text.
     """
 
-    def __init__(self, int8_dir: Path | None = None) -> None:
+    def __init__(self, int8_dir: Path | None = None, *, checkpoint_dir: Path | None = None) -> None:
         disable_hf_telemetry()
         import torch
 
         set_torch_threads(torch)
 
         if int8_dir is None:
-            from gliner2 import GLiNER2
+            from gliner2 import AutoExtractor, GLiNER2
             from huggingface_hub import snapshot_download
 
-            local_dir = Path(
+            local_dir = checkpoint_dir or Path(
                 snapshot_download(
                     GLINER2_MODEL, revision=GLINER2_REVISION, allow_patterns=GLINER2_FILES
                 )
             )
-            self.model = GLiNER2.from_pretrained(str(local_dir))
+            loader = AutoExtractor if checkpoint_dir else GLiNER2
+            self.model = loader.from_pretrained(str(local_dir))
             self.model.to("cpu")
             self.model.eval()
-            self.runtime = f"torch {torch.__version__} model@{GLINER2_REVISION[:7]}"
+            source = "local checkpoint" if checkpoint_dir else f"model@{GLINER2_REVISION[:7]}"
+            self.runtime = f"torch {torch.__version__} {source}"
             self.files = sorted(p for p in local_dir.rglob("*") if p.is_file())
         else:
             from pii_anonymizer.quantize_gliner2 import load_int8_model, read_int8_artifact
@@ -238,6 +240,10 @@ class Gliner2Detector:
 
 def load_gliner2():
     return Gliner2Detector()
+
+
+def load_gliner2_checkpoint(model_dir: Path):
+    return Gliner2Detector(checkpoint_dir=model_dir)
 
 
 def load_gliner2_int8():

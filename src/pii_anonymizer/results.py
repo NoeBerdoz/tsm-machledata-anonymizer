@@ -1,6 +1,7 @@
 """Write evaluation CSV rows and a Markdown summary."""
 
 import csv
+import hashlib
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -27,6 +28,12 @@ RESULT_COLUMNS = [
     "os",
     "python",
     "date",
+    "correct_chars",
+    "predicted_chars",
+    "latency_p95_ms_raw",
+    "latency_ids_sha256",
+    "benchmark_job",
+    "model_sha256",
 ]
 
 PER_TYPE_COLUMNS = [
@@ -38,10 +45,18 @@ PER_TYPE_COLUMNS = [
     "recall",
     "cpu",
     "runtime",
+    "dataset_sha256",
+    "benchmark_job",
+    "model_sha256",
 ]
 
 # The CPU of the reference laptop (docs/benchmark-protocol.md), matched as a substring.
 REFERENCE_CPU = "i5-1130G7"
+
+
+def sha256_file(path: Path) -> str:
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 def cell(value: object, digits: int = 4) -> str:

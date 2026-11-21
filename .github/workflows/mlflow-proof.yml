@@ -1,0 +1,27 @@
+name: MLflow connectivity proof
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ['ops/mlflow/**', '.github/workflows/mlflow-proof.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    # Draft PRs skip the proof: mark the PR ready for review once the server and its secrets exist.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - run: uv run --locked python -m pii_anonymizer.tracking actions-proof "$(git rev-parse HEAD)"
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: actions-proof
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PROOF_PASSWORD }}

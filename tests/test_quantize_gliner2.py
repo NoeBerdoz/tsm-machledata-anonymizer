@@ -1,9 +1,12 @@
 import csv
 import json
-from hashlib import file_digest
+import tarfile
+from hashlib import file_digest, md5
+from pathlib import Path
 from shutil import copytree
 
 import pytest
+import yaml
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("gliner2")
@@ -15,6 +18,7 @@ from tokenizers.pre_tokenizers import Whitespace  # noqa: E402
 from torch import nn  # noqa: E402
 from transformers import DebertaV2Config, PreTrainedTokenizerFast  # noqa: E402
 
+from pii_anonymizer import tracking, training_pipeline  # noqa: E402
 from pii_anonymizer.evaluate import DETECTORS, evaluate  # noqa: E402
 from pii_anonymizer.quantize_gliner2 import (  # noqa: E402
     MANIFEST_FILE,
@@ -48,6 +52,56 @@ def tiny_model(architecture, **options):
     )
     config = ExtractorConfig(model_name="local-encoder", architecture=architecture, **options)
     return AutoExtractor.from_config(config, encoder_config=encoder, tokenizer=tokenizer).eval()
+
+
+def test_local_checkpoint_runs_through_evaluation_and_gate(tmp_path, monkeypatch):
+    repo = Path(__file__).resolve().parents[1]
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MLFLOW_ALLOW_FILE_STORE", "true")
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", (tmp_path / "mlruns").as_uri())
+    client = tracking.MlflowClient()
+    proof_experiment = client.create_experiment("tsm-gates-proof")
+    monkeypatch.setattr(tracking, "_tracking_client", lambda: client)
+    monkeypatch.setattr(training_pipeline, "git_sha", lambda: "a" * 40)
+
+    training_pipeline.OUTPUT.mkdir()
+    source = tmp_path / "checkpoint"
+    tiny_model("span").save_pretrained(source)
+    with tarfile.open(training_pipeline.ARCHIVE, "w:gz") as archive:
+        for file in source.rglob("*"):
+            if file.is_file():
+                archive.add(file, arcname=file.relative_to(source))
+    data = (repo / training_pipeline.FIXTURE).read_bytes()
+    training_pipeline.DATASET.parent.mkdir(parents=True)
+    training_pipeline.DATASET.write_bytes(data)
+    digest = md5(data, usedforsecurity=False).hexdigest()
+    training_pipeline.POINTER.write_text(
+        yaml.safe_dump({"outs": [{"path": training_pipeline.DATASET.name, "md5": digest}]})
+    )
+    config = yaml.safe_load((repo / "params.yaml").read_bytes())
+    config["quality_gate"]["t2_dev_sha256"] = training_pipeline.sha256_file(
+        training_pipeline.DATASET
+    )
+    config["quality_gate"]["demonstration"]["min_recall"] = "0/1"
+    config["quality_gate"]["synthetic_proof"] = True
+    training_pipeline.PARAMS.write_text(yaml.safe_dump(config))
+    training_pipeline.TRAINING.write_text(json.dumps({"run_id": "offline-training"}))
+    training_pipeline.LOCK.write_text(
+        "stages:\n"
+        "  train: {outs: [{path: .pipeline/model.tar.gz, hash: md5, md5: test-train}]}\n"
+        "  evaluate: {outs: [{path: .pipeline/evaluation, hash: md5, md5: test-eval}]}\n"
+    )
+
+    training_pipeline.run_evaluation()
+    training_pipeline.run_gate()
+
+    report = json.loads(training_pipeline.REPORT.read_bytes())
+    assert report["verdict"] == "PASS"
+    assert report["synthetic_proof"]
+    assert report["metrics"]["n_entities"] == "3"
+    run = client.get_run(report["run_id"])
+    assert run.info.experiment_id == proof_experiment
+    assert run.data.tags["dvc.train..pipeline/model.tar.gz.md5"] == "test-train"
 
 
 @pytest.mark.parametrize("architecture", ["span", "boundary"])

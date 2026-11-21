@@ -1,0 +1,14 @@
+{
+	auto_https disable_redirects
+}
+
+__HOST__ {
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory {
+			disable_http_challenge
+		}
+	}
+	reverse_proxy 127.0.0.1:5000 {
+		header_up Host 127.0.0.1:5000
+	}
+}
