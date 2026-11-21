@@ -1,7 +1,8 @@
 # Cloud training: first run on Google Cloud
 
-Issue #7. Goal: show that we can fine-tune GLiNER2-PII on Google Cloud, what it gives and
-roughly what it costs. Nothing more: no pipeline, no experiment tracking.
+For NoeBerdoz/tsm-machledata-anonymizer#7, we checked whether we could fine-tune
+GLiNER2-PII on Google Cloud and how much a short run cost. The smoke job ran
+before the [MLflow setup](gcp-setup.md#mlflow-tracking-and-model-registry).
 
 **Result: it works.** On 2026-11-09, a fine-tuning of GLiNER2-PII on 900 rows ran on Agent
 Platform (formerly Vertex AI) with one NVIDIA T4 in europe-west4. Training took 2 minutes, the
@@ -51,7 +52,10 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 If this is not allowed on a machine, use `gcloud.cmd` instead of `gcloud` in every command.
 
-### 2. Log in with the group account and select the project
+### 2. Historical login and project selection
+
+These commands record the setup on 2026-11-09. The runnable examples below use
+the saved `tsm-machledata` configuration.
 
 ```sh
 gcloud auth login tsmmachledata@gmail.com
@@ -63,8 +67,8 @@ gcloud config list    # account = tsmmachledata@gmail.com, project = tsmmachleda
 ### 3. Enable the Agent Platform API
 
 ```sh
-gcloud services enable aiplatform.googleapis.com
-gcloud services list --enabled --filter="config.name:aiplatform.googleapis.com"
+gcloud --configuration=tsm-machledata services enable aiplatform.googleapis.com
+gcloud --configuration=tsm-machledata services list --enabled --filter="config.name:aiplatform.googleapis.com"
 ```
 
 The second command shows `aiplatform.googleapis.com  Agent Platform API`.
@@ -96,9 +100,9 @@ The request is free. It was accepted within about 20 minutes: the quota now read
 ### 5. Create a bucket and upload the script
 
 ```sh
-gcloud storage buckets create gs://tsm-machledata-anonymizer-training --location=europe-west4
-gcloud storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
-gcloud storage ls gs://tsm-machledata-anonymizer-training/smoke/
+gcloud --configuration=tsm-machledata storage buckets create gs://tsm-machledata-anonymizer-training --location=europe-west4
+gcloud --configuration=tsm-machledata storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
+gcloud --configuration=tsm-machledata storage ls gs://tsm-machledata-anonymizer-training/smoke/
 ```
 
 ### 6. Choose the PyTorch image
@@ -106,7 +110,7 @@ gcloud storage ls gs://tsm-machledata-anonymizer-training/smoke/
 We listed Google's prebuilt PyTorch GPU images:
 
 ```sh
-gcloud artifacts docker images list europe-docker.pkg.dev/vertex-ai/training --include-tags --filter="package~pytorch-gpu" --format="value(package,tags)"
+gcloud --configuration=tsm-machledata artifacts docker images list europe-docker.pkg.dev/vertex-ai/training --include-tags --filter="package~pytorch-gpu" --format="value(package,tags)"
 ```
 
 The newest one is `pytorch-gpu.2-4.py310:latest` (PyTorch 2.4, Python 3.10). All of them are
@@ -115,8 +119,8 @@ marked *deprecated*, but they still run.
 ### 7. Launch the job and follow it
 
 ```sh
-gcloud ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
-gcloud ai custom-jobs stream-logs projects/517094606847/locations/europe-west4/customJobs/<JOB_ID>
+gcloud --configuration=tsm-machledata ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
+gcloud --configuration=tsm-machledata ai custom-jobs stream-logs "projects/517094606847/locations/europe-west4/customJobs/<JOB_ID>"
 ```
 
 In the console: *Agent Platform* → *Training* → *Custom jobs*. Check that the region selector
@@ -188,7 +192,7 @@ submission to completion. The education credits covered all of it (USD 0.00 afte
 This is well within our USD 50 of credits. Delete the saved model when it is no longer needed:
 
 ```sh
-gcloud storage rm -r gs://tsm-machledata-anonymizer-training/smoke/output
+gcloud --configuration=tsm-machledata storage rm -r gs://tsm-machledata-anonymizer-training/smoke/output
 ```
 
 ## Run it again
@@ -196,7 +200,7 @@ gcloud storage rm -r gs://tsm-machledata-anonymizer-training/smoke/output
 The account, project, API, quota and bucket are set up. Only these commands are needed:
 
 ```sh
-gcloud auth list    # check: tsmmachledata@gmail.com
-gcloud storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
-gcloud ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
+gcloud --configuration=tsm-machledata auth list    # check: tsmmachledata@gmail.com
+gcloud --configuration=tsm-machledata storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
+gcloud --configuration=tsm-machledata ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
 ```

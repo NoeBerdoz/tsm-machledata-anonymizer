@@ -1,0 +1,54 @@
+workerPoolSpecs:
+  - machineSpec:
+      machineType: n1-standard-4
+    replicaCount: 1
+    containerSpec:
+      # CPU-only image: the GPU images refuse a machine without an accelerator.
+      imageUri: europe-docker.pkg.dev/vertex-ai/training/tf-cpu.2-17.py310:latest
+      command:
+        - bash
+        - -c
+        - |
+          set -euo pipefail
+          revision=${1:?Pass the Git commit SHA}
+          export MLFLOW_TRACKING_URI="${2:?Pass the tracking server URL}"
+          export MLFLOW_TRACKING_USERNAME=training
+          curl -fsSL https://astral.sh/uv/0.13.5/install.sh | UV_UNMANAGED_INSTALL=/tmp/mlflow-uv sh
+          exec /tmp/mlflow-uv/uv run --no-project --python 3.13 \
+            --with 'mlflow-skinny==3.18.0' --with pyyaml --with google-cloud-secret-manager \
+            python - "$revision" <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from urllib.parse import quote
+
+          import google.auth
+          from google.auth.transport.requests import AuthorizedSession
+          from google.cloud import secretmanager
+
+          revision = sys.argv[1]
+          if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", revision):
+              raise SystemExit("Pass the full Git commit SHA")
+          secret = "projects/tsmmachledata-projet/secrets/mlflow-training-password/versions/latest"
+          with secretmanager.SecretManagerServiceClient() as client:
+              response = client.access_secret_version(request={"name": secret})
+          env = {**os.environ, "MLFLOW_TRACKING_PASSWORD": response.payload.data.decode("utf-8")}
+
+          credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+          base_url = "https://storage.googleapis.com/storage/v1/b/tsmmachledata-projet-mlflow/o"
+          with TemporaryDirectory() as staging, AuthorizedSession(credentials) as session:
+              for name in ("tracking.py", "params.yaml", "t2_pilot.jsonl.dvc"):
+                  object_name = quote(f"proof/{revision}/{name}", safe="")
+                  response = session.get(f"{base_url}/{object_name}", params={"alt": "media"}, timeout=30)
+                  response.raise_for_status()
+                  (Path(staging) / name).write_bytes(response.content)
+              subprocess.run(
+                  [sys.executable, "tracking.py", "training", revision], cwd=staging, env=env, check=True
+              )
+          PY
+        - proof
+scheduling:
+  timeout: 600s
