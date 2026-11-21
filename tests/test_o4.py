@@ -80,6 +80,32 @@ def test_runs_generated_requests_and_restores_repeats_and_literal(tmp_path):
     assert all(item["detected"] for item in repeated)
 
 
+def test_counts_every_echo_of_a_placeholder_with_a_missing_mapping(monkeypatch, tmp_path):
+    subprocess.run([sys.executable, str(GENERATOR), str(tmp_path)], check=True)
+    manifest = tmp_path / "requests.jsonl"
+    with manifest.open(encoding="utf-8") as requests:
+        french = json.loads(next(requests))
+    detector = FakeDetector(
+        {planted["value"] for planted in french["values"] if planted["label"] == "PERSON"}
+    )
+    original_pseudonymize = engine.pseudonymize
+
+    def lose_mapping_entry(texts):
+        masked, mapping, missed = original_pseudonymize(texts)
+        del mapping["<PERSON_2>"]
+        return masked, mapping, missed
+
+    monkeypatch.setattr(engine, "pseudonymize", lose_mapping_entry)
+    run = o4.run_request(french, tmp_path, detector)
+
+    assert "<PERSON_1>" in run.captures["backend"][0]["body"]["text"]
+    assert run.restoration == {
+        "intact": 30,
+        "restored": 26,
+        "failures": ["<PERSON_2>"] * 4,
+    }
+
+
 def test_reports_outbound_leak_once_and_traces_missed_occurrences(monkeypatch, tmp_path):
     prompt = "Élise Burnier, Jules Simon, Ada Green. Élise Burnier."
     note = "Jules Simon and Élise Burnier."

@@ -123,21 +123,35 @@ def trace(
     }
 
 
-def check_restoration(tokens: list[str], displayed: str, mapping: dict[str, str]) -> dict:
+def expected_restorations(source: str, spans: list[Span], masked: str) -> Iterator[tuple[str, str]]:
+    """Read generated tokens at the replacement positions in the masked text."""
+    source_end = masked_end = 0
+    for span in spans:
+        unchanged = source[source_end : span.start]
+        token = PLACEHOLDER.match(masked, masked_end + len(unchanged))
+        if token is None or not masked.startswith(unchanged, masked_end):
+            raise ValueError("Masked text does not match the recorded mask spans")
+        yield token.group(), source[span.start : span.end]
+        source_end, masked_end = span.end, token.end()
+    if masked[masked_end:] != source[source_end:]:
+        raise ValueError("Masked text has changes after the last recorded mask span")
+
+
+def check_restoration(tokens: list[str], displayed: str, expected: dict[str, str]) -> dict:
     # Separators keep each occurrence testable even if a stored value contains line breaks.
     parts = displayed.split(SEPARATOR)
     failures = [
         token
         for index, token in enumerate(tokens)
         if index >= len(parts)
-        or " ".join(parts[index].split()) != " ".join(mapping.get(token, token).split())
+        or " ".join(parts[index].split()) != " ".join(expected.get(token, token).split())
     ]
     if len(parts) > max(1, len(tokens)):
         raise ValueError("The displayed response contains extra restoration segments")
+    intact = sum(token in expected for token in tokens)
     return {
-        "intact": sum(token in mapping for token in tokens),
-        "restored": sum(token in mapping for token in tokens)
-        - sum(token in mapping for token in failures),
+        "intact": intact,
+        "restored": intact - sum(token in expected for token in failures),
         "failures": failures,
     }
 
@@ -215,7 +229,12 @@ def run_request(request: dict, directory: Path, detector: Detector) -> RequestRu
         )
 
     result = page.session_state["result"]
-    restoration = check_restoration(tokens, page.code[len(sources)].value, result["mapping"])
+    expected = dict(
+        pair
+        for (name, source), masked in zip(sources.items(), result["texts"], strict=True)
+        for pair in expected_restorations(source, detected[name], masked)
+    )
+    restoration = check_restoration(tokens, page.code[len(sources)].value, expected)
     return RequestRun(request, sources, detected, captures, restoration)
 
 
