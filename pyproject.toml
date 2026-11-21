@@ -42,6 +42,16 @@ baselines = [
     "de-core-news-lg",
     "it-core-news-lg",
 ]
+mlflow-server = [
+    "mlflow[auth]==3.18.0",
+]
+tracking = [
+    "mlflow-skinny==3.18.0",
+    "pyyaml>=6.0.3",
+]
+
+[tool.uv]
+default-groups = ["dev", "tracking"]
 
 [tool.uv.sources]
 # CPU-only PyTorch wheels on Linux and Windows. macOS has no CUDA builds, so it uses PyPI.

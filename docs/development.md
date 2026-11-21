@@ -9,7 +9,7 @@ How the code is organised, and the commands we use every day. The README has the
 ├── pyproject.toml          the project, its dependencies, and the ruff and pytest settings
 ├── uv.lock                 the exact version of every dependency (do not edit by hand)
 ├── .python-version         the Python version (3.13)
-├── params.yaml             the parameters of the pipeline stages (comes with the first stage)
+├── params.yaml             the tracking experiment names and future pipeline parameters
 ├── dvc.yaml                the pipeline stages (comes with the first stage)
 ├── src/pii_anonymizer/     our code, as a Python package
 ├── tests/                  the tests, run by pytest
@@ -28,7 +28,7 @@ What stays the same as in the guide: one file per stage (`prepare.py`, `train.py
 
 ## Parameters
 
-We keep the guide's setup. All the parameters live in `params.yaml` at the root, with one section per stage:
+The experiment names are in `params.yaml` at the root. Keep credentials in the environment. As we add pipeline stages, each stage gets a section in the same file.
 
 ```yaml
 prepare:
@@ -98,6 +98,16 @@ We use [uv](https://docs.astral.sh/uv/). `uv run <command>` runs a command insid
 | Remove a library | `uv remove <name>` |
 
 `uv add` and `uv remove` also update `uv.lock`. Commit both `pyproject.toml` and `uv.lock`.
+
+The `tracking` group contains the lightweight MLflow client and PyYAML. Plain `uv sync` installs `dev` and `tracking`. The app's runtime dependencies are in `[project]`. The optional `mlflow-server` group is for running the server with Basic Auth. See [the MLflow setup](gcp-setup.md#mlflow-tracking-and-model-registry).
+
+To install the server group locally, use a separate environment under the ignored `.venv/` directory:
+
+```sh
+UV_PROJECT_ENVIRONMENT=.venv/mlflow-server uv sync --locked --group mlflow-server
+```
+
+The two packages share files. If you installed the server in the default environment and then removed it, restore the client with `uv sync --locked --reinstall-package mlflow-skinny`.
 
 ### The baselines group
 
