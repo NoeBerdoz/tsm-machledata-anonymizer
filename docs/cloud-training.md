@@ -101,7 +101,6 @@ The request is free. It was accepted within about 20 minutes: the quota now read
 
 ```sh
 gcloud --configuration=tsm-machledata storage buckets create gs://tsm-machledata-anonymizer-training --location=europe-west4
-gcloud --configuration=tsm-machledata storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
 gcloud --configuration=tsm-machledata storage ls gs://tsm-machledata-anonymizer-training/smoke/
 ```
 
@@ -116,10 +115,11 @@ gcloud --configuration=tsm-machledata artifacts docker images list europe-docker
 The newest one is `pytorch-gpu.2-4.py310:latest` (PyTorch 2.4, Python 3.10). All of them are
 marked *deprecated*, but they still run.
 
-### 7. Launch the job and follow it
+### 7. How the original job was launched
+
+The original job read the script from `smoke/train.py`. To follow a job, stream its logs.
 
 ```sh
-gcloud --configuration=tsm-machledata ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
 gcloud --configuration=tsm-machledata ai custom-jobs stream-logs "projects/517094606847/locations/europe-west4/customJobs/<JOB_ID>"
 ```
 
@@ -195,12 +195,31 @@ This is well within our USD 50 of credits. Delete the saved model when it is no 
 gcloud --configuration=tsm-machledata storage rm -r gs://tsm-machledata-anonymizer-training/smoke/output
 ```
 
-## Run it again
+## Run the DVC pipeline
 
-The account, project, API, quota and bucket are set up. Only these commands are needed:
+Complete the [training setup](gcp-setup.md#training-from-github-actions) first.
+Dispatch **Train and evaluate** from `main`. Choose **synthetic_proof** for the wiring check.
+It uses a synthetic JSONL and a separate MLflow gate experiment. The normal run needs the
+frozen T2-dev pointer, hash and demonstration floor. It stops before submitting if they are missing.
+Paid push runs start after Noé enables `TRAINING_ON_PUSH`.
+
+To run the same pipeline locally, use a disposable checkout for the synthetic proof. Set up
+Application Default Credentials with `gcloud --configuration=tsm-machledata auth application-default login`.
+Export the MLflow HTTPS URL and the appropriate tracking username and password. Use `actions-proof` for
+the synthetic proof. Set a unique `TRAINING_SUBMISSION_ID` for each new approved run and keep it
+for retries.
 
 ```sh
-gcloud --configuration=tsm-machledata auth list    # check: tsmmachledata@gmail.com
-gcloud --configuration=tsm-machledata storage cp scripts/cloud-smoke/train.py gs://tsm-machledata-anonymizer-training/smoke/train.py
-gcloud --configuration=tsm-machledata ai custom-jobs create --region=europe-west4 --display-name=gliner2-smoke --config=scripts/cloud-smoke/job.yaml
+uv sync --locked --group gliner2-tests
+uv run --no-sync python -m pii_anonymizer.training_pipeline prepare --proof
+uv run --no-sync dvc repro --pull
+uv run --no-sync python -m pii_anonymizer.training_pipeline summary --proof
+uv run --no-sync python -m pii_anonymizer.training_pipeline verdict
 ```
+
+Omit `--proof` from both commands for the normal run. `training.max_hours` limits the whole
+Agent Platform job, including worker setup and packaging. The smoke cap is 30 minutes.
+The 90-minute Actions job reserves at least 10 minutes for runner setup, 20 for queueing and
+15 for cancellation, evaluation and reporting. The largest training cap is 45 minutes, and
+slow runner setup reduces the time available. GitHub shows the cap or failure reason in the summary.
+Record the actual cost of the new proof after the run.

@@ -3,11 +3,12 @@
 import argparse
 import csv
 import hashlib
+import json
 import logging
 import os
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from fractions import Fraction
 from pathlib import Path
 
@@ -22,6 +23,15 @@ DATASET = "t2-dev"
 SWISS_LABELS = ("AVS", "IBAN", "PHONE")
 PROFILES = ("release", "demonstration")
 LATENCY_INPUTS = 30
+BENCHMARK_METRICS = (
+    "strict_recall",
+    "n_protected",
+    "n_entities",
+    "char_precision",
+    "correct_chars",
+    "predicted_chars",
+    "size_bytes",
+)
 
 
 class GateInputError(ValueError):
@@ -217,6 +227,18 @@ def _evaluate_gate(
     ]
 
 
+def _pipeline_tags(lock_path: Path, training_path: Path) -> dict[str, str]:
+    lock = yaml.safe_load(lock_path.read_bytes())
+    metadata = json.loads(training_path.read_bytes())
+    tags = {"training_run_id": metadata["run_id"]}
+    for stage in ("train", "evaluate"):
+        for output in lock["stages"][stage]["outs"]:
+            path = output["path"]
+            algorithm = output["hash"]
+            tags[f"dvc.{stage}.{path}.{algorithm}"] = output[algorithm]
+    return tags
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Check a model's T2-dev results.")
     parser.add_argument("model", help="candidate detector name in the evaluation results")
@@ -228,9 +250,21 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
     parser.add_argument("--params", type=Path, default=Path("params.yaml"))
     parser.add_argument("--data-pointer", type=Path, default=Path("data/test/t2-dev.jsonl.dvc"))
+    parser.add_argument("--report", type=Path, help="write a recorded PASS or FAIL as JSON")
+    parser.add_argument(
+        "--proof", action="store_true", help="record in the synthetic proof experiment"
+    )
+    parser.add_argument("--dvc-lock", type=Path)
+    parser.add_argument("--training-metadata", type=Path)
     args = parser.parse_args(argv)
     if not args.benchmark_job.strip():
         parser.error("--benchmark-job must be nonempty")
+    if bool(args.dvc_lock) != bool(args.training_metadata):
+        parser.error("pass --dvc-lock and --training-metadata together")
+    if args.proof and args.thresholds != "demonstration":
+        parser.error("the synthetic proof uses the demonstration profile")
+    if args.report:
+        args.report.unlink(missing_ok=True)
 
     os.environ["MLFLOW_SUPPRESS_PRINTING_URL_TO_STDOUT"] = "true"
     logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -240,9 +274,35 @@ def main(argv: list[str] | None = None) -> None:
         parser.exit(1, "FAIL - cannot read the model archive\n")
 
     try:
-        with tracked_run("gate", args.data_pointer, args.params, args.git_sha) as run:
+        tags = _pipeline_tags(args.dvc_lock, args.training_metadata) if args.dvc_lock else {}
+        with tracked_run(
+            "gate", args.data_pointer, args.params, args.git_sha, proof_gate=args.proof
+        ) as run:
             checks = _evaluate_gate(args, model_hash, run.data.tags)
             verdict = "PASS" if all(c.passed for c in checks) else "FAIL"
+            metrics = {}
+            dataset_hash = None
+            if args.report:
+                try:
+                    rows = _job_rows(args.results_dir / "results.csv", args.benchmark_job)
+                    row = _one_row(rows, "model", args.model)
+                    _matching_hash(row, "model_sha256", model_hash)
+                    expected_hash, _ = _read_config(
+                        args.params, args.thresholds, run.data.tags["params_sha256"]
+                    )
+                    _matching_hash(row, "dataset_sha256", expected_hash)
+                    dataset_hash = expected_hash
+                    metrics = {key: row[key] for key in BENCHMARK_METRICS if row.get(key)}
+                except GateInputError:
+                    pass
+                if metrics:
+                    mlflow.log_metrics(
+                        {key: float(value) for key, value in metrics.items()}, synchronous=True
+                    )
+                if args.proof:
+                    tags["synthetic_proof"] = "true"
+                if tags:
+                    mlflow.set_tags(tags, synchronous=True)
             mlflow.log_param("model_sha256", model_hash, synchronous=True)
             mlflow.log_param("gate_profile", args.thresholds, synchronous=True)
             mlflow.log_param("benchmark_job", args.benchmark_job, synchronous=True)
@@ -262,6 +322,22 @@ def main(argv: list[str] | None = None) -> None:
     for check in checks:
         print(f"{check.name}: {check.verdict} - {check.detail}")
     print(f"{verdict} ({args.thresholds}), MLflow run {run.info.run_id}")
+    if args.report:
+        report = {
+            "verdict": verdict,
+            "profile": args.thresholds,
+            "synthetic_proof": args.proof,
+            "checks": [asdict(check) for check in checks],
+            "model_sha256": model_hash,
+            "dataset_sha256": dataset_hash,
+            "metrics": metrics,
+            "git_sha": args.git_sha,
+            "run_id": run.info.run_id,
+        }
+        temporary = args.report.with_suffix(".tmp")
+        temporary.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(args.report)
+        return
     if verdict == "FAIL":
         raise SystemExit(1)
 

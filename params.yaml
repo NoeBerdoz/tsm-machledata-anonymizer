@@ -3,6 +3,19 @@ tracking:
     laptop: tsm-team
     training: tsm-training
     gate: tsm-gates
+    gate_proof: tsm-gates-proof
+
+training:
+  max_hours: 0.5
+  seed: 42
+  dataset: ai4privacy/pii-masking-openpii-1m
+  dataset_revision: ecfdc547f4a0955600cfe6ab98ba2a162207fcc0
+  base_model: fastino/gliner2-privacy-filter-PII-multi
+  model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
+  rows: 1000
+  holdout_rows: 100
+  epochs: 2
+  batch_size: 8
 
 quality_gate:
   # TODO: Record the frozen t2-dev.jsonl SHA-256 (NoeBerdoz/tsm-machledata-anonymizer#60).

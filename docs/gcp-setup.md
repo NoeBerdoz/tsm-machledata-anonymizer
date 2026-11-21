@@ -201,14 +201,14 @@ LAN=$(gc compute instances describe "$V" --zone="$Z" \
 
 ### 4. Make the passwords and grant job access
 
-Generate the four passwords in mode-0600 files outside the checkout. Keep the admin password in Noé’s password manager. Keep the current files for reruns.
+Generate the five passwords in mode-0600 files outside the checkout. Keep the admin password in Noé’s password manager. Keep the current files for reruns.
 
 ```bash
 (
   umask 077
   set -o pipefail
   mkdir -p "$D" && chmod 700 "$D" || exit 1
-  for u in admin team training actions; do
+  for u in admin team training actions actions-proof; do
     test -s "$D/$u.pass" || openssl rand -hex 32 | tr -d '\n' > "$D/$u.pass" || exit 1
     chmod 600 "$D/$u.pass" || exit 1
   done
@@ -252,7 +252,7 @@ test -n "$DNS" &&
     "${V}:~/mlflow-setup/" &&
   RULE=$(https_rule) &&
   { if [[ -n $RULE ]]; then HTTPS_STATE=open; else HTTPS_STATE=closed; fi; } &&
-  (set -o pipefail; awk 1 "$D"/{admin,team,training,actions}.pass |
+  (set -o pipefail; awk 1 "$D"/{admin,team,training,actions,actions-proof}.pass |
     remote "sudo bash ~/mlflow-setup/install.sh '$DNS' '$HTTPS_STATE'") &&
   (gc compute firewall-rules describe mlflow-https >/dev/null 2>&1 ||
     gc compute firewall-rules create mlflow-https --network=mlflow-net --target-tags=mlflow \
@@ -310,13 +310,9 @@ Give a teammate the HTTPS URL and share the `team` password through the password
 )
 ```
 
-The PR stays a draft until the server runs, and draft PRs skip the proof. Set both Actions secrets, then mark the PR ready for review: that runs the proof on the exact PR head. Remove the old URI repository variable if it exists. Keep the PR open for review. Manual dispatch becomes available after the workflow reaches the default branch. [GitHub Actions events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request).
-
-```bash
-test -n "$URI" &&
-  gh secret set MLFLOW_TRACKING_PASSWORD --repo NoeBerdoz/tsm-machledata-anonymizer < "$D/actions.pass" &&
-  printf '%s' "$URI" | gh secret set MLFLOW_TRACKING_URI --repo NoeBerdoz/tsm-machledata-anonymizer
-```
+Run the [GitHub credential migration](#keep-the-production-gate-password-on-main) before the
+Actions proof. The connectivity workflow uses `actions-proof` with access to `tsm-gates-proof`.
+Draft PRs skip that proof. Mark the reviewed PR ready once the proof login works.
 
 The proof prints experiment and run IDs. Open the matching runs in MLflow and keep the UI links privately. Check `connectivity=1`, the full commit SHA, each DVC path and hash, the parsed experiment parameters and the raw-file SHA-256.
 
@@ -362,3 +358,163 @@ Recommended because the registry and tracking database are the O5 record. Same-r
 ### Teardown
 
 Export the O5 evidence, keep any needed model files and cancel active proof jobs. Run `bash ops/mlflow/teardown.sh`, then check Billing for any remaining snapshots and soft-deleted objects.
+
+## Training from GitHub Actions
+
+Noé runs these blocks after review. Use the project's `tsm-machledata` gcloud configuration.
+Check T4 quota in `europe-west4` and the existing training and DVC buckets first.
+
+### Federate the main training workflow
+
+```bash
+gc() { gcloud --configuration=tsm-machledata "$@"; }
+P=tsmmachledata-projet
+PN=517094606847
+REPO=NoeBerdoz/tsm-machledata-anonymizer
+POOL=github-training
+PROVIDER=github
+CI="github-training@$P.iam.gserviceaccount.com"
+JOB="mlflow-training@$P.iam.gserviceaccount.com"
+RID=$(gh api "repos/$REPO" --jq .id)
+OID=$(gh api "repos/$REPO" --jq .owner.id)
+REF="$REPO/.github/workflows/training.yml@refs/heads/main"
+CONDITION="assertion.repository_owner_id=='$OID' && assertion.repository_id=='$RID' && assertion.ref=='refs/heads/main' && assertion.workflow_ref=='$REF'"
+
+gc services enable iam.googleapis.com cloudresourcemanager.googleapis.com \
+  iamcredentials.googleapis.com sts.googleapis.com aiplatform.googleapis.com \
+  storage.googleapis.com secretmanager.googleapis.com --project="$P"
+gc iam service-accounts create github-training --project="$P"
+gc iam workload-identity-pools create "$POOL" --project="$P" --location=global
+gc iam workload-identity-pools providers create-oidc "$PROVIDER" --project="$P" \
+  --location=global --workload-identity-pool="$POOL" \
+  --issuer-uri=https://token.actions.githubusercontent.com \
+  --attribute-mapping=google.subject=assertion.sub,attribute.repository_id=assertion.repository_id \
+  --attribute-condition="$CONDITION"
+MEMBER="principalSet://iam.googleapis.com/projects/$PN/locations/global/workloadIdentityPools/$POOL/attribute.repository_id/$RID"
+gc iam service-accounts add-iam-policy-binding "$CI" --project="$P" \
+  --member="$MEMBER" --role=roles/iam.workloadIdentityUser
+gh variable set WIF_PROVIDER --repo "$REPO" \
+  --body "projects/$PN/locations/global/workloadIdentityPools/$POOL/providers/$PROVIDER"
+gh variable set WIF_SERVICE_ACCOUNT --repo "$REPO" --body "$CI"
+```
+
+The workflow uses a credential file that can request a fresh OIDC token.
+Test access beyond the first token's lifetime. Verify WIF rejects a fork and a non-main ref.
+For the negative checks, use an auth-only probe with no MLflow secrets or job submission.
+
+[Google Cloud federation](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines#github-actions)
+
+### Grant training and storage access
+
+The training account reads `mlflow-training-password` through the MLflow setup above.
+Check uniform bucket-level access on both buckets before adding conditional bindings.
+If it is off, review current ACLs before Noé enables it.
+
+```bash
+gc projects add-iam-policy-binding "$P" --member="serviceAccount:$CI" --role=roles/aiplatform.user
+gc iam service-accounts add-iam-policy-binding "$JOB" --project="$P" \
+  --member="serviceAccount:$CI" --role=roles/iam.serviceAccountUser
+
+DVC=tsm-machledata-anonymizer-dvc
+TRAIN=tsm-machledata-anonymizer-training
+DVC_OBJECTS="projects/_/buckets/$DVC/objects/"
+TRAIN_OBJECTS="projects/_/buckets/$TRAIN/objects/pipeline/"
+BUCKET_ONLY="resource.type=='storage.googleapis.com/Bucket'"
+OBJECT_ONLY="resource.type=='storage.googleapis.com/Object'"
+WORKER_INPUTS="resource.name.startsWith('${TRAIN_OBJECTS}inputs/')"
+WORKER_OUTPUTS="resource.name.startsWith('${TRAIN_OBJECTS}outputs/')"
+
+gc storage buckets add-iam-policy-binding "gs://$DVC" --member="serviceAccount:$CI" \
+  --role=roles/storage.objectUser \
+  --condition="title=dvc-cache,expression=resource.name.startsWith('${DVC_OBJECTS}dvcstore/') || resource.name.startsWith('${DVC_OBJECTS}pipeline-proof/')"
+gc storage buckets add-iam-policy-binding "gs://$DVC" --member="serviceAccount:$CI" \
+  --role=roles/storage.objectViewer --condition="title=list-bucket,expression=$BUCKET_ONLY"
+for role in objectCreator objectViewer; do
+  gc storage buckets add-iam-policy-binding "gs://$TRAIN" --member="serviceAccount:$CI" \
+    --role="roles/storage.$role" \
+    --condition="title=pipeline-objects,expression=resource.name.startsWith('$TRAIN_OBJECTS')"
+done
+gc storage buckets add-iam-policy-binding "gs://$TRAIN" --member="serviceAccount:$JOB" \
+  --role=roles/storage.objectViewer \
+  --condition="title=pipeline-worker-read,expression=$BUCKET_ONLY || ($OBJECT_ONLY && ($WORKER_INPUTS || $WORKER_OUTPUTS))"
+gc storage buckets add-iam-policy-binding "gs://$TRAIN" --member="serviceAccount:$JOB" \
+  --role=roles/storage.objectCreator \
+  --condition="title=pipeline-worker-write,expression=$OBJECT_ONLY && $WORKER_OUTPUTS"
+```
+
+The worker reads `pipeline/inputs/<id>/` and writes `pipeline/outputs/<id>/`. CI owns the
+separate `pipeline/<id>/claim` objects. Keep each claim while its run can be retried. A claim
+prevents a second GPU job after a lost create response. If Actions reports a definitive HTTP
+rejection, fix the cause and dispatch a new run. For an uncertain response, look up the job
+by submission ID and cancel it if it is still active. [IAM resource names](https://docs.cloud.google.com/iam/docs/conditions-attribute-reference#resource-name)
+
+```bash
+gc ai custom-jobs list --project="$P" --region=europe-west4 --filter="labels.submission_id=$SUBMISSION_ID"
+gc ai custom-jobs cancel "$JOB_NAME" --project="$P" --region=europe-west4
+```
+
+Clean up staged inputs and output copies after the job ends and the DVC cache is saved. Keep the claim.
+To roll back, disable paid pushes and remove the new bindings with the same members, roles and conditions.
+Disable the federation provider when it is unused.
+
+### Keep the production gate password on main
+
+Use the updated installer to create `actions-proof` and `tsm-gates-proof`. It verifies that the proof
+login gets HTTP 403 when creating a run in `tsm-gates`. Run it before enabling the connectivity proof.
+
+In GitHub **Settings → Environments**, create `training-gate`. Select **Selected branches and tags**.
+Add a branch rule for `main`. Leave tag rules empty. Remove the old repository-scoped password and
+rotate the MLflow `actions` password. Use `D` and `URI` from the MLflow setup.
+
+```bash
+gh secret delete MLFLOW_TRACKING_PASSWORD --repo "$REPO"
+(umask 077; openssl rand -hex 32 | tr -d '\n' > "$D/actions.next.pass")
+python3 - "$URI" "$D" <<'PY'
+import base64
+import json
+import sys
+from pathlib import Path
+from urllib.request import Request, urlopen
+
+uri, directory = sys.argv[1], Path(sys.argv[2])
+assert uri.startswith("https://")
+admin = (directory / "admin.pass").read_text().strip()
+password = (directory / "actions.next.pass").read_text().strip()
+assert len(password) == 64
+auth = base64.b64encode(f"admin:{admin}".encode()).decode()
+request = Request(
+    uri + "/api/2.0/mlflow/users/update-password",
+    data=json.dumps({"username": "actions", "password": password}).encode(),
+    headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
+    method="PATCH",
+)
+with urlopen(request, timeout=10):
+    pass
+PY
+```
+
+After rotation succeeds, verify the previous password gets HTTP 401. Save the new password and
+set the two separate Actions secrets.
+
+```bash
+mv "$D/actions.next.pass" "$D/actions.pass"
+gh secret set MLFLOW_GATE_PASSWORD --repo "$REPO" --env training-gate < "$D/actions.pass"
+gh secret set MLFLOW_PROOF_PASSWORD --repo "$REPO" < "$D/actions-proof.pass"
+printf '%s' "$URI" | gh secret set MLFLOW_TRACKING_URI --repo "$REPO"
+```
+
+[GitHub environment restrictions](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)
+
+### Verify before enabling paid runs
+
+Dispatch one approved synthetic proof on `main` once the workflow is available there.
+Verify the summary says **Synthetic proof** and the verdict is in `tsm-gates-proof`.
+Verify the normal path blocks before submission when the T2-dev pointer, frozen hash or floor is
+missing or invalid. Enable automatic runs when ready.
+
+```bash
+gh variable set TRAINING_ON_PUSH --repo "$REPO" --body true
+```
+
+After WIF passes, audit consumers of `GOOGLE_SERVICE_ACCOUNT_KEY`. Noé can remove it from GitHub
+and revoke the underlying key once its consumers have migrated.

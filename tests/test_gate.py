@@ -88,7 +88,7 @@ def gate_inputs(tmp_path, monkeypatch):
         for label, protected, total in [("AVS", 9, 10), ("IBAN", 25, 25), ("PHONE", 65, 65)]
     ]
 
-    def run(profile="release", model="student", *, use_fixture_results=True):
+    def run(profile="release", model="student", *, use_fixture_results=True, report=None):
         if use_fixture_results:
             replace_rows(tmp_path / "results.csv", RESULT_COLUMNS, [student, teacher])
             replace_rows(tmp_path / "recall_per_type.csv", PER_TYPE_COLUMNS, swiss)
@@ -109,6 +109,8 @@ def gate_inputs(tmp_path, monkeypatch):
             "--results-dir",
             str(tmp_path),
         ]
+        if report:
+            argv.extend(["--report", str(report)])
         exit_code = 0
         try:
             gate.main(argv)
@@ -116,10 +118,28 @@ def gate_inputs(tmp_path, monkeypatch):
             exit_code = exc.code
         runs = client.search_runs([experiment])
         assert len(runs) == 1
-        assert exit_code == (0 if runs[0].data.params["gate_status"] == "PASS" else 1)
+        assert exit_code == (0 if report or runs[0].data.params["gate_status"] == "PASS" else 1)
         return runs[0]
 
     return student, teacher, swiss, params, run
+
+
+@pytest.mark.parametrize(("protected", "verdict"), [("950", "PASS"), ("930", "FAIL")])
+def test_pipeline_report_preserves_metrics_for_pass_and_fail(
+    gate_inputs, tmp_path, protected, verdict
+):
+    student, _, _, _, run_gate = gate_inputs
+    student["n_protected"] = protected
+    report = tmp_path / "report.json"
+    run = run_gate("demonstration", report=report)
+
+    evidence = json.loads(report.read_text())
+    assert evidence["verdict"] == verdict
+    assert evidence["model_sha256"] == student["model_sha256"]
+    assert evidence["dataset_sha256"] == DATASET_HASH
+    assert evidence["metrics"]["n_protected"] == protected
+    assert evidence["run_id"] == run.info.run_id
+    assert run.data.metrics["n_protected"] == float(protected)
 
 
 def test_release_accepts_exact_boundaries_and_indexes_archive_hash(gate_inputs, capsys):

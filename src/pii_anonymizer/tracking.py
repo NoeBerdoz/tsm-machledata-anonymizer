@@ -17,7 +17,12 @@ from mlflow.tracking import MlflowClient
 from yaml.nodes import MappingNode
 
 _KINDS = ("laptop", "training", "gate")
-_PROOF_KINDS = {"laptop": "laptop", "training": "training", "actions": "gate"}
+_PROOF_KINDS = {
+    "laptop": "laptop",
+    "training": "training",
+    "actions": "gate",
+    "actions-proof": "gate",
+}
 _POINTER = Path("data/test/t2_pilot.jsonl.dvc")
 _CREDENTIAL_KEY = re.compile(
     r"(?:^|[\W_])(?:(?:private|access|api)[\W_]+key|password|passwd|secret|token|credentials?"
@@ -96,8 +101,7 @@ def _parameter_leaves(
         raise TrackingInputError("Parameters must use scalar values, sequences or mappings")
 
 
-def _tracking_client() -> MlflowClient:
-    uri = mlflow.get_tracking_uri()
+def validate_tracking_uri(uri: str) -> None:
     try:
         url = urlsplit(uri)
         valid = (
@@ -111,6 +115,11 @@ def _tracking_client() -> MlflowClient:
         valid = False
     if not valid:
         raise TrackingInputError("Set MLFLOW_TRACKING_URI to an HTTPS URL without user info")
+
+
+def _tracking_client() -> MlflowClient:
+    uri = mlflow.get_tracking_uri()
+    validate_tracking_uri(uri)
     if not os.environ.get("MLFLOW_TRACKING_USERNAME") or not os.environ.get(
         "MLFLOW_TRACKING_PASSWORD"
     ):
@@ -127,6 +136,8 @@ def _run(
     git_sha: str,
     *,
     proof_kind: str | None = None,
+    proof_gate: bool = False,
+    upstream_source: tuple[str, str, str] | None = None,
 ) -> Iterator[Run]:
     if kind not in _KINDS:
         raise TrackingInputError("Use tracking kind laptop, training or gate")
@@ -136,9 +147,19 @@ def _run(
         raise TrackingInputError("End the active MLflow run before starting a tracked run")
 
     pointers = [data_pointers] if isinstance(data_pointers, (str, Path)) else data_pointers
-    if not pointers:
+    if not pointers and upstream_source is None:
         raise TrackingInputError("Pass at least one DVC pointer")
     tags = {"mlflow.source.git.commit": git_sha}
+    if upstream_source is not None:
+        name, revision, split = upstream_source
+        if (
+            kind != "training"
+            or not re.fullmatch(r"[\w.-]+/[\w.-]+", name)
+            or not re.fullmatch(r"[a-f0-9]{40}", revision)
+            or not re.fullmatch(r"[\w.-]+", split)
+        ):
+            raise TrackingInputError("Pass a pinned training source with its revision and split")
+        tags.update({"source.name": name, "source.revision": revision, "source.split": split})
     for index, pointer in enumerate(pointers):
         provenance = _data_provenance(Path(pointer))
         tags.update({f"data.{index}.{key}": value for key, value in provenance.items()})
@@ -153,7 +174,7 @@ def _run(
             raise TrackingInputError("Parameter keys must have unique dotted paths")
         logged_params[key] = value
     try:
-        experiment_name = params["tracking"]["experiments"][kind]
+        experiment_name = params["tracking"]["experiments"]["gate_proof" if proof_gate else kind]
     except (KeyError, TypeError) as exc:
         raise TrackingInputError(f"Set tracking.experiments.{kind} in params.yaml") from exc
     if not isinstance(experiment_name, str) or not _EXPERIMENT_NAME.fullmatch(experiment_name):
@@ -166,6 +187,8 @@ def _run(
             for value in logged_params.values()
         ):
             raise TrackingInputError("Set the three tracking experiment names in params.yaml")
+        if proof_gate:
+            logged_params["tracking.experiments.gate_proof"] = experiment_name
 
     experiment = client.get_experiment_by_name(experiment_name)
     if experiment is None:
@@ -198,14 +221,24 @@ def tracked_run(
     data_pointers: Sequence[str | Path] | str | Path,
     params_path: str | Path,
     git_sha: str,
+    *,
+    proof_gate: bool = False,
+    upstream_source: tuple[str, str, str] | None = None,
 ) -> Iterator[Run]:
     """Open a precreated experiment run for a laptop, training or gate caller.
 
     The run is active for fluent logging. Keep credentials in the environment.
-    Pass the .dvc files in input order. Outputs in dvc.lock come with
-    NoeBerdoz/tsm-machledata-anonymizer#14.
+    Pass the .dvc files in input order, or the pinned upstream source for training.
     """
-    with _run(_tracking_client(), kind, data_pointers, Path(params_path), git_sha) as run:
+    with _run(
+        _tracking_client(),
+        kind,
+        data_pointers,
+        Path(params_path),
+        git_sha,
+        proof_gate=proof_gate,
+        upstream_source=upstream_source,
+    ) as run:
         yield run
 
 
@@ -226,6 +259,7 @@ def main() -> None:
             Path("params.yaml"),
             args.git_sha,
             proof_kind=args.kind,
+            proof_gate=args.kind == "actions-proof",
         ) as run:
             mlflow.log_metric("connectivity", 1, synchronous=True)
     except TrackingInputError as exc:

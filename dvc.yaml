@@ -1,0 +1,42 @@
+stages:
+  train:
+    cmd: python -m pii_anonymizer.cloud_training
+    deps:
+      - scripts/cloud-smoke/job.yaml
+      - scripts/cloud-smoke/train.py
+      - src/pii_anonymizer/cloud_training.py
+      - src/pii_anonymizer/tracking.py
+    params:
+      - training
+      - tracking.experiments.training
+    outs:
+      - .pipeline/model.tar.gz
+      - .pipeline/training.json
+  evaluate:
+    cmd: python -m pii_anonymizer.training_pipeline evaluate
+    deps:
+      - .pipeline/model.tar.gz
+      - data/test/t2-dev.jsonl
+      - src/pii_anonymizer/training_pipeline.py
+      - src/pii_anonymizer/evaluate.py
+      - src/pii_anonymizer/baselines.py
+      - src/pii_anonymizer/benchmark.py
+      - src/pii_anonymizer/metrics.py
+      - src/pii_anonymizer/results.py
+      - src/pii_anonymizer/spans.py
+      - uv.lock
+    outs:
+      - .pipeline/evaluation
+  gate:
+    cmd: python -m pii_anonymizer.training_pipeline gate
+    deps:
+      - .pipeline/model.tar.gz
+      - .pipeline/training.json
+      - .pipeline/evaluation
+      - data/test/t2-dev.jsonl
+      - params.yaml
+      - src/pii_anonymizer/training_pipeline.py
+      - src/pii_anonymizer/gate.py
+      - src/pii_anonymizer/tracking.py
+    outs:
+      - .pipeline/gate.json
