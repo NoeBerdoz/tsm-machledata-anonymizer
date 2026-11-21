@@ -11,8 +11,8 @@ fi
 host=$1
 https_firewall=$2
 mapfile -t passwords
-if [[ ${#passwords[@]} -ne 4 ]]; then
-    echo 'Send four password lines on stdin in this order: admin, team, training, actions.' >&2
+if [[ ${#passwords[@]} -ne 5 ]]; then
+    echo 'Send five password lines: admin, team, training, actions, actions-proof.' >&2
     exit 1
 fi
 for password in "${passwords[@]}"; do
@@ -105,8 +105,14 @@ from urllib.request import ProxyHandler, Request, build_opener
 base_url = "http://127.0.0.1:5000/api"
 opener = build_opener(ProxyHandler({}))
 bootstrap_file = Path("/etc/mlflow/bootstrap.env")
-users = dict(zip(("admin", "team", "training", "actions"), sys.stdin.read().splitlines(), strict=True))
-experiments = {"team": "tsm-team", "training": "tsm-training", "actions": "tsm-gates"}
+users = dict(zip(
+    ("admin", "team", "training", "actions", "actions-proof"),
+    sys.stdin.read().splitlines(), strict=True,
+))
+experiments = {
+    "team": "tsm-team", "training": "tsm-training", "actions": "tsm-gates",
+    "actions-proof": "tsm-gates-proof",
+}
 
 
 def request(path, *, auth=None, method="GET", body=None, query=None, expected=(200,)):

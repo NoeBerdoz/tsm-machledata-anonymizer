@@ -94,6 +94,18 @@ def test_tracked_run_records_multiple_pointers_and_hashes_raw_yaml(inputs, clien
     )
 
 
+def test_synthetic_gate_uses_its_own_experiment(inputs, client):
+    pointer, params = inputs
+    params.write_text(
+        params.read_text().replace(
+            "    gate: tsm-gates\n", "    gate: tsm-gates\n    gate_proof: tsm-gates-proof\n"
+        )
+    )
+    with tracking.tracked_run("gate", pointer, params, SHA, proof_gate=True):
+        pass
+    client.get_experiment_by_name.assert_called_once_with("tsm-gates-proof")
+
+
 @pytest.mark.parametrize("key", ["max_tokens", "special_tokens", "tokenizer"])
 def test_tracking_logs_model_parameter_names(inputs, client, key):
     _, params = inputs

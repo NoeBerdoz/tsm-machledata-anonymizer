@@ -1,0 +1,2 @@
+{"id":"pipeline-proof-001","text":"Contact Mira Example at mira@example.test.","lang":"en","entities":[{"start":8,"end":20,"label":"person"},{"start":24,"end":41,"label":"email"}]}
+{"id":"pipeline-proof-002","text":"Bitte Herrn Leo Muster anrufen.","lang":"de","entities":[{"start":12,"end":22,"label":"person"}]}

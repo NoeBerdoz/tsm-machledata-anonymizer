@@ -20,6 +20,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+## Training pipeline outputs
+/.pipeline/
+/gha-creds-*.json
+
 ## Notebooks
 .ipynb_checkpoints/
 

@@ -143,7 +143,7 @@ def evaluate(
     detector: Detector,
     dataset_path: Path,
     out_dir: Path,
-    latency_ids: Path = LATENCY_IDS,
+    latency_ids: Path | None = LATENCY_IDS,
     *,
     benchmark_job: str = "",
     model_file: Path | None = None,
@@ -155,7 +155,7 @@ def evaluate(
     scores = score(examples, predictions)
 
     size = size_on_disk(detector.files) if detector.files else None
-    texts = latency_texts(examples, latency_ids)
+    texts = latency_texts(examples, latency_ids) if latency_ids else []
     lang_of_text = {e.text: e.lang for e in examples}
     latency = (
         measure_latency(lambda t: detect_example(detector, t, lang_of_text[t]), texts)
@@ -184,7 +184,7 @@ def evaluate(
         "latency_p50_ms": cell(latency.p50_ms if latency else None, digits=2),
         "latency_p95_ms": cell(latency.p95_ms if latency else None, digits=2),
         "latency_p95_ms_raw": str(latency.p95_ms) if latency else "",
-        "latency_ids_sha256": sha256_file(latency_ids) if latency else "",
+        "latency_ids_sha256": sha256_file(latency_ids) if latency and latency_ids else "",
         "latency_p50_ms_per_100_words": cell(
             latency.p50_ms_per_100_words if latency else None, digits=2
         ),
