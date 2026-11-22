@@ -62,3 +62,11 @@ The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 m
 - **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by `source` (`prompt`, `email`, `pdf`, `docx`, `csv`, `txt`), by `kind` (`realistic` or `planted`) and by language, with seed 42.
 - **When**: by 30 November (v1), before any tuning, we freeze the annotation policy, the groups, the mix of types and formats, and the file hashes. The policy treats personal attributes as personal data, titles, ages, sex and gender included, so a model that masks them is not counted as over-masking. After the split, we never move a snippet between the two parts.
 - **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.
+
+After splitting T2, export the Teacher exclusion manifest on the freeze side:
+
+```sh
+uv run python -m pii_anonymizer.t2_holdout data/test/t2-final.jsonl data/test/t2-final-holdout.json
+```
+
+Track the manifest as a separate DVC artifact so training can fetch it independently. It contains sorted, deduplicated source IDs with trailing `-ch` suffixes removed and SHA-256 digests of the exact UTF-8 row texts. Give the [Teacher training command](swiss-identifiers.md#the-training-rows) the manifest and keep the raw final split on the freeze side.
