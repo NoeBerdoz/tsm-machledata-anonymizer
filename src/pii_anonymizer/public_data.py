@@ -101,9 +101,9 @@ def sample_rows(
     return sample
 
 
-def write_jsonl(records: Iterable[dict], path: Path) -> None:
+def write_jsonl(records: Iterable[dict], path: Path, *, newline: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline=newline) as f:
         for record in records:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 

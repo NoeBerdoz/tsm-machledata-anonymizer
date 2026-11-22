@@ -62,17 +62,19 @@ Of these 35 labels, 12 are new: `title`, `age`, `sex`, `gender`, `date`, `time`,
 
 ## The training subset
 
-`src/pii_anonymizer/teacher_data.py` writes `data/train/teacher-v1.jsonl`, versioned with DVC:
+`src/pii_anonymizer/teacher_data.py` can build a candidate from the public training splits before the T2 split is frozen.
 
 ```sh
 uv run --group baselines python -m pii_anonymizer.public_data data/test/
 uv run python -m pii_anonymizer.swiss data/test/t1-openpii-1m.jsonl data/test/gretel-test-iban.jsonl data/test/t1-swiss.jsonl --seed 0
-uv run --group baselines python -m pii_anonymizer.teacher_data data/train/teacher-v1.jsonl \
+uv run --group baselines python -m pii_anonymizer.teacher_data data/train/teacher-v1-candidate.jsonl --candidate \
     --exclude data/test/t1-openpii-1m.jsonl --exclude data/test/t1-open-pii-500k.jsonl \
     --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl
 ```
 
-The first two commands rebuild the test sets, which the third one reads to check that no training row is a test row.
+The first two commands rebuild the public test sets. The third checks source rows and augmented rows against all four files. The candidate has 50,000 rows, including 4,206 with Swiss replacements (1,322 AVS numbers, 3,471 phone numbers and 121 IBANs). Its SHA-256 is `2860f05de04f91c264d8acf0779fcf5d524c72e36ba62438198914cad936a3ad`.
+
+After the T2 freeze, run the third command with output `data/train/teacher-v1.jsonl` and replace `--candidate` with `--t2-dev data/test/t2-dev.jsonl --t2-manifest data/test/t2-final-holdout.json`. Keep all four public exclusions. The freeze procedure produces the manifest from T2-final. Once the checks pass, update and push the corpus with DVC. Record its DVC MD5 in `teacher.reference_data_md5` in `params.yaml`. The full launcher requires that hash to match the local data and its pointer. The short trial uses its own DVC pointer. Run `uv run dvc pull data/train/teacher-v1-candidate.jsonl.dvc` before launching it.
 
 | Source | Split | Rows | Per language (FR, DE, IT, EN) |
 |---|---|---|---|
@@ -80,16 +82,16 @@ The first two commands rebuild the test sets, which the third one reads to check
 | Gretel | train | 10,000 | 2,500 |
 
 - **80 % OpenPII-1M, 20 % Gretel.** OpenPII-1M holds the types that GLiNER2-PII misses most (title, age, sex, gender). Gretel adds IBANs, company names and the document formats where GLiNER2-PII misses IBANs (SWIFT messages, XML). Its documents are about ten times longer, so its 10,000 documents weigh about as much text as the 40,000 OpenPII-1M rows.
-- **Seed 1.** The rows are drawn with seed 1, sorted by uid (OpenPII-1M) or index (Gretel) first, so the draw does not depend on the file order. The test samples use seed 42 and come from the validation and test splits, so the splits already keep them apart. The Swiss values use seed 1 too (see [swiss-identifiers.md](swiss-identifiers.md)).
+- **Seed 1.** The rows are drawn with seed 1, sorted by uid (OpenPII-1M) or index (Gretel) first, so the draw does not depend on the file order. The test samples use seed 42 and come from the validation and test splits, so the splits already keep them apart. Swiss augmentation uses seed 3 (see [swiss-identifiers.md](swiss-identifiers.md)).
 - **Pinned data.** Both datasets are read from the pinned commits of `PARQUET_REVISIONS` in `public_data.py`.
 - **Checks.** The script stops if an entity has a label without a teacher label, or if a training row has the id or the text of a test row.
 
-The file written on 2026-11-22 (DVC md5 `467749555317968ee6a14428ff71129c`, 49,480,619 bytes):
+The earlier candidate used seed 1 for both sampling and augmentation. Its measurements on 2026-11-22 (DVC md5 `467749555317968ee6a14428ff71129c`, 49,480,619 bytes):
 
 - 50,000 rows: 10,000 OpenPII-1M rows and 2,500 Gretel documents per language. 26.3 million characters, 13.9 million from OpenPII-1M and 12.4 million from Gretel.
 - No OpenPII-1M entity dropped. 76 Gretel entities dropped, because their span is empty, does not fit the text or has outer spaces (`convert_gretel_row` in `public_data.py`).
 - 4,227 rows with Swiss values: 1,409 AVS numbers, 3,434 phone numbers and 127 IBANs. Every AVS number and IBAN passes the validators of `rules.py`.
-- No training row has the id or the text of a row of T1 (both samples), the Gretel test sample or the Swiss test set. T2 does not exist yet: its files must be added with `--exclude` when it does (issue #43), and the subset rebuilt if a row is shared.
+- No training row has the id or the text of a row of T1 (both samples), the Gretel test sample or the Swiss test set. The T2 split was pending when this candidate was built.
 - 665 OpenPII-1M phone numbers have a trailing space inside their span, as in the dataset. `to_example` strips it, so the teacher learns the number without the space.
 
 The most frequent teacher labels are `date` (48,575 entities), `first_name` (34,013) and `last_name` (29,645). The rarest are Gretel's: `coordinates` (152) and `password` (142).
@@ -111,3 +113,13 @@ uv run python -m pii_anonymizer.teacher_job --full --id <name>    # the teacher
 - The settings are in the `teacher` section of `params.yaml`. Agent Platform stops the job after `max_hours` (4 hours).
 
 **The short run.** `--trial` trains on 2,000 rows of the subset, with 200 more held out to measure the recall before and after, and a cap of 20 minutes (`teacher.trial`). It measures the speed on our data: `training.json` gives the characters per second and `full_run_hours_estimate`, the training time of the full subset at that speed. Our rows are longer than those of the first cloud run, because of the Gretel documents, so its 18 rows per second does not apply.
+
+**Recovering epoch one after a capped run.** If the job stops after uploading the first checkpoint, the launcher exits before downloading the final outputs. Use the submission ID printed by the launcher to retrieve the checkpoint and its metadata from that run. Run these commands in an empty directory.
+
+```sh
+prefix="gs://tsm-machledata-anonymizer-training/pipeline/outputs/${submission}"
+gcloud storage cp "$prefix/epoch-1.json" "$prefix/epoch-1.tar.gz" .
+python -c 'import hashlib,json; f=open("epoch-1.tar.gz","rb"); expected=json.load(open("epoch-1.json"))["sha256"]; raise SystemExit(0 if hashlib.file_digest(f,"sha256").hexdigest()==expected else "Checkpoint hash mismatch")'
+```
+
+**Local check on 22 November 2026.** A CPU trial made one optimizer update on eight training examples and saved both the first-epoch and final checkpoints. The final checkpoint reloaded and returned predictions on four held-out examples, one for each language. The trial used a local MLflow store. The four examples serve as a functional check of the worker. The cloud trial measures GPU throughput for the full run.

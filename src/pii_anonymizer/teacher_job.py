@@ -67,24 +67,26 @@ def submission_id(name: str, mode: str) -> str:
     return hashlib.sha256(f"teacher:{mode}:{name}".encode()).hexdigest()[:32]
 
 
-def staged_paths(pointer: Path) -> tuple[Path, ...]:
+def staged_paths(pointer: Path) -> dict[str, Path]:
     """The files the job copies next to train.py (see scripts/teacher/job.yaml)."""
-    return (
-        JOB_DIR / "train.py",
-        PARAMS,
-        PACKAGE / "tracking.py",
-        PACKAGE / "teacher_labels.py",
-        pointer.with_suffix(""),
-        pointer,
-    )
+    return {
+        "train.py": JOB_DIR / "train.py",
+        "params.yaml": PARAMS,
+        "tracking.py": PACKAGE / "tracking.py",
+        "teacher_labels.py": PACKAGE / "teacher_labels.py",
+        "teacher-v1.jsonl": pointer.with_suffix(""),
+        "teacher-v1.jsonl.dvc": pointer,
+    }
 
 
-def check_data(pointer: Path) -> None:
+def check_data(pointer: Path, *, mode: str = "trial", reference_md5: str | None = None) -> None:
     """Raise TrainingError if the subset is missing or does not match its DVC pointer."""
     data = pointer.with_suffix("")
     if not data.is_file():
         raise TrainingError(f"{data} is missing: run `uv run dvc pull {pointer}`")
     expected = yaml.safe_load(pointer.read_bytes())["outs"][0]["md5"]
+    if mode == "full" and reference_md5 != expected:
+        raise TrainingError("Set teacher.reference_data_md5 to the T2-validated corpus DVC hash")
     with data.open("rb") as handle:
         digest = hashlib.file_digest(handle, "md5").hexdigest()
     if digest != expected:
@@ -170,7 +172,7 @@ def main(argv: list[str] | None = None) -> None:
         settings = settings_for(params, args.mode)
         seconds = cap_seconds(settings["max_hours"])
         pointer = Path(settings["data"])
-        check_data(pointer)
+        check_data(pointer, mode=args.mode, reference_md5=settings.get("reference_data_md5"))
         revision = check_git()
         uri = os.environ.get("MLFLOW_TRACKING_URI", "")
         validate_tracking_uri(uri)
@@ -179,8 +181,8 @@ def main(argv: list[str] | None = None) -> None:
         paths = staged_paths(pointer)
 
         def stage_inputs(bucket, prefix):
-            for path in paths:
-                bucket.blob(f"{prefix}/{path.name}").upload_from_filename(
+            for name, path in paths.items():
+                bucket.blob(f"{prefix}/{name}").upload_from_filename(
                     path, if_generation_match=0, timeout=300
                 )
 
@@ -190,7 +192,12 @@ def main(argv: list[str] | None = None) -> None:
         bucket = storage.Client(project=PROJECT, credentials=credentials).bucket(BUCKET)
         with AuthorizedSession(credentials, max_refresh_attempts=0) as session:
             name = cloud_training.submit_once(
-                session, bucket, submission, fingerprint(job, paths), job, stage_inputs
+                session,
+                bucket,
+                submission,
+                fingerprint(job, tuple(paths.values())),
+                job,
+                stage_inputs,
             )
             print(f"Agent Platform job {name} (submission {submission}, cap {seconds} s)")
             print("Waiting for the job. Ctrl+C stops waiting, not the job.", flush=True)

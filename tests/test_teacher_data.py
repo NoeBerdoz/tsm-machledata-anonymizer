@@ -3,6 +3,7 @@ import json
 import pytest
 
 from pii_anonymizer import teacher_data
+from pii_anonymizer.t2_holdout import Holdout
 from pii_anonymizer.teacher_data import build, check_labels, sample_gretel_train
 
 TEXT = "Anna Muster, tel. +33 6 12 34 56 78"
@@ -77,3 +78,37 @@ def test_gretel_takes_all_rows_when_a_language_has_fewer():
     sample = sample_gretel_train(GRETEL, per_language=10, seed=1)
     assert len(sample) == 12
     assert "Spanish" not in {r["language"] for r in sample}
+
+
+def test_final_manifest_checks_the_augmented_corpus(small):
+    rows = build(OPENPII, GRETEL, [])
+    rewritten = next(row for row in rows if row["id"].endswith("-ch"))
+    final = Holdout.from_records([{"id": "different-id", "text": rewritten["text"]}])
+    with pytest.raises(ValueError, match="training rows"):
+        build(OPENPII, GRETEL, [], t2_manifest=final)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        [],
+        ["--t2-manifest", "manifest.json"],
+        ["--candidate", "--exclude", "t2-final.jsonl"],
+        ["--t2-manifest", "t2-final.jsonl", "--t2-dev", "dev.jsonl"],
+    ],
+)
+def test_reference_inputs_checked_before_opening_files(tmp_path, extra):
+    with pytest.raises(SystemExit) as error:
+        teacher_data.main([str(tmp_path / "candidate.jsonl"), "--exclude", "t1.jsonl", *extra])
+    assert error.value.code == 2
+
+
+def test_candidate_cannot_overwrite_reference_through_symlink(tmp_path):
+    reference = tmp_path / "teacher-v1.jsonl"
+    reference.write_bytes(b"reference")
+    alias = tmp_path / "candidate.jsonl"
+    alias.symlink_to(reference)
+    with pytest.raises(SystemExit) as error:
+        teacher_data.main([str(alias), "--candidate", "--exclude", "t1.jsonl"])
+    assert error.value.code == 2
+    assert reference.read_bytes() == b"reference"

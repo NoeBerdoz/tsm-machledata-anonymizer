@@ -1,7 +1,7 @@
 """The training subset of the teacher v1: 50,000 seeded rows of the public train splits.
 
 Usage:
-    uv run --group baselines python -m pii_anonymizer.teacher_data data/train/teacher-v1.jsonl \\
+    uv run --group baselines python -m pii_anonymizer.teacher_data candidate.jsonl --candidate \\
         --exclude data/test/t1-openpii-1m.jsonl --exclude data/test/t1-open-pii-500k.jsonl \\
         --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl
 
@@ -35,7 +35,8 @@ from pii_anonymizer.public_data import (
     write_jsonl,
 )
 from pii_anonymizer.swiss import read_jsonl
-from pii_anonymizer.swiss_training import check_disjoint, inject_share
+from pii_anonymizer.swiss_training import inject_share
+from pii_anonymizer.t2_holdout import FINAL_FILENAME, Holdout, paths_alias
 from pii_anonymizer.teacher_labels import gliner_label
 
 OPENPII_ID = "ai4privacy/pii-masking-openpii-1m"
@@ -93,6 +94,8 @@ def build(
     gretel_rows: Iterable[Mapping],
     test_sets: Iterable[Iterable[Mapping]],
     seed: int = SEED,
+    *,
+    t2_manifest: Holdout | None = None,
 ) -> list[dict]:
     """The training records: sampled, converted, checked, with Swiss values in a share."""
     openpii, dropped_openpii = convert(
@@ -107,8 +110,15 @@ def build(
     print(f"{len(openpii)} OpenPII-1M rows ({dropped_openpii} entities dropped)")
     print(f"{len(gretel)} Gretel documents ({dropped_gretel} entities dropped)")
     check_labels(records)
-    check_disjoint(records, test_sets)
-    return inject_share(records, seed=seed)
+    holdout = Holdout.from_records(row for rows in test_sets for row in rows)
+    if t2_manifest is not None:
+        holdout.source_ids.update(t2_manifest.source_ids)
+        holdout.text_sha256.update(t2_manifest.text_sha256)
+    holdout.check_disjoint(records)
+    # Keep the existing source sample. Swiss augmentation has its own training seed.
+    result = inject_share(records)
+    holdout.check_disjoint(result)
+    return result
 
 
 def load_train(dataset_id: str, columns: Sequence[str], filters=None):
@@ -136,13 +146,34 @@ def main(argv: Sequence[str] | None = None) -> None:
         required=True,
         help="a test file whose rows must not be in training (repeat for each test file)",
     )
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--candidate", action="store_true", help="build before T2 is frozen")
+    mode.add_argument("--t2-manifest", type=Path, help="frozen T2-final exclusion manifest")
+    parser.add_argument("--t2-dev", type=Path, help="frozen T2-dev JSONL for the reference corpus")
     args = parser.parse_args(argv)
+    if bool(args.t2_manifest) != bool(args.t2_dev):
+        parser.error("give both --t2-dev and --t2-manifest for the reference corpus")
+    paths = [args.out, *args.exclude]
+    paths.extend(path for path in (args.t2_dev, args.t2_manifest) if path is not None)
+    if any(FINAL_FILENAME in (path.name, path.resolve().name) for path in paths):
+        parser.error("use the frozen manifest for T2-final")
+    if any(paths_alias(args.out, path) for path in paths[1:]):
+        parser.error("the output must be a different file from the evaluation inputs")
+    reference = Path("data/train/teacher-v1.jsonl")
+    if args.candidate and (
+        reference.name in (args.out.name, args.out.resolve().name)
+        or paths_alias(args.out, reference)
+    ):
+        parser.error("write the candidate to a separate file, such as teacher-v1-candidate.jsonl")
 
     test_sets = [read_jsonl(path) for path in args.exclude]
+    if args.t2_dev:
+        test_sets.append(read_jsonl(args.t2_dev))
+    manifest = Holdout.read(args.t2_manifest) if args.t2_manifest else None
     openpii_rows = load_train(OPENPII_ID, COLUMNS, [("language", "in", list(LANGUAGES))])
     gretel_rows = load_train(GRETEL_ID, GRETEL_COLUMNS)
-    records = build(openpii_rows, gretel_rows, test_sets)
-    write_jsonl(records, args.out)
+    records = build(openpii_rows, gretel_rows, test_sets, t2_manifest=manifest)
+    write_jsonl(records, args.out, newline="\n")
 
     per_source = Counter((r["source"], r["lang"]) for r in records)
     swiss = sum(r["id"].endswith("-ch") for r in records)

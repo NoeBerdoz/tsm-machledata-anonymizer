@@ -25,6 +25,8 @@ def test_trial_settings_override_the_full_ones():
     trial = settings_for(PARAMS, "trial")
     assert "trial" not in full and "trial" not in trial
     assert full["rows"] is None and trial["rows"] == 2000
+    assert trial["data"].endswith("teacher-v1-candidate.jsonl.dvc")
+    assert full["data"].endswith("teacher-v1.jsonl.dvc")
     assert trial["max_hours"] < full["max_hours"]
     assert trial["epochs"] == full["epochs"] == 2
 
@@ -61,8 +63,12 @@ def test_job():
 def test_the_job_copies_every_staged_file():
     command = yaml.safe_load(Path("scripts/teacher/job.yaml").read_bytes())
     script = command["workerPoolSpecs"][0]["containerSpec"]["command"][2]
-    for path in staged_paths(Path(PARAMS["teacher"]["data"])):
-        assert path.name in script
+    pointer = Path("data/train/teacher-v1-candidate.jsonl.dvc")
+    paths = staged_paths(pointer)
+    assert paths["teacher-v1.jsonl"] == pointer.with_suffix("")
+    assert paths["teacher-v1.jsonl.dvc"] == pointer
+    for name in paths:
+        assert name in script
 
 
 def test_fingerprint_changes_with_the_files(tmp_path):
@@ -80,6 +86,10 @@ def test_check_data(tmp_path):
     pointer = tmp_path / "rows.jsonl.dvc"
     pointer.write_text("outs:\n- md5: 401b30e3b8b5d629635a5c613cdb7919\n  path: rows.jsonl\n")
     check_data(pointer)
+    for reference_md5 in (None, "0" * 32):
+        with pytest.raises(TrainingError, match="T2-validated"):
+            check_data(pointer, mode="full", reference_md5=reference_md5)
+    check_data(pointer, mode="full", reference_md5="401b30e3b8b5d629635a5c613cdb7919")
     data.write_bytes(b"y\n")
     with pytest.raises(TrainingError, match="does not match"):
         check_data(pointer)
