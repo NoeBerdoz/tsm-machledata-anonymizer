@@ -2,7 +2,7 @@
 
 Usage:
     uv run python -m pii_anonymizer.swiss_training <train.jsonl> [<train2.jsonl> ...] \\
-        <out.jsonl> --exclude data/test/t1-openpii-1m.jsonl --exclude ... [--share 0.2]
+        <out.jsonl> --exclude data/test/t1-openpii-1m.jsonl --exclude-manifest <manifest.json>
 
 A wrapper around `swiss.py`, which writes the Swiss test set. For training, the rows are all
 kept. Among the rows with an entity of a Swiss kind (`SOCIALNUM`, `TELEPHONENUM`,
@@ -10,21 +10,23 @@ kept. Among the rows with an entity of a Swiss kind (`SOCIALNUM`, `TELEPHONENUM`
 formats as the test set. The other rows keep their foreign values, because the app must mask
 those too. See docs/swiss-identifiers.md.
 
-The training seed differs from the test seed, and every row is checked against the given
-test files: no training row may share an id or a text with a test row.
+Training uses a separate seed. Both source and emitted rows are checked against the supplied
+holdouts by source id and text hash.
 """
 
 import argparse
 import json
 import random
 from collections.abc import Iterable, Mapping, Sequence
+from itertools import chain
 from pathlib import Path
 
 from pii_anonymizer.swiss import KINDS, inject, read_jsonl
+from pii_anonymizer.t2_holdout import FINAL_FILENAME, Holdout, paths_alias
 
-# The Swiss test set was written with --seed 0 (docs/swiss-identifiers.md).
-TEST_SEED = 0
-SEED = 1
+# The Swiss T1 set uses seed 0, and T2 variants use seeds 0 through 2.
+TEST_SEEDS = (0, 1, 2)
+SEED = 3
 # Share of the rows with an entity of a Swiss kind that receive Swiss values.
 SHARE = 0.2
 SWISS_LABELS = frozenset(KINDS.values())
@@ -32,11 +34,6 @@ SWISS_LABELS = frozenset(KINDS.values())
 
 def has_swiss_kind(record: Mapping) -> bool:
     return any(entity["label"] in KINDS for entity in record["entities"])
-
-
-def source_id(record_id: str) -> str:
-    """The id of the source row: without the `-ch` that the injection adds."""
-    return record_id.removesuffix("-ch")
 
 
 def inject_share(records: Iterable[Mapping], share: float = SHARE, seed: int = SEED) -> list[dict]:
@@ -48,8 +45,8 @@ def inject_share(records: Iterable[Mapping], share: float = SHARE, seed: int = S
     """
     if not 0 <= share <= 1:
         raise ValueError(f"the share must be between 0 and 1, not {share}")
-    if seed == TEST_SEED:
-        raise ValueError(f"seed {TEST_SEED} is the seed of the Swiss test set")
+    if seed in TEST_SEEDS:
+        raise ValueError(f"seed {seed} is reserved for Swiss test sets")
     out = []
     for record in records:
         rng = random.Random(f"train:{seed}:{record['id']}")
@@ -61,24 +58,8 @@ def inject_share(records: Iterable[Mapping], share: float = SHARE, seed: int = S
 
 
 def check_disjoint(train: Iterable[Mapping], test_sets: Iterable[Iterable[Mapping]]) -> None:
-    """Raise ValueError if a training row shares a source id or a text with a test row.
-
-    The test files to give are the source rows (the T1 samples, `gretel-test-iban.jsonl`,
-    T2) and the Swiss test set: its texts are rewritten, but its ids still name its sources.
-    """
-    test_ids: set[str] = set()
-    test_texts: set[str] = set()
-    for records in test_sets:
-        for record in records:
-            test_ids.add(source_id(record["id"]))
-            test_texts.add(record["text"])
-    shared = [
-        record["id"]
-        for record in train
-        if source_id(record["id"]) in test_ids or record["text"] in test_texts
-    ]
-    if shared:
-        raise ValueError(f"{len(shared)} training rows are also test rows, such as {shared[:3]}")
+    """Check a set of training rows against raw test sets."""
+    Holdout.from_records(chain.from_iterable(test_sets)).check_disjoint(train)
 
 
 def counts(records: Sequence[Mapping]) -> dict[str, dict[str, int]]:
@@ -99,22 +80,43 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Put Swiss values into a share of training rows.")
     parser.add_argument("paths", nargs="+", type=Path, help="training JSONL files, then the output")
     parser.add_argument("--share", type=float, default=SHARE, help="share of eligible rows")
-    parser.add_argument("--seed", type=int, default=SEED, help=f"not {TEST_SEED}, the test seed")
+    parser.add_argument(
+        "--seed", type=int, default=SEED, help=f"training seed (default {SEED}, reserved 0, 1, 2)"
+    )
     parser.add_argument(
         "--exclude",
         type=Path,
         action="append",
-        required=True,
-        help="a test file whose rows must not be in training (repeat for each test file)",
+        default=[],
+        help="raw test JSONL such as T1 or T2-dev (repeatable)",
     )
+    parser.add_argument("--exclude-manifest", type=Path, help="the frozen T2 exclusion manifest")
     args = parser.parse_args(argv)
     if len(args.paths) < 2:
         parser.error("give at least one input file and the output file")
+    if not args.exclude and args.exclude_manifest is None:
+        parser.error("give at least one --exclude or --exclude-manifest")
     *inputs, output = args.paths
+    protected_paths = inputs + args.exclude
+    if args.exclude_manifest is not None:
+        protected_paths.append(args.exclude_manifest)
+    if any(
+        FINAL_FILENAME in (path.name, path.resolve().name) for path in [output, *protected_paths]
+    ):
+        parser.error("keep t2-final.jsonl on the freeze side and supply --exclude-manifest")
+    for path in protected_paths:
+        if paths_alias(output, path):
+            parser.error(f"output aliases input: {output} and {path}")
 
+    holdout = Holdout.from_records(record for path in args.exclude for record in read_jsonl(path))
+    if args.exclude_manifest is not None:
+        final = Holdout.read(args.exclude_manifest)
+        holdout.source_ids.update(final.source_ids)
+        holdout.text_sha256.update(final.text_sha256)
     records = [record for path in inputs for record in read_jsonl(path)]
-    check_disjoint(records, (read_jsonl(path) for path in args.exclude))
+    holdout.check_disjoint(records)
     out = inject_share(records, args.share, args.seed)
+    holdout.check_disjoint(out)
     output.parent.mkdir(parents=True, exist_ok=True)
     with open(output, "w", encoding="utf-8") as f:
         for record in out:

@@ -74,22 +74,22 @@ Each row gets its own random generator, seeded from `--seed` and the row id. So 
 
 ## The training rows
 
-`src/pii_anonymizer/swiss_training.py` wraps the same injection for the training subset of the teacher v1 (issue #46):
+`src/pii_anonymizer/swiss_training.py` wraps the same injection for the v1 Teacher training subset (NoeBerdoz/tsm-machledata-anonymizer#46). Use the manifest exported during the [T2 freeze](test-set-decision.md#how-we-split-t2):
 
 ```sh
 uv run python -m pii_anonymizer.swiss_training <train.jsonl> <out.jsonl> \
     --exclude data/test/t1-openpii-1m.jsonl --exclude data/test/t1-open-pii-500k.jsonl \
     --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl \
-    --exclude <t2 files>
+    --exclude data/test/t2-dev.jsonl --exclude-manifest data/test/t2-final-holdout.json
 ```
 
 It differs from the test set in three ways:
 
 - **Every row is kept.** Rows without an entity of a Swiss kind are written as they are.
 - **Only a share of the rows of a Swiss kind gets Swiss values: 20 %**, drawn row by row with the seed. The other 80 % keep their foreign AVS-like numbers, phone numbers and IBANs. The app must mask foreign values too, so the model must keep seeing them. About 46 % of the OpenPII-1M rows have a `SOCIALNUM` or a `TELEPHONENUM` (459 of the 1,000 rows of T1), so 20 % of them gives about 4,500 Swiss rows in a subset of 50,000. That is several thousand AVS numbers and phone numbers in every written format, which is enough for the model to learn the formats, while Swiss values stay a minority of their types. The share is the `--share` option, if #46 shows that the teacher needs more.
-- **Other seeds.** The training seed is 1, and the script refuses the test seed 0. Each row's generator is also seeded with a `train:` prefix, so the same row id never gets the same values as in the test set.
+- **Other seeds.** Training defaults to seed 3. Seeds 0, 1 and 2 are reserved for Swiss test data. Each training row's generator also uses a `train:` prefix.
 
-Before writing anything, the script reads every `--exclude` file and stops if a training row has the same source id (without `-ch`) or the same text as a test row. Give it the T1 samples, the Gretel test sample, the Swiss test set and the T2 files. The training rows themselves come from train splits only (see Rules).
+Keep the raw final T2 JSONL on the freeze side. Pass its manifest to training and use raw `--exclude` files for the T1 samples, the Gretel test sample, the Swiss test set and T2-dev. Before writing, the CLI checks both source rows and rows after injection for matching source IDs (with trailing `-ch` suffixes removed) or matching SHA-256 digests of the exact UTF-8 text. Training rows come from train splits only.
 
 The new labels are `AVS`, `PHONE` and `IBAN`, as in the test set, while the untouched rows keep `SOCIALNUM`, `TELEPHONENUM`, `phone_number`, `iban` and `bban`. The label list of #46 maps both to the same GLiNER2 labels.
 
