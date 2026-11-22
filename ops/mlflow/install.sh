@@ -34,6 +34,8 @@ if [[ ! -s /var/lib/mlflow/auth.db || -e /etc/mlflow/bootstrap.env ]]; then
     fi
 fi
 
+bash ./ensure-swap.sh
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y ca-certificates curl openssl python3
