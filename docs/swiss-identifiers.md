@@ -1,6 +1,6 @@
 # Swiss identifiers
 
-How we measure the Swiss part of goal O1 before T2 exists, and how we get Swiss rows for training. The script `src/pii_anonymizer/swiss.py` takes public rows and replaces some of their values with valid fake Swiss values of the same kind. The labels stay right by construction.
+How we measure the Swiss part of goal O1 before T2 exists, and how we get Swiss rows for training. The script `src/pii_anonymizer/swiss.py` (and its training wrapper `swiss_training.py`) takes public rows and replaces some of their values with valid fake Swiss values of the same kind. The labels stay right by construction.
 
 ## Why
 
@@ -71,6 +71,27 @@ Each row gets its own random generator, seeded from `--seed` and the row id. So 
 - Test rows come only from validation or test splits: the OpenPII-1M validation split and the Gretel test split.
 - Training rows come only from train splits.
 - The same source row never goes into both. A test row and a training row with fake values from the same source row would leak the text of the test set into training.
+
+## The training rows
+
+`src/pii_anonymizer/swiss_training.py` wraps the same injection for the training subset of the teacher v1 (issue #46):
+
+```sh
+uv run python -m pii_anonymizer.swiss_training <train.jsonl> <out.jsonl> \
+    --exclude data/test/t1-openpii-1m.jsonl --exclude data/test/t1-open-pii-500k.jsonl \
+    --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl \
+    --exclude <t2 files>
+```
+
+It differs from the test set in three ways:
+
+- **Every row is kept.** Rows without an entity of a Swiss kind are written as they are.
+- **Only a share of the rows of a Swiss kind gets Swiss values: 20 %**, drawn row by row with the seed. The other 80 % keep their foreign AVS-like numbers, phone numbers and IBANs. The app must mask foreign values too, so the model must keep seeing them. About 46 % of the OpenPII-1M rows have a `SOCIALNUM` or a `TELEPHONENUM` (459 of the 1,000 rows of T1), so 20 % of them gives about 4,500 Swiss rows in a subset of 50,000. That is several thousand AVS numbers and phone numbers in every written format, which is enough for the model to learn the formats, while Swiss values stay a minority of their types. The share is the `--share` option, if #46 shows that the teacher needs more.
+- **Other seeds.** The training seed is 1, and the script refuses the test seed 0. Each row's generator is also seeded with a `train:` prefix, so the same row id never gets the same values as in the test set.
+
+Before writing anything, the script reads every `--exclude` file and stops if a training row has the same source id (without `-ch`) or the same text as a test row. Give it the T1 samples, the Gretel test sample, the Swiss test set and the T2 files. The training rows themselves come from train splits only (see Rules).
+
+The new labels are `AVS`, `PHONE` and `IBAN`, as in the test set, while the untouched rows keep `SOCIALNUM`, `TELEPHONENUM`, `phone_number`, `iban` and `bban`. The label list of #46 maps both to the same GLiNER2 labels.
 
 ## The Swiss test set
 
