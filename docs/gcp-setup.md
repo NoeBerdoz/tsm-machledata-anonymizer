@@ -240,7 +240,7 @@ OBJECTS="projects/_/buckets/${B#gs://}/objects"
 
 ### 5. Install MLflow and open HTTPS
 
-Check that any existing firewall rules match the settings in this guide. The installer uses the hashed server export and takes the passwords over IAP SSH stdin. MLflow runs with one worker and Basic Auth on loopback. Caddy for a new install starts after the installer reports success. Keep port 80 closed.
+Check that any existing firewall rules match the settings in this guide. The installer uses the hashed server export and takes the passwords over IAP SSH stdin. It enables a 2 GiB swap file to absorb short memory spikes. MLflow runs with one worker and Basic Auth on loopback. Caddy for a new install starts after the installer reports success. Keep port 80 closed.
 
 ```bash
 # Use the pinned server group with hashes from uv.lock.
@@ -248,7 +248,7 @@ test -n "$DNS" &&
   uv export --only-group mlflow-server --locked -o "$D/mlflow-server-requirements.txt" &&
   remote 'mkdir -p "$HOME/mlflow-setup"' &&
   gc compute scp --tunnel-through-iap --zone="$Z" \
-    ops/mlflow/{install.sh,mlflow.service,Caddyfile} "$D/mlflow-server-requirements.txt" \
+    ops/mlflow/{install.sh,ensure-swap.sh,mlflow.service,Caddyfile} "$D/mlflow-server-requirements.txt" \
     "${V}:~/mlflow-setup/" &&
   RULE=$(https_rule) &&
   { if [[ -n $RULE ]]; then HTTPS_STATE=open; else HTTPS_STATE=closed; fi; } &&
@@ -325,7 +325,7 @@ gc compute instances stop "$V" --zone="$Z" &&
   gc compute instances start "$V" --zone="$Z"
 ```
 
-After boot, check the three run IDs, the registry tag and the grants. The `team` login should see all three runs. Each job login should see its own experiment only.
+After boot, check that `remote 'sudo swapon --show'` lists about 2 GiB at `/swapfile-mlflow`. Check the three run IDs, the registry tag and the grants. The `team` login should see all three runs. Each job login should see its own experiment only.
 
 ### Cost and recovery
 
@@ -339,7 +339,18 @@ After boot, check the three run IDs, the registry tag and the grants. The `team`
 
 If the auth database is missing, run `bash ops/mlflow/teardown.sh --close-https` before restoring it or rerunning step 5. This closes ingress and stops Caddy. Step 5 reopens ingress after the installer succeeds.
 
-Keep the boot disk and Caddy’s state across restarts. For a Let’s Encrypt limit, honor `Retry-After`. For a shared domain limit, set `DOMAIN=nip.io`, repeat step 1, rerun step 5 and update the client URLs and Actions secret. One DNS operator serves both names. If memory is tight, serialize writes and price an `e2-small` if needed. [Let’s Encrypt limits](https://letsencrypt.org/docs/rate-limits/), [DNS operator](https://nip.io/).
+Keep the boot disk and Caddy’s state across restarts. For a Let’s Encrypt limit, honor `Retry-After`. For a shared domain limit, set `DOMAIN=nip.io`, repeat step 1, rerun step 5 and update the client URLs and Actions secret. One DNS operator serves both names. [Let’s Encrypt limits](https://letsencrypt.org/docs/rate-limits/), [DNS operator](https://nip.io/).
+
+### Add swap to an existing VM
+
+Use the variables and helpers from step 1. The script needs 3 GiB free on the root filesystem when it creates the file. It enables 2 GiB of swap immediately and records it in `/etc/fstab` for the next boot. This command leaves the running MLflow service up and is safe to rerun.
+
+```bash
+remote 'sudo -n bash -s' < ops/mlflow/ensure-swap.sh &&
+  remote 'sudo swapon --show && free -m && systemctl show mlflow -p NRestarts -p ActiveState'
+```
+
+Reopen the MLflow pages that triggered the outage and check that the proof gate can still write a run while someone browses the UI. Check the kernel log and the service's restart count for new failures. If MLflow still runs out of memory or sustained swapping slows the demo, price an `e2-small`. [Iowa VM pricing](https://cloud.google.com/products/compute/pricing/general-purpose).
 
 ### Optional daily backups
 
