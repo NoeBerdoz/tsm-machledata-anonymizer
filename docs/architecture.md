@@ -82,6 +82,8 @@ Training jobs upload model files directly to a private Standard Cloud Storage bu
 
 Only admin can create registered models. Before NoeBerdoz/tsm-machledata-anonymizer#15 publishes, admin creates `pii-teacher` and `pii-student` and grants the publishing login access to both.
 
+The [operator guide](model-registry.md) lists the manual publication command and the separate demo model names.
+
 ### Local application
 
 The registry identifies the approved model. The local application downloads the approved file from Cloud Storage through a signed URL and runs it on the device.
