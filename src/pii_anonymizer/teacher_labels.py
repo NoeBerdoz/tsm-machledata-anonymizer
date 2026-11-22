@@ -104,11 +104,12 @@ def to_example(text: str, entities: Iterable[Mapping]) -> dict[str, list[str]]:
     """The entities of one row as GLiNER2 wants them: label -> the distinct values, in order.
 
     Every target label is present, empty when the row has none, so the row also teaches the
-    model what is not there.
+    model what is not there. Values lose their outer spaces: OpenPII-1M writes some phone
+    numbers with a trailing space in the span.
     """
     out: dict[str, list[str]] = {label: [] for label in TARGETS}
     for entity in sorted(entities, key=lambda e: (e["start"], e["end"])):
-        value = text[entity["start"] : entity["end"]]
+        value = text[entity["start"] : entity["end"]].strip()
         values = out[gliner_label(entity["label"])]
         if value and value not in values:
             values.append(value)

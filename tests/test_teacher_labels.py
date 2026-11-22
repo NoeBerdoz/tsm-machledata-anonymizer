@@ -77,3 +77,9 @@ def test_to_example():
     assert example["age"] == ["42"]
     assert example["phone_number"] == ["079 123 45 67"]
     assert sum(map(len, example.values())) == 5
+
+
+def test_values_lose_their_outer_spaces():
+    text = "Call 03432 84389  now"
+    example = to_example(text, [{"start": 5, "end": 17, "label": "TELEPHONENUM"}])
+    assert example["phone_number"] == ["03432 84389"]
