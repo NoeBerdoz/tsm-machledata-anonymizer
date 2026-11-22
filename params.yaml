@@ -17,6 +17,25 @@ training:
   epochs: 2
   batch_size: 8
 
+# The teacher v1 (#46), launched from a laptop with pii_anonymizer.teacher_job.
+teacher:
+  # Agent Platform stops the job after this many hours.
+  max_hours: 4
+  seed: 1
+  data: data/train/teacher-v1.jsonl.dvc
+  base_model: fastino/gliner2-privacy-filter-PII-multi
+  model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
+  epochs: 2
+  batch_size: 8
+  # null trains on every row of the subset.
+  rows: null
+  holdout_rows: 0
+  # The short run that measures the speed before the full run (--trial).
+  trial:
+    max_hours: 0.34
+    rows: 2000
+    holdout_rows: 200
+
 quality_gate:
   # TODO: Record the frozen t2-dev.jsonl SHA-256 (NoeBerdoz/tsm-machledata-anonymizer#60).
   t2_dev_sha256: null

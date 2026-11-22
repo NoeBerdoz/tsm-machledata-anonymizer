@@ -93,3 +93,21 @@ The file written on 2026-11-22 (DVC md5 `467749555317968ee6a14428ff71129c`, 49,4
 - 665 OpenPII-1M phone numbers have a trailing space inside their span, as in the dataset. `to_example` strips it, so the teacher learns the number without the space.
 
 The most frequent teacher labels are `date` (48,575 entities), `first_name` (34,013) and `last_name` (29,645). The rarest are Gretel's: `coordinates` (152) and `password` (142).
+
+## The training job
+
+The CI launcher (`cloud_training.py`) needs the frozen T2-dev and caps a job at 45 minutes, the time left in a GitHub Actions runner. The teacher needs neither, so it has its own launcher, run from a laptop with the group's Google login:
+
+```sh
+gcloud auth application-default login   # once, with the group account
+export MLFLOW_TRACKING_URI='<tracking HTTPS URL>'
+uv run python -m pii_anonymizer.teacher_job --trial --id <name>   # the short run
+uv run python -m pii_anonymizer.teacher_job --full --id <name>    # the teacher
+```
+
+- `src/pii_anonymizer/teacher_job.py` checks that the tree is clean and the commit pushed, and that the subset matches its DVC pointer. It uploads the job's files to `pipeline/inputs/<id>/` of the training bucket, creates one Agent Platform job, waits for it, and downloads the outputs into `.pipeline/teacher/<id>/`. It reuses the job creation of `cloud_training.py`: running it again with the same `--id` finds the first job instead of creating a second one.
+- `scripts/teacher/job.yaml` is the machine of the first cloud run: one n1-standard-4 with one T4 in europe-west4, the same image and libraries.
+- `scripts/teacher/train.py` fine-tunes GLiNER2-PII for 2 epochs (batch size 8, fp16) and logs the run to MLflow, with the commit, `params.yaml` and the DVC hash of the subset. It writes `epoch-1.tar.gz` as soon as the first epoch ends, so a cap during the second epoch keeps it, then `model.tar.gz` and `training.json`.
+- The settings are in the `teacher` section of `params.yaml`. Agent Platform stops the job after `max_hours` (4 hours).
+
+**The short run.** `--trial` trains on 2,000 rows of the subset, with 200 more held out to measure the recall before and after, and a cap of 20 minutes (`teacher.trial`). It measures the speed on our data: `training.json` gives the characters per second and `full_run_hours_estimate`, the training time of the full subset at that speed. Our rows are longer than those of the first cloud run, because of the Gretel documents, so its 18 rows per second does not apply.
