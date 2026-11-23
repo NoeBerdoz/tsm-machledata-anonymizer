@@ -1,0 +1,6 @@
+outs:
+- md5: 5ed5cbb6cac339c34b617b2928dff3f9.dir
+  size: 499853
+  nfiles: 33
+  hash: md5
+  path: t2-file-assets
