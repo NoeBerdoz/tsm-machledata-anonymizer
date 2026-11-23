@@ -223,6 +223,15 @@ uv run python -m pii_anonymizer.t2_split data/test/t2-{realistic,files,planted}.
 - t2-0078 and t2-0087: the address of a firm alone (a signature, an employer's office) is no longer marked.
 - t2-0012: the meeting venue is no longer marked as a `city`.
 
+**Frozen split, 2026-11-23.** No detector had run on T2 before the split. Groups on both sides: 0.
+
+| File | Snippets | Groups | Entities | AVS | IBAN | PHONE | SHA-256 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `t2-dev.jsonl` | 100 | 60 | 1,080 | 84 | 72 | 104 | `17449f078944484aa328a3379995d6240363a4e5435d5be738752dee3d02595a` |
+| `t2-final.jsonl` | 100 | 60 | 1,121 | 85 | 74 | 107 | `ad2c56c7742521b21d2e60468cf273ce2631ec06883521010ae79957d3de8b01` |
+
+Each half has 25 snippets per language, 60 planted and 40 realistic, and by source 24 prompts, 20 e-mails, 16 PDF, 16 DOCX, 16 CSV and 8 plain texts. `params.yaml` records the T2-dev SHA-256 for the gate (`quality_gate.t2_dev_sha256`). The T2-final holdout manifest, `t2-final-holdout.json`, holds 60 source IDs and 100 text hashes, and is tracked in DVC on its own.
+
 After splitting T2, export the Teacher exclusion manifest on the freeze side:
 
 ```sh

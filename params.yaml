@@ -34,8 +34,8 @@ training:
       holdout_rows: 0
 
 quality_gate:
-  # TODO: Record the frozen t2-dev.jsonl SHA-256 (NoeBerdoz/tsm-machledata-anonymizer#60).
-  t2_dev_sha256: null
+  # The frozen data/test/t2-dev.jsonl (#60, docs/test-set-decision.md).
+  t2_dev_sha256: 17449f078944484aa328a3379995d6240363a4e5435d5be738752dee3d02595a
   release:
     min_teacher_recall_ratio: "95/100"
     # TODO: Fill in the GLiNER2-PII ratios from T2-dev (NoeBerdoz/tsm-machledata-anonymizer#56).
