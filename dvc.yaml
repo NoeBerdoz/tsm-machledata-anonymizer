@@ -16,6 +16,7 @@ stages:
       - training.model_revision
       - training.epochs
       - training.batch_size
+      - training.gradient_accumulation_steps
       - training.modes.ci
       - tracking.experiments.training
     outs:

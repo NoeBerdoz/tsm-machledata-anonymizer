@@ -13,7 +13,9 @@ training:
   base_model: fastino/gliner2-privacy-filter-PII-multi
   model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
   epochs: 2
-  batch_size: 8
+  # 4 rows per step, 2 steps per update: the batch of 8 of the trial with less GPU memory.
+  batch_size: 4
+  gradient_accumulation_steps: 2
   modes:
     # `dvc repro` in GitHub Actions: a pipeline check that fits in the 90-minute runner.
     ci:
@@ -22,12 +24,12 @@ training:
       holdout_rows: 100
     # --trial: the short run that measures the speed before the full run.
     trial:
-      max_hours: 0.34
+      max_hours: 0.5
       rows: 2000
       holdout_rows: 200
     # --full: the teacher, on every row of the subset (rows null).
     full:
-      max_hours: 4
+      max_hours: 5
       rows: null
       holdout_rows: 0
 

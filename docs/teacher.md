@@ -101,8 +101,8 @@ One launcher, `src/pii_anonymizer/cloud_training.py`, runs every training job on
 | Mode | Started by | Rows | Cap | Outputs |
 |---|---|---|---|---|
 | `ci` | `dvc repro` in GitHub Actions | 1,000 (100 held out) | 30 min, inside the 90-minute runner | `.pipeline/` |
-| `--trial` | a laptop | 2,000 (200 held out) | 20 min | `.pipeline/teacher/<id>/` |
-| `--full` | a laptop | the 50,000 rows | 4 hours | `.pipeline/teacher/<id>/` |
+| `--trial` | a laptop | 2,000 (200 held out) | 30 min | `.pipeline/teacher/<id>/` |
+| `--full` | a laptop | the 50,000 rows | 5 hours | `.pipeline/teacher/<id>/` |
 
 ```sh
 gcloud auth application-default login   # once, with the group account
@@ -113,7 +113,7 @@ uv run python -m pii_anonymizer.cloud_training --full --id <name>    # the teach
 
 - The launcher checks that the subset matches its DVC pointer. The `ci` mode also checks the frozen T2-dev and that the cap fits in the Actions runner; the laptop modes check that the tree is clean and the commit pushed. It uploads the job's files to `pipeline/inputs/<id>/` of the training bucket, creates one Agent Platform job, waits for it, and downloads the model and `training.json`, checked against their SHA-256. Running it again with the same `--id` (or the same Actions run) finds the first job instead of creating a second one.
 - `scripts/training/job.yaml` is the machine of the first cloud run: one n1-standard-4 with one T4 in europe-west4, the same image and libraries.
-- `scripts/training/train.py` fine-tunes GLiNER2-PII for 2 epochs (batch size 8, fp16) and logs the run to MLflow, with the commit, `params.yaml` and the DVC hash of the subset. It writes `epoch-1.tar.gz` as soon as the first epoch ends, so a cap during the second epoch keeps it, then `model.tar.gz` and `training.json`. The laptop modes download `epoch-1.tar.gz` too.
+- `scripts/training/train.py` fine-tunes GLiNER2-PII for 2 epochs (batches of 4 rows, 2 per update, fp16) and logs the run to MLflow, with the commit, `params.yaml` and the DVC hash of the subset. It writes `epoch-1.tar.gz` as soon as the first epoch ends, so a cap during the second epoch keeps it, then `model.tar.gz` and `training.json`. The laptop modes download `epoch-1.tar.gz` too.
 - The `train` stage of `dvc.yaml` depends only on the shared values and `training.modes.ci`, so changing `--trial` or `--full` does not retrain in the CI. `training_pipeline prepare` pulls the subset with DVC.
 
-**The short run.** `--trial` trains on 2,000 rows of the subset, with 200 more held out to measure the recall before and after, and a cap of 20 minutes (`training.modes.trial`). It measures the speed on our data: `training.json` gives the characters per second and `full_run_hours_estimate`, the training time of the full subset at that speed. Our rows are longer than those of the first cloud run, because of the Gretel documents, so its 18 rows per second does not apply.
+**The short run.** `--trial` trains on 2,000 rows of the subset, with 200 more held out to measure the recall before and after, and a cap of 30 minutes (`training.modes.trial`). It measures the speed on our data: `training.json` gives the characters per second and `full_run_hours_estimate`, the training time of the full subset at that speed. Our rows are longer than those of the first cloud run, because of the Gretel documents, so its 18 rows per second does not apply.

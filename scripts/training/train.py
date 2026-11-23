@@ -147,6 +147,7 @@ def main(params_path: Path, revision: str, outputs: Path, mode: str) -> None:
             seed=settings["seed"],
             num_epochs=settings["epochs"],
             batch_size=settings["batch_size"],
+            gradient_accumulation_steps=settings["gradient_accumulation_steps"],
             fp16=True,
             eval_strategy="epoch",
             save_best=False,
