@@ -25,6 +25,7 @@ stages:
   evaluate:
     cmd: python -m pii_anonymizer.training_pipeline evaluate
     deps:
+      # New checkpoints carry labels.json in the archive. Older teacher archives use teacher_labels.py.
       - .pipeline/model.tar.gz
       - data/test/t2-dev.jsonl
       - src/pii_anonymizer/training_pipeline.py
@@ -34,6 +35,7 @@ stages:
       - src/pii_anonymizer/metrics.py
       - src/pii_anonymizer/results.py
       - src/pii_anonymizer/spans.py
+      - src/pii_anonymizer/teacher_labels.py
       - uv.lock
     outs:
       - .pipeline/evaluation
