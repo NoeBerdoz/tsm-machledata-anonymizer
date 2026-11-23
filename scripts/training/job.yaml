@@ -1,5 +1,5 @@
-# Agent Platform JobSpec of the teacher v1 (#46). teacher_job.py supplies args, identity
-# and timeout. Same machine, image and libraries as scripts/cloud-smoke/job.yaml.
+# Agent Platform JobSpec of the teacher v1 (#46). cloud_training.py supplies args, identity
+# and timeout. Same machine, image and libraries as the first cloud run.
 workerPoolSpecs:
   - machineSpec:
       machineType: n1-standard-4
@@ -18,7 +18,7 @@ workerPoolSpecs:
           outputs=${2:?Pass the output directory}
           revision=${3:?Pass the Git SHA}
           export MLFLOW_TRACKING_URI="${4:?Pass the tracking URI}"
-          mode=${5:?Pass trial or full}
+          mode=${5:?Pass ci, trial or full}
           export MLFLOW_TRACKING_USERNAME=training
           export MLFLOW_SUPPRESS_PRINTING_URL_TO_STDOUT=true
           export HF_HUB_DISABLE_TELEMETRY=1

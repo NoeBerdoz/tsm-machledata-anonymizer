@@ -5,36 +5,31 @@ tracking:
     gate: tsm-gates
     gate_proof: tsm-gates-proof
 
+# The teacher v1 (#46). pii_anonymizer.cloud_training runs one Agent Platform job with the
+# shared values and those of one mode. Agent Platform stops the job after max_hours.
 training:
-  max_hours: 0.5
-  seed: 42
-  dataset: ai4privacy/pii-masking-openpii-1m
-  dataset_revision: ecfdc547f4a0955600cfe6ab98ba2a162207fcc0
-  base_model: fastino/gliner2-privacy-filter-PII-multi
-  model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
-  rows: 1000
-  holdout_rows: 100
-  epochs: 2
-  batch_size: 8
-
-# The teacher v1 (#46), launched from a laptop with pii_anonymizer.teacher_job.
-teacher:
-  # Agent Platform stops the job after this many hours.
-  max_hours: 4
   seed: 1
   data: data/train/teacher-v1.jsonl.dvc
   base_model: fastino/gliner2-privacy-filter-PII-multi
   model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
   epochs: 2
   batch_size: 8
-  # null trains on every row of the subset.
-  rows: null
-  holdout_rows: 0
-  # The short run that measures the speed before the full run (--trial).
-  trial:
-    max_hours: 0.34
-    rows: 2000
-    holdout_rows: 200
+  modes:
+    # `dvc repro` in GitHub Actions: a pipeline check that fits in the 90-minute runner.
+    ci:
+      max_hours: 0.5
+      rows: 1000
+      holdout_rows: 100
+    # --trial: the short run that measures the speed before the full run.
+    trial:
+      max_hours: 0.34
+      rows: 2000
+      holdout_rows: 200
+    # --full: the teacher, on every row of the subset (rows null).
+    full:
+      max_hours: 4
+      rows: null
+      holdout_rows: 0
 
 quality_gate:
   # TODO: Record the frozen t2-dev.jsonl SHA-256 (NoeBerdoz/tsm-machledata-anonymizer#60).

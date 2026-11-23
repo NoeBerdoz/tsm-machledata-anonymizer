@@ -2,12 +2,21 @@ stages:
   train:
     cmd: python -m pii_anonymizer.cloud_training
     deps:
-      - scripts/cloud-smoke/job.yaml
-      - scripts/cloud-smoke/train.py
+      - data/train/teacher-v1.jsonl
+      - scripts/training/job.yaml
+      - scripts/training/train.py
       - src/pii_anonymizer/cloud_training.py
+      - src/pii_anonymizer/teacher_labels.py
       - src/pii_anonymizer/tracking.py
     params:
-      - training
+      # Only the values of the ci mode, so a change to --trial or --full does not retrain.
+      - training.seed
+      - training.data
+      - training.base_model
+      - training.model_revision
+      - training.epochs
+      - training.batch_size
+      - training.modes.ci
       - tracking.experiments.training
     outs:
       - .pipeline/model.tar.gz

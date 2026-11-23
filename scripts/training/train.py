@@ -1,6 +1,6 @@
 """Fine-tune GLiNER2-PII into the teacher v1 (#46). Runs inside the Agent Platform job.
 
-    python train.py params.yaml <git sha> <outputs dir> trial|full
+    python train.py params.yaml <git sha> <outputs dir> ci|trial|full
 
 The job copies this file next to tracking.py, teacher_labels.py, params.yaml and the training
 subset with its DVC pointer. It writes into the outputs directory:
@@ -36,10 +36,8 @@ POINTER = Path("teacher-v1.jsonl.dvc")
 
 
 def settings_for(params: dict, mode: str) -> dict:
-    settings = dict(params["teacher"])
-    trial = settings.pop("trial")
-    if mode == "trial":
-        settings.update(trial)
+    settings = dict(params["training"])
+    settings.update(settings.pop("modes")[mode])
     return settings
 
 
@@ -123,8 +121,8 @@ class Trainer(ExtractorTrainer):
 
 
 def main(params_path: Path, revision: str, outputs: Path, mode: str) -> None:
-    if mode not in ("trial", "full"):
-        raise ValueError("The mode is trial or full")
+    if mode not in ("ci", "trial", "full"):
+        raise ValueError("The mode is ci, trial or full")
     params = yaml.safe_load(params_path.read_bytes())
     settings = settings_for(params, mode)
     with secretmanager.SecretManagerServiceClient() as client:
