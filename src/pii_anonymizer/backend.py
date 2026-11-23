@@ -50,4 +50,10 @@ def answer(prompt: Prompt, authorization: str | None = Header(None)) -> Answer:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PII_BACKEND_PORT", "8000")))
+    # Cloud Run gives the port in PORT, and the container sets PII_BACKEND_HOST=0.0.0.0.
+    # Without them the backend stays reachable from this machine only.
+    uvicorn.run(
+        app,
+        host=os.environ.get("PII_BACKEND_HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT") or os.environ.get("PII_BACKEND_PORT", "8000")),
+    )

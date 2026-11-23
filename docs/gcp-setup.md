@@ -529,3 +529,58 @@ gh variable set TRAINING_ON_PUSH --repo "$REPO" --body true
 
 After WIF passes, audit consumers of `GOOGLE_SERVICE_ACCOUNT_KEY`. Noé can remove it from GitHub
 and revoke the underlying key once its consumers have migrated.
+
+## Backend on Cloud Run
+
+The backend of NoeBerdoz/tsm-machledata-anonymizer#64 runs as the Cloud Run service `pii-backend` in europe-west4, the region of our training jobs. Cloud Run builds the image from the `Dockerfile` with Cloud Build, so no local Docker is needed. `.gcloudignore` uploads only the files that the image needs.
+
+The service is open to the Internet, because the app on a laptop calls it without a Google account. The backend still refuses every request without `PII_BACKEND_TOKEN`. At most one instance runs, and none when nobody uses it, so the cost stays small.
+
+Two service accounts keep the permissions apart:
+
+- `pii-backend` runs the service. It can read the secret `pii-backend-token` and nothing else.
+- `pii-backend-build` builds the image. It has the Cloud Run Builder role, so the default Compute Engine account needs no extra rights.
+
+### Deploy
+
+Run these commands in Bash, logged in to the project as in step 1 of the MLflow section. The first two blocks are needed only once.
+
+```sh
+P=tsmmachledata-projet R=europe-west4
+SA="pii-backend@$P.iam.gserviceaccount.com" B="pii-backend-build@$P.iam.gserviceaccount.com"
+
+# Once: the APIs, the token, and the two service accounts.
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$P"
+python -c "import secrets; print(secrets.token_urlsafe(32), end='')" |
+  gcloud secrets create pii-backend-token --project "$P" --replication-policy=automatic --data-file=-
+gcloud iam service-accounts create pii-backend --project "$P"
+gcloud secrets add-iam-policy-binding pii-backend-token --project "$P" \
+  --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor
+gcloud iam service-accounts create pii-backend-build --project "$P"
+gcloud projects add-iam-policy-binding "$P" --member="serviceAccount:$B" --role=roles/run.builder
+
+# Each deploy, from the repository root.
+gcloud run deploy pii-backend --project "$P" --region "$R" --source . \
+  --service-account "$SA" --build-service-account "projects/$P/serviceAccounts/$B" \
+  --set-secrets PII_BACKEND_TOKEN=pii-backend-token:latest \
+  --allow-unauthenticated --min-instances 0 --max-instances 1
+```
+
+First deployed on **2026-11-23** at `https://pii-backend-517094606847.europe-west4.run.app`. That day, a request without the token and one with a wrong token got a 401, and one with the token got a 502, because no LLM is reachable from the cloud yet. The service's logs held only uvicorn's access lines (method, path, status): a marker written in the request text was in none of them.
+
+The service keeps the same URL across deploys. Print it with `gcloud run services describe pii-backend --project "$P" --region "$R" --format='value(status.url)'`.
+
+### Use it from the app
+
+The app reads the backend's address from `PII_BACKEND_URL` and the token from `PII_BACKEND_TOKEN`. Read the token without writing it into a file or the shell history:
+
+```sh
+export PII_BACKEND_URL="$(gcloud run services describe pii-backend --project "$P" --region "$R" --format='value(status.url)')"
+export PII_BACKEND_TOKEN="$(gcloud secrets versions access latest --secret pii-backend-token --project "$P")"
+```
+
+The deployed backend cannot reach the local Ollama of a laptop. `/answer` returns a 502 until `LLM_BASE_URL`, `LLM_MODEL` and `LLM_API_KEY` point it to a hosted LLM (#100). Store a key as a secret, like the token, and add it to `--set-secrets`.
+
+### Cost and teardown
+
+Cloud Run bills only while it handles a request, and Artifact Registry keeps each built image in the repository `cloud-run-source-deploy`. Delete old images there if the storage grows. To remove the backend, run `gcloud run services delete pii-backend --project "$P" --region "$R"`.

@@ -105,7 +105,7 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 | Regex rules | Python `re` | planned |
 | ML model on the device | PyTorch CPU with eager int8. The folder reloads offline and stores the linear weights and word embeddings in 8 bits. The loader uses QNNPACK on ARM and prefers oneDNN on x86. The encoder's feed-forward output projections use float activations. The other linears use the activation range validated on that CPU. PyTorch has deprecated `torch.ao.quantization`. The app uses `qwen3:4b` with Ollama until the student is ready. | chosen |
 | Backend API | FastAPI | chosen |
-| Backend hosting | Cloud Run | to decide |
+| Backend hosting | Cloud Run in europe-west4, the region of our training jobs. It builds the `Dockerfile` itself, scales to zero when nobody uses it and keeps one fixed HTTPS URL, so it costs almost nothing and needs no server to maintain. Deploy steps in [gcp-setup.md](gcp-setup.md#backend-on-cloud-run) | chosen |
 | LLM | OpenAI Responses API | chosen |
 | Code and CI | GitHub, GitHub Actions | in place |
 | Data and model versioning | DVC, remote on Cloud Storage | in progress (#8) |
