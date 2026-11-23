@@ -1,0 +1,9 @@
+# Only what `gcloud run deploy --source .` needs to build the backend image (Dockerfile).
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!src/**
+**/__pycache__/
