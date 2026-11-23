@@ -134,6 +134,26 @@ usernames, credentials and IP addresses in code and log cases.
   per half. About eight realistic spans with these labels per half bring the total to about 260.
   Check the actual counts after review with groups intact.
 
+Across 120 variants, `data/test/t2-planted.jsonl` contains 168 AVS, 144 IBAN and 192 PHONE spans.
+Of the IBANs, 129 have country code CH and 15 have country code LI.
+We will record the counts for each half after the split in #60.
+
+| Label | Format | Spans |
+| --- | --- | ---: |
+| AVS | Dotted | 48 |
+| AVS | Compact | 35 |
+| AVS | Space-separated | 39 |
+| AVS | Dashed | 46 |
+| IBAN | Grouped uppercase | 54 |
+| IBAN | Compact uppercase | 48 |
+| IBAN | Grouped lowercase | 42 |
+| PHONE | International with `+41` | 33 |
+| PHONE | National with spaces | 41 |
+| PHONE | Compact international | 32 |
+| PHONE | International with `0041` | 28 |
+| PHONE | International with `+41 (0)` | 28 |
+| PHONE | National with a slash | 30 |
+
 ### Authoring and file checks
 
 Write each original as a UTF-8 JSONL record with `id`, `marked_text`, `lang`, `source`, `kind` and `group`.
