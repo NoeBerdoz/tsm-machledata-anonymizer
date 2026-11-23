@@ -139,7 +139,9 @@ def test_submission_respects_budget_after_staging(tmp_path, monkeypatch, staging
     monkeypatch.setattr(cloud_training, "validate_gate_inputs", Mock())
     monkeypatch.setattr(cloud_training, "git_sha", lambda: SHA)
     monkeypatch.setattr(cloud_training, "submission_id", lambda *_: "abc")
+    # The training subset is pulled with DVC in the pipeline, not in the test checkout.
     monkeypatch.setattr(cloud_training, "check_data", Mock())
+    monkeypatch.setattr(cloud_training, "submission_fingerprint", Mock(return_value=SHA))
     monkeypatch.setenv("MLFLOW_TRACKING_URI", "https://mlflow.example")
     monkeypatch.setenv("TRAINING_RUNNER_STARTED_AT", "1000")
     monkeypatch.setattr(cloud_training.time, "time", lambda: 1000)
