@@ -217,6 +217,12 @@ uv run python -m pii_anonymizer.t2_split data/test/t2-{realistic,files,planted}.
     --dev data/test/t2-dev.jsonl --final data/test/t2-final.jsonl
 ```
 
+**Re-check, 2026-11-23.** `--review` drew these 24 units: t2-0004, t2-0005, t2-0012, t2-0014, t2-0015, t2-0018, t2-0028, t2-0029, t2-0030, t2-0032, t2-0036, t2-0055, t2-0065, t2-0070, t2-0076, t2-0078, t2-0082, t2-0087, t2-0095, t2-0103, t2-0107, t2-0112, t2-0117 and t2-0118. Two reviewers who did not write them checked each unit against this policy. 20 units passed as they were. Four needed a fix:
+
+- t2-0005: the date of the water damage is now a `date`, like the expert's visit in the same e-mail.
+- t2-0078 and t2-0087: the address of a firm alone (a signature, an employer's office) is no longer marked.
+- t2-0012: the meeting venue is no longer marked as a `city`.
+
 After splitting T2, export the Teacher exclusion manifest on the freeze side:
 
 ```sh
