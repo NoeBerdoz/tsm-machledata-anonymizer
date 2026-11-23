@@ -1,12 +1,15 @@
 """Split T2 into dev and final by group, and draw the snippets for the second reader.
 
 Usage:
-    uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl \\
-        data/test/t2-dev.jsonl data/test/t2-final.jsonl
-    uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl --review
+    uv run python -m pii_anonymizer.t2_split data/test/t2-realistic.jsonl \\
+        data/test/t2-files.jsonl data/test/t2-planted.jsonl \\
+        --dev data/test/t2-dev.jsonl --final data/test/t2-final.jsonl
+    uv run python -m pii_anonymizer.t2_split data/test/t2-realistic.jsonl \\
+        data/test/t2-files.jsonl data/test/t2-planted.jsonl --review
 
 Whole groups go to one side, half of the snippets to each, stratified by `source`, `kind`
-and `lang`, with seed 42. See docs/test-set-decision.md.
+and `lang`, with seed 42. The outputs are sorted by `id`, so their SHA-256 does not
+depend on the order of the input files. See docs/test-set-decision.md.
 """
 
 import argparse
@@ -25,7 +28,7 @@ STRATA = ("source", "kind", "lang")
 
 
 def split(records: Sequence[dict], seed: int = SEED) -> tuple[list[dict], list[dict]]:
-    """(dev, final), each in the order of the file. A group never sits on both sides."""
+    """(dev, final), each sorted by `id`. A group never sits on both sides."""
     groups = defaultdict(list)
     for record in records:
         groups[record["group"]].append(record)
@@ -51,8 +54,9 @@ def split(records: Sequence[dict], seed: int = SEED) -> tuple[list[dict], list[d
             sizes[side] += len(groups[name])
             if side == 0:
                 dev_groups.add(name)
-    dev = [r for r in records if r["group"] in dev_groups]
-    final = [r for r in records if r["group"] not in dev_groups]
+    ordered = sorted(records, key=lambda r: r["id"])
+    dev = [r for r in ordered if r["group"] in dev_groups]
+    final = [r for r in ordered if r["group"] not in dev_groups]
     return dev, final
 
 
@@ -75,21 +79,25 @@ def mix(dev: Sequence[dict], final: Sequence[dict]) -> str:
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("t2", type=Path, help="all T2 snippets, JSONL")
-    parser.add_argument("dev", type=Path, nargs="?", help="output t2-dev.jsonl")
-    parser.add_argument("final", type=Path, nargs="?", help="output t2-final.jsonl")
+    parser.add_argument("inputs", type=Path, nargs="+", help="the T2 snippet files, JSONL")
+    parser.add_argument("--dev", type=Path, help="output t2-dev.jsonl")
+    parser.add_argument("--final", type=Path, help="output t2-final.jsonl")
     parser.add_argument("--review", action="store_true", help="print the units to re-check")
     args = parser.parse_args(argv)
 
-    records = read_jsonl(args.t2)
+    records = [record for path in args.inputs for record in read_jsonl(path)]
+    repeated = sorted(i for i, n in Counter(r["id"] for r in records).items() if n > 1)
+    if repeated:
+        parser.error(f"{len(repeated)} ids appear more than once, such as {repeated[:3]}")
     if args.review:
         print("\n".join(review_sample(records)))
         return
     if args.dev is None or args.final is None:
-        parser.error("give the dev and final outputs, or --review")
+        parser.error("give --dev and --final, or --review")
     for out in (args.dev, args.final):
-        if paths_alias(out, args.t2):
-            parser.error(f"output aliases input: {out}")
+        for path in args.inputs:
+            if paths_alias(out, path):
+                parser.error(f"output aliases input: {out}")
     if paths_alias(args.dev, args.final):
         parser.error("dev and final must be different files")
 

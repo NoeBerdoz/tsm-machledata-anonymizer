@@ -46,9 +46,9 @@ def test_each_side_gets_half_of_the_snippets():
 
 def test_split_is_seeded_and_ignores_the_file_order():
     rows = records()
-    dev, _ = split(rows)
-    assert dev == split(rows)[0]
-    assert {r["id"] for r in dev} == {r["id"] for r in split(rows[::-1])[0]}
+    dev, final = split(rows)
+    assert (dev, final) == split(rows) == split(rows[::-1])
+    assert [r["id"] for r in dev] == sorted(r["id"] for r in dev)
     assert dev != split(rows, seed=0)[0]
 
 
@@ -62,18 +62,46 @@ def test_review_sample_draws_24_units_and_keeps_templates_whole():
     assert set(sample) <= groups | ids
 
 
-def test_main_writes_both_sides(tmp_path, capsys):
-    t2 = tmp_path / "t2.jsonl"
-    t2.write_text("".join(json.dumps(r) + "\n" for r in records()), encoding="utf-8")
-    main([str(t2), str(tmp_path / "dev.jsonl"), str(tmp_path / "final.jsonl")])
+def write(path, rows):
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    return str(path)
+
+
+def three_files(tmp_path):
+    """The fixture as #57, #58 and #59 write it: realistic, files and planted."""
+    rows = records()
+    return [
+        write(tmp_path / "realistic.jsonl", rows[:60]),
+        write(tmp_path / "files.jsonl", rows[60:80]),
+        write(tmp_path / "planted.jsonl", rows[80:]),
+    ]
+
+
+def test_main_splits_several_files_the_same_way_in_any_order(tmp_path, capsys):
+    inputs = three_files(tmp_path)
+    outputs = []
+    for order in (inputs, inputs[::-1]):
+        dev, final = tmp_path / "dev.jsonl", tmp_path / "final.jsonl"
+        main([*order, "--dev", str(dev), "--final", str(final)])
+        outputs.append((dev.read_bytes(), final.read_bytes()))
     assert "| **total** | " in capsys.readouterr().out
-    lines = (tmp_path / "dev.jsonl").read_text().splitlines()
-    lines += (tmp_path / "final.jsonl").read_text().splitlines()
-    assert len(lines) == 200
+    assert outputs[0] == outputs[1]
+    assert sum(len(side.splitlines()) for side in outputs[0]) == 200
+
+
+def test_main_reviews_several_files(tmp_path, capsys):
+    main([*three_files(tmp_path), "--review"])
+    assert capsys.readouterr().out.splitlines() == review_sample(records())
+
+
+def test_main_refuses_an_id_in_two_files(tmp_path, capsys):
+    inputs = three_files(tmp_path)
+    with pytest.raises(SystemExit):
+        main([*inputs, inputs[0], "--review"])
+    assert "appear more than once" in capsys.readouterr().err
 
 
 def test_main_refuses_to_overwrite_its_input(tmp_path):
-    t2 = tmp_path / "t2.jsonl"
-    t2.write_text("", encoding="utf-8")
+    inputs = three_files(tmp_path)
     with pytest.raises(SystemExit):
-        main([str(t2), str(t2), str(tmp_path / "final.jsonl")])
+        main([*inputs, "--dev", inputs[1], "--final", str(tmp_path / "final.jsonl")])

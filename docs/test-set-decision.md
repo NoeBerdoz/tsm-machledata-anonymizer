@@ -111,11 +111,12 @@ The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 m
 - **When**: by 30 November (v1), before any tuning, we freeze the annotation policy, the groups, the mix of types and formats, and the file hashes. The policy treats personal attributes as personal data, titles, ages, sex and gender included, so a model that masks them is not counted as over-masking. After the split, we never move a snippet between the two parts.
 - **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.
 
-The second reader re-checks 24 units (20 %) drawn with seed 42 from the 80 realistic snippets and the templates. A template counts as one unit, all its variants together. Then the split writes both files and prints their mix as a table for this note:
+#57, #58 and #59 each write their own file: `t2-realistic.jsonl`, `t2-files.jsonl` and `t2-planted.jsonl`. The second reader re-checks 24 units (20 %) drawn with seed 42 from the 80 realistic snippets and the templates. A template counts as one unit, all its variants together. Then the split writes both files and prints their mix as a table for this note. It stops if an `id` appears twice, and it sorts both outputs by `id`, so their SHA-256 does not depend on the order of the input files:
 
 ```sh
-uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl --review
-uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl data/test/t2-dev.jsonl data/test/t2-final.jsonl
+uv run python -m pii_anonymizer.t2_split data/test/t2-{realistic,files,planted}.jsonl --review
+uv run python -m pii_anonymizer.t2_split data/test/t2-{realistic,files,planted}.jsonl \
+    --dev data/test/t2-dev.jsonl --final data/test/t2-final.jsonl
 ```
 
 After splitting T2, export the Teacher exclusion manifest on the freeze side:
