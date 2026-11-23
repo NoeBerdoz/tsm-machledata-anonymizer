@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from pii_anonymizer import engine, o4
+from pii_anonymizer import backend, engine, o4
 from pii_anonymizer.baselines import GLINER2_LABELS
 from pii_anonymizer.spans import Span
 
@@ -136,12 +136,12 @@ def test_reports_outbound_leak_once_and_traces_missed_occurrences(monkeypatch, t
     }
     manifest = tmp_path / "requests.jsonl"
     manifest.write_text(json.dumps(request) + "\n", encoding="utf-8")
-    original_answer = engine.answer
+    original_answer = backend.ask_llm
 
     def leak(text):
         return original_answer(text + "\nÉlise Burnier\nÉlise Burnier")
 
-    monkeypatch.setattr(engine, "answer", leak)
+    monkeypatch.setattr(backend, "ask_llm", leak)
 
     class PartialDetector(FakeDetector):
         def detect(self, text, lang=None):
@@ -217,14 +217,14 @@ def test_finds_a_stale_value_in_a_later_request_and_counts_it_once(monkeypatch, 
     first = single_value_request("first", "First: Ada Green", "Ada Green")
     later = single_value_request("later", "Later: Jules Simon", "Jules Simon")
     manifest = write_manifest(tmp_path / "requests.jsonl", first, later)
-    original_answer = engine.answer
+    original_answer = backend.ask_llm
 
     def leak(text):
         if text.startswith("Later:"):
             text += "\nAda Green\nAda Green"
         return original_answer(text)
 
-    monkeypatch.setattr(engine, "answer", leak)
+    monkeypatch.setattr(backend, "ask_llm", leak)
     report = o4.run(manifest, FakeDetector(["Ada Green", "Jules Simon"]))
 
     assert report["detected"] == 2

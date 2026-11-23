@@ -206,7 +206,8 @@ def run_request(request: dict, directory: Path, detector: Detector) -> RequestRu
         for message in payload["messages"]:
             if message["role"] == "user":
                 tokens.extend(PLACEHOLDER.findall(message["content"]))
-        return BytesIO(json.dumps({"message": {"content": SEPARATOR.join(tokens)}}).encode())
+        reply = {"choices": [{"message": {"content": SEPARATOR.join(tokens)}}]}
+        return BytesIO(json.dumps(reply).encode())
 
     with (
         TestClient(backend.app) as api,
@@ -216,7 +217,7 @@ def run_request(request: dict, directory: Path, detector: Detector) -> RequestRu
         patch.object(engine, "_spans", model_and_rules),
         patch.object(engine, "_detect", record_detection),
         patch.object(client.urllib.request, "urlopen", send_to_backend),
-        patch.object(engine._opener, "open", send_to_llm),
+        patch.object(backend._opener, "open", send_to_llm),
     ):
         page = AppTest.from_file(str(APP), default_timeout=120).run()
         page.text_area[0].set_value(request["prompt"])

@@ -10,7 +10,7 @@ PII means *Personally Identifiable Information*: any data that can tell who a pe
 
 People send more and more prompts and documents to LLMs in the cloud. These prompts and files often hold personal data: names, AVS numbers, IBANs, phone numbers, health information.
 
-We are building our own application. The user writes a prompt in our interface and can attach files (PDF, TXT, DOCX, CSV). A local engine finds the personal data in the prompt and in the files. It uses regex rules for structured identifiers and our own small ML model for the rest. It replaces each value with a placeholder such as `<PERSON_1>` (decided in issue #17), and it keeps the mapping table on the device only. Only the pseudonymized text goes to our backend (FastAPI), which calls the OpenAI Responses API. When the response comes back, the application puts the real values back on the device. OpenAI and our backend never see the real values that the engine detects. See [docs/architecture.md](docs/architecture.md).
+We are building our own application. The user writes a prompt in our interface and can attach files (PDF, TXT, DOCX, CSV). A local engine finds the personal data in the prompt and in the files. It uses regex rules for structured identifiers and our own small ML model for the rest. It replaces each value with a placeholder such as `<PERSON_1>` (decided in issue #17), and it keeps the mapping table on the device only. Only the pseudonymized text goes to our backend (FastAPI), which sends it to an LLM through the OpenAI-compatible Chat Completions API: the local Ollama by default, or a hosted model such as OpenAI or Claude. When the response comes back, the application puts the real values back on the device. Neither the LLM nor our backend sees the real values that the engine detects. See [docs/architecture.md](docs/architecture.md).
 
 The mapping table lets us put the real values back. So we call it pseudonymization, not anonymization: the data can still be linked to a person with extra information, here the mapping table kept on the device. The GDPR draws the same line between the two (Art. 4(5) and Recital 26).
 
@@ -71,7 +71,7 @@ DVC comes with `uv sync`. To get the data, log in once per machine with the grou
 
 ## Run the local interface
 
-You need [Ollama](https://ollama.com) with the model `qwen3:4b`, which stands in for our own model until it is trained. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
+You need [Ollama](https://ollama.com) with the model `qwen3:4b`. The app uses it to detect personal data until our own model is trained, and the backend uses it to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
 
 ```sh
 ollama pull qwen3:4b                          # first time only
@@ -86,7 +86,19 @@ Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and 
 
 The app sends nothing when the local model fails, when a file cannot be read or holds no text, or when the model found a value that it cannot place in the text. It tells the user instead.
 
-For now the backend asks `qwen3:4b` through Ollama instead of the OpenAI Responses API, so nothing leaves your machine, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
+By default the backend asks `qwen3:4b` through the local Ollama, so nothing leaves your machine, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
+
+### Use a hosted LLM
+
+The backend talks to any endpoint of the OpenAI-compatible Chat Completions API. Three variables in the backend's environment choose it, and the code does not change:
+
+| Variable | Default | Example for OpenAI | Example for Claude |
+|---|---|---|---|
+| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` (local Ollama) | `https://api.openai.com/v1` | `https://api.anthropic.com/v1/` |
+| `LLM_MODEL` | `qwen3:4b` | the chosen model | the chosen model |
+| `LLM_API_KEY` | empty, Ollama needs none | the API key | the API key |
+
+The key stays on the backend side: it is never in the app, and it is sent only when it is set. A hosted model costs money for each request, so set a spending limit with the provider. The backend still refuses content longer than 14,000 characters, the limit measured for the local model.
 
 ## Build the report
 

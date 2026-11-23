@@ -6,7 +6,7 @@ The diagrams are in `docs/diagrams/`. The editable version is in Figma: [Schéma
 
 ## Why our own interface and backend
 
-We first planned to plug the anonymizer into Claude Code with hooks. We now build our own application instead: the user writes the prompt in our interface, we detect the personal data, we replace it, and we send the pseudonymized text to the OpenAI API through our backend.
+We first planned to plug the anonymizer into Claude Code with hooks. We now build our own application instead: the user writes the prompt in our interface, we detect the personal data, we replace it, and we send the pseudonymized text to an LLM through our backend.
 - **Advantage:** we control the whole path, from the prompt to the response. This is much simpler than working around the limits of the hooks of an existing agent.
 - **Drawback:** it only protects requests made through our interface. We assume that users send their LLM requests only through our application.
 
@@ -37,13 +37,13 @@ The idea is simple: the personal data that the engine detects never leaves the u
 ### In the cloud
 
 5. **Backend API (FastAPI).** It receives the pseudonymized request and handles authentication and request control.
-6. **OpenAI Responses API.** It processes the pseudonymized prompt and sends back a response. The response contains the placeholders, not the real values that the engine detected.
+6. **The LLM.** By default the local Ollama, or a hosted model such as OpenAI or Claude when the backend is set to one (see the table below). It processes the pseudonymized prompt and sends back a response. The response contains the placeholders, not the real values that the engine detected.
 
 ### Back on the device
 
 7. **Response restored locally.** The application reads the response, finds each placeholder in it, and looks it up in the mapping table. It then swaps it back to the real value, for example `<PERSON_1>` → `Marie Dupont`, and shows the restored response to the user.
 
-The restoration happens on the device because the mapping table never leaves it. Neither the backend nor OpenAI sees the real values that the engine detects.
+The restoration happens on the device because the mapping table never leaves it. Neither the backend nor the LLM sees the real values that the engine detects.
 
 ## 2. Training and deployment pipeline (MLOps)
 
@@ -106,7 +106,7 @@ Once the model runs in the application, we monitor how it behaves in real use wi
 | ML model on the device | PyTorch CPU with eager int8. The folder reloads offline and stores the linear weights and word embeddings in 8 bits. The loader uses QNNPACK on ARM and prefers oneDNN on x86. The encoder's feed-forward output projections use float activations. The other linears use the activation range validated on that CPU. PyTorch has deprecated `torch.ao.quantization`. The app uses `qwen3:4b` with Ollama until the student is ready. | chosen |
 | Backend API | FastAPI | chosen |
 | Backend hosting | Cloud Run | to decide |
-| LLM | OpenAI Responses API | chosen |
+| LLM | Any endpoint of the OpenAI-compatible Chat Completions API, chosen with `LLM_BASE_URL`, `LLM_MODEL` and `LLM_API_KEY` on the backend. By default the local Ollama with `qwen3:4b`, so daily use costs nothing and nothing leaves the machine. A hosted model such as OpenAI or Claude only needs other values, for example for a demonstration. | chosen |
 | Code and CI | GitHub, GitHub Actions | in place |
 | Data and model versioning | DVC, remote on Cloud Storage | in progress (#8) |
 | Training | Agent Platform (custom training jobs) | chosen |

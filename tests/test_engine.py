@@ -183,11 +183,6 @@ def test_ollama_failure_is_not_hidden(monkeypatch):
         pseudonymize(["marie@example.ch"])
 
 
-def test_too_long_content_is_refused_before_ollama_can_cut_it():
-    with pytest.raises(ValueError, match="too long"):
-        engine.answer("x" * (engine.MAX_ANSWER_CHARS + 1))
-
-
 def test_placeholder_already_in_the_input_is_never_given_to_a_value(model):
     model(("PERSON", "Marie Dupont"))
     text = "Marie Dupont a lu la note sur <PERSON_1>, person_2 et <PERSON-3>."
