@@ -98,6 +98,8 @@ def prepare(proof: bool) -> None:
             raise ValueError("The frozen data/test/t2-dev.jsonl.dvc is missing")
         validate_gate_inputs(config)
         dvc("pull", str(POINTER))
+    # The training subset of the train stage, from the main remote even in proof mode.
+    dvc("pull", "--remote", "data", config["training"]["data"])
     validate_dataset(validate_gate_inputs(config))
 
 

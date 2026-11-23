@@ -10,7 +10,7 @@ whole job about 13 minutes, for about USD 0.13.
 
 ## What the test does
 
-`scripts/cloud-smoke/train.py` takes 1,000 rows of ai4privacy OpenPII-1M (train split only,
+The smoke script, `scripts/cloud-smoke/train.py`, has since been replaced by the training job of the teacher (see [teacher.md](teacher.md#the-training-job)); it is in the Git history. It took 1,000 rows of ai4privacy OpenPII-1M (train split only,
 EN, FR, DE, IT), keeps 100 aside, and:
 
 1. measures the recall of the published GLiNER2-PII (`fastino/gliner2-privacy-filter-PII-multi`)
@@ -22,7 +22,7 @@ Recall = share of the PII entities whose characters are all masked (as in
 [smart-goals.md](smart-goals.md)). ai4privacy labels are mapped to GLiNER2-PII labels with a
 small draft mapping in the script.
 
-It runs as an Agent Platform **custom job** (`scripts/cloud-smoke/job.yaml`): one
+It ran as an Agent Platform **custom job** (`scripts/cloud-smoke/job.yaml`, now `scripts/training/job.yaml`): one
 n1-standard-4 machine with one T4, using Google's prebuilt PyTorch image. There is no Docker
 image to build: the job installs the libraries, then runs the script, which it reads from a
 Cloud Storage bucket (mounted at `/gcs/` in the job).
@@ -217,8 +217,9 @@ uv run --no-sync python -m pii_anonymizer.training_pipeline summary --proof
 uv run --no-sync python -m pii_anonymizer.training_pipeline verdict
 ```
 
-Omit `--proof` from both commands for the normal run. `training.max_hours` limits the whole
-Agent Platform job, including worker setup and packaging. The smoke cap is 30 minutes.
+Omit `--proof` from both commands for the normal run. The `train` stage trains the teacher on
+1,000 rows of its subset (`training.modes.ci`). `max_hours` limits the whole
+Agent Platform job, including worker setup and packaging. The ci cap is 30 minutes.
 The 90-minute Actions job reserves at least 10 minutes for runner setup, 20 for queueing and
 15 for cancellation, evaluation and reporting. The largest training cap is 45 minutes, and
 slow runner setup reduces the time available. GitHub shows the cap or failure reason in the summary.

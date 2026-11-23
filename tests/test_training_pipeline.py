@@ -138,7 +138,10 @@ def test_submission_respects_budget_after_staging(tmp_path, monkeypatch, staging
     monkeypatch.setattr(cloud_training, "validate_dataset", Mock())
     monkeypatch.setattr(cloud_training, "validate_gate_inputs", Mock())
     monkeypatch.setattr(cloud_training, "git_sha", lambda: SHA)
-    monkeypatch.setattr(cloud_training, "submission_id", lambda: "abc")
+    monkeypatch.setattr(cloud_training, "submission_id", lambda *_: "abc")
+    # The training subset is pulled with DVC in the pipeline, not in the test checkout.
+    monkeypatch.setattr(cloud_training, "check_data", Mock())
+    monkeypatch.setattr(cloud_training, "submission_fingerprint", Mock(return_value=SHA))
     monkeypatch.setenv("MLFLOW_TRACKING_URI", "https://mlflow.example")
     monkeypatch.setenv("TRAINING_RUNNER_STARTED_AT", "1000")
     monkeypatch.setattr(cloud_training.time, "time", lambda: 1000)
@@ -157,7 +160,7 @@ def test_submission_respects_budget_after_staging(tmp_path, monkeypatch, staging
     monkeypatch.setattr(cloud_training, "wait_for_job", Mock())
     monkeypatch.setattr(cloud_training, "download_outputs", Mock())
 
-    def stage_inputs(_bucket, prefix):
+    def stage_inputs(_bucket, prefix, _paths):
         nonlocal now
         assert prefix == "pipeline/inputs/abc"
         now += staging_minutes * 60
@@ -165,10 +168,10 @@ def test_submission_respects_budget_after_staging(tmp_path, monkeypatch, staging
     monkeypatch.setattr(cloud_training, "stage_inputs", stage_inputs)
     if staging_minutes:
         with pytest.raises(SystemExit, match="Actions runner budget"):
-            cloud_training.main()
+            cloud_training.main([])
         session.request.assert_not_called()
     else:
-        cloud_training.main()
+        cloud_training.main([])
         job = session.request.call_args.kwargs["json"]["jobSpec"]
         assert job["scheduling"]["timeout"] == "1800s"
         args = job["workerPoolSpecs"][0]["containerSpec"]["args"]
@@ -321,6 +324,9 @@ def test_dvc_reuses_completed_stages_in_a_fresh_checkout(tmp_path):
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, destination)
         (workspace / "params.yaml").write_text(yaml.safe_dump(config))
+        # A stand-in for the training subset, which the CI pulls with DVC.
+        (workspace / "data/train").mkdir(parents=True, exist_ok=True)
+        (workspace / "data/train/teacher-v1.jsonl").write_text("{}\n")
         dataset = workspace / training_pipeline.DATASET
         dataset.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(REPO / training_pipeline.FIXTURE, dataset)
