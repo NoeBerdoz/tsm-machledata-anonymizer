@@ -9,13 +9,18 @@ from hashlib import sha256
 from pathlib import Path
 
 from pii_anonymizer.swiss import read_jsonl
+from pii_anonymizer.t2_marking import T2_BASE_ID
 
 FINAL_FILENAME = "t2-final.jsonl"
+_T2_VARIANT = re.compile(rf"({T2_BASE_ID})-s[012]-ch")
 
 
 def source_id(record_id: str) -> str:
     """Remove the suffixes added by Swiss injection."""
     while record_id.endswith("-ch"):
+        variant = _T2_VARIANT.fullmatch(record_id)
+        if variant:
+            return variant[1]
         record_id = record_id.removesuffix("-ch")
     return record_id
 

@@ -15,7 +15,10 @@ The scan of the full public datasets in `notebooks/scan_swiss_ids.py` finds the 
 
 The v1 teacher is fine-tuned on Swiss identifiers, so training needs such rows too.
 
-This script is a complement to T2, not a replacement. It gives many valid Swiss values cheaply, on public rows. The hand-made T2 snippets cover what public rows lack: text extracted from files, prompts that mix instructions with personal data, and pasted code or logs. The same injection can also give fresh values to T2's own planted snippets later, several variants of one snippet, as long as every variant of a snippet stays on the same side of the dev/final split.
+Public rows give us many valid Swiss values. T2 also covers text extracted from files, prompts that
+mix instructions with personal data, and pasted code or logs. The [T2 template mode](test-set-decision.md#authoring-and-file-checks)
+reuses these generators for explicit slots. It writes all three seeds in one output with the policy
+labels `AVS`, `IBAN` and `PHONE`, and keeps the whole template group together.
 
 ## What
 
@@ -89,7 +92,7 @@ It differs from the test set in three ways:
 - **Only a share of the rows of a Swiss kind gets Swiss values: 20 %**, drawn row by row with the seed. The other 80 % keep their foreign AVS-like numbers, phone numbers and IBANs. The app must mask foreign values too, so the model must keep seeing them. About 46 % of the OpenPII-1M rows have a `SOCIALNUM` or a `TELEPHONENUM` (459 of the 1,000 rows of T1), so 20 % of them gives about 4,500 Swiss rows in a subset of 50,000. That is several thousand AVS numbers and phone numbers in every written format, which is enough for the model to learn the formats, while Swiss values stay a minority of their types. The share is the `--share` option, if #46 shows that the teacher needs more.
 - **Other seeds.** Training defaults to seed 3. Seeds 0, 1 and 2 are reserved for Swiss test data. Each training row's generator also uses a `train:` prefix.
 
-Keep the raw final T2 JSONL on the freeze side. Pass its manifest to training and use raw `--exclude` files for the T1 samples, the Gretel test sample, the Swiss test set and T2-dev. Before writing, the CLI checks both source rows and rows after injection for matching source IDs (with trailing `-ch` suffixes removed) or matching SHA-256 digests of the exact UTF-8 text. Training rows come from train splits only.
+Keep the raw final T2 JSONL on the freeze side. Pass its manifest to training and use raw `--exclude` files for the T1 samples, the Gretel test sample, the Swiss test set and T2-dev. Before writing, the CLI checks both source rows and rows after injection for matching source IDs or matching SHA-256 digests of the exact UTF-8 text. Source IDs drop legacy `-ch` suffixes and map T2 variants to their template base ID. Training rows come from train splits only.
 
 The new labels are `AVS`, `PHONE` and `IBAN`, as in the test set, while the untouched rows keep `SOCIALNUM`, `TELEPHONENUM`, `phone_number`, `iban` and `bban`. The label list of #46 maps both to the same GLiNER2 labels.
 
