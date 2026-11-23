@@ -45,7 +45,7 @@ from pii_anonymizer.results import (
     sha256_file,
     summary_table,
 )
-from pii_anonymizer.spans import Detector, Example, load_dataset
+from pii_anonymizer.spans import SWISS_KINDS, Detector, Example, load_dataset
 
 # Detector name -> function that loads it. Loading happens here, outside the timed part.
 # Each loader imports its heavy libraries itself, after main() has set the thread variables.
@@ -198,6 +198,11 @@ def evaluate(
         "benchmark_job": benchmark_job,
         "model_sha256": model_sha256,
     }
+    counts_by_type = scores.per_type
+    if scores.per_swiss_kind:
+        counts_by_type = {
+            label: counts for label, counts in scores.per_type.items() if label not in SWISS_KINDS
+        } | scores.per_swiss_kind
     per_type = [
         {
             "model": model,
@@ -212,7 +217,7 @@ def evaluate(
             "benchmark_job": benchmark_job,
             "model_sha256": model_sha256,
         }
-        for label, (total, protected) in sorted(scores.per_type.items())
+        for label, (total, protected) in sorted(counts_by_type.items())
     ]
 
     results_csv = out_dir / "results.csv"

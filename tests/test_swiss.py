@@ -1,6 +1,8 @@
 import json
+import os
 import random
 import re
+from hashlib import sha256
 
 import pytest
 
@@ -163,6 +165,12 @@ def test_command_line_writes_only_injected_rows(tmp_path):
     source.write_text(json.dumps(RECORD) + "\n" + json.dumps(plain) + "\n", encoding="utf-8")
     out = tmp_path / "out.jsonl"
     main([str(source), str(out), "--seed", "0"])
+    # Seed-0 legacy fixture bytes from before T2 template mode.
+    payload = out.read_bytes().replace(os.linesep.encode(), b"\n")
+    assert (
+        sha256(payload).hexdigest()
+        == "acc20f8f963bc1b8b0968da09c2d03835700f306a82416ba44435c92b4421375"
+    )
     rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
     assert [r["id"] for r in rows] == ["r1-ch"]
     assert [e["label"] for e in rows[0]["entities"]] == [

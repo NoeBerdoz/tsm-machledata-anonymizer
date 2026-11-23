@@ -187,7 +187,9 @@ def test_traces_a_sentry_event_by_decoded_field():
     )
 
     assert result["values"][0]["found_in"] == ["sentry"]
-    assert result["spans"]["prompt"][0]["found_in"] == ["sentry"]
+    assert result["spans"]["prompt"] == [
+        {"start": 0, "end": len(text), "label": "PERSON", "found_in": ["sentry"]}
+    ]
 
 
 def test_checks_each_displayed_placeholder_with_spaces_normalized():

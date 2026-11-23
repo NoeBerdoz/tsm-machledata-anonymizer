@@ -41,6 +41,7 @@ class Scores:
     correct_chars: int = 0
     # gold label -> [entities, protected entities]
     per_type: dict[str, list[int]] = field(default_factory=dict)
+    per_swiss_kind: dict[str, list[int]] = field(default_factory=dict)
 
     @property
     def strict_recall(self) -> float | None:
@@ -78,6 +79,10 @@ def score(examples: Sequence[Example], predictions: Sequence[Sequence[Span]]) ->
             counts = scores.per_type.setdefault(entity.label, [0, 0])
             counts[0] += 1
             counts[1] += protected
+            if entity.swiss is not None:
+                swiss_counts = scores.per_swiss_kind.setdefault(entity.swiss, [0, 0])
+                swiss_counts[0] += 1
+                swiss_counts[1] += protected
             scores.n_entities += 1
             scores.n_protected += protected
         for i, char in enumerate(text):

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+SWISS_KINDS = ("AVS", "IBAN", "PHONE")
+
 
 @dataclass(frozen=True)
 class Span:
@@ -17,6 +19,7 @@ class Span:
     start: int
     end: int
     label: str
+    swiss: str | None = None
 
 
 @dataclass(frozen=True)
@@ -57,7 +60,7 @@ def check_span(span: Span, text: str) -> None:
 def load_dataset(path: Path) -> list[Example]:
     """Read a JSONL test set: one record per line with `id`, `text` and `entities`.
 
-    `lang` is kept when present. Other keys in a record are ignored.
+    `lang` and each entity's optional `swiss` kind are kept when present.
     """
     examples = []
     seen_ids = set()
@@ -67,8 +70,15 @@ def load_dataset(path: Path) -> list[Example]:
                 continue
             record = json.loads(line)
             try:
-                entities = tuple(Span(e["start"], e["end"], e["label"]) for e in record["entities"])
-                example = Example(str(record["id"]), record["text"], entities, record.get("lang"))
+                entities = []
+                for entity in record["entities"]:
+                    swiss = entity.get("swiss")
+                    if "swiss" in entity and swiss not in SWISS_KINDS:
+                        raise ValueError(f"invalid Swiss kind {swiss!r}")
+                    entities.append(Span(entity["start"], entity["end"], entity["label"], swiss))
+                example = Example(
+                    str(record["id"]), record["text"], tuple(entities), record.get("lang")
+                )
                 for entity in entities:
                     check_span(entity, example.text)
             except (KeyError, ValueError) as error:

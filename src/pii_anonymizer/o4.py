@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 from collections.abc import Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -113,7 +113,9 @@ def trace(
         "spans": {
             name: [
                 {
-                    **asdict(span),
+                    "start": span.start,
+                    "end": span.end,
+                    "label": span.label,
                     "found_in": found_in(sources[name][span.start : span.end], span.label),
                 }
                 for span in spans
