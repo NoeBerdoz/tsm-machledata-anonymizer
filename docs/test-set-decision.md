@@ -30,6 +30,54 @@ We wrote a pilot of 30 snippets with fake data, `data/test/t2_pilot.jsonl` (DVC)
 
 Swiss values are rare even in realistic texts: none of our 20 realistic snippets has an AVS number or an IBAN. So T2 must plant them.
 
+## Annotation policy
+
+Issue #60, before the writers of #57, #58 and #59 start. Every T2 snippet follows it. The pilot was labelled before it and keeps its old labels.
+
+### Labels
+
+Where a type is in the label list of #46 ([teacher.md](teacher.md#the-labels)), T2 uses its name. `AVS`, `IBAN` and `PHONE` stay in capitals, as in the Swiss set and in #57 to #59, because the quality gate (`gate.py`) reads them by these names.
+
+| What | T2 label | Pilot label |
+|---|---|---|
+| A whole name, `Chloé Vuilleumier` | `full_name` | `PERSON` |
+| A first name alone, `Chloé` | `first_name` | `PERSON` |
+| A surname alone, `Dufour` in `Mme Dufour` | `last_name` | `PERSON` |
+| A title, `Mme`, `Dr`, `Sig.ra`, `Dekan` | `title` | not labelled |
+| An age, `64`, `64 ans` | `age` | not labelled |
+| Sex, `F`, `männlich` | `sex` | not labelled |
+| Gender, `femme`, `non-binaire` | `gender` | not labelled |
+| A date of a person (birth, hiring, a medical visit) | `date` | `DATE_OF_BIRTH` for birth dates |
+| Street and house number, `Rue du Midi 14` | `street_address` | `STREET_ADDRESS` |
+| Postcode | `postal_code` | `POSTCODE` |
+| City | `city` | `CITY` |
+| E-mail | `email` | `EMAIL` |
+| Any phone number | `PHONE` | `PHONE` |
+| An AVS number | `AVS` | `AVS` |
+| Any IBAN | `IBAN` | `IBAN` |
+| Other IDs: ID card, passport, driving licence, tax number, customer or employee number | `government_id`, `passport_number`, `drivers_license_number`, `tax_number`, `account_id`, `employee_id` | `ID_NUMBER` |
+| User name | `username` | `USERNAME` |
+| Password, PIN | `password`, `pin` | `SECRET` |
+| API key or token | `api_key` | `SECRET` |
+| IP address | `ip_address` | `IP_ADDRESS` |
+
+Our recall does not depend on the label: an entity counts when all its characters are masked ([evaluation.md](evaluation.md)). The labels only sort the recall per type, so a writer who hesitates between two labels of the table loses nothing.
+
+### What to label
+
+- **Titles, ages, sex and gender are personal data.** A model that masks them is not over-masking.
+- **Incidental data too**: a colleague in a CC line, a name in a signature, a code comment or a log line, a second person mentioned in passing. If it points to a living person, label it.
+- **Business names**: a surname inside a business name, such as `Cabinet Clerc` or `Fiduciaria Fontana SA`, points to the owner, so we label the surname only, as `last_name`. A large company whose name no longer refers to a living person (`Migros`, `Nestlé`) is not labelled.
+- **Dates**: only a date that belongs to a person. A document date, a deadline or `dès janvier` is not labelled.
+
+### Spans
+
+- A span covers the value only: no surrounding spaces, quotes or punctuation.
+- A title is its own span, next to the name: `Mme` is `title`, `Dufour` is `last_name`.
+- Street and house number are one `street_address` span. Postcode and city are two spans.
+- A value cut across lines by the file extractor is one span, line break included.
+- Offsets count characters of the text as the detector receives it, so for PDF and DOCX snippets, of the app's extractor output (#58).
+
 ## Time per planted snippet
 
 One of us reviewed each planted snippet with a timer: checked every label and looked for unlabelled PII. Times are rounded up to the whole minute.
@@ -62,6 +110,13 @@ The average is 9.5 minutes (6 to 15), about twice our first estimate of 4 to 6 m
 - **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by `source` (`prompt`, `email`, `pdf`, `docx`, `csv`, `txt`), by `kind` (`realistic` or `planted`) and by language, with seed 42.
 - **When**: by 30 November (v1), before any tuning, we freeze the annotation policy, the groups, the mix of types and formats, and the file hashes. The policy treats personal attributes as personal data, titles, ages, sex and gender included, so a model that masks them is not counted as over-masking. After the split, we never move a snippet between the two parts.
 - **Hashes**: `t2-dev.jsonl` and `t2-final.jsonl` are tracked with DVC, so their `.dvc` files record the md5 of each version. We also write their SHA-256 in this note when we freeze them.
+
+The second reader re-checks 24 units (20 %) drawn with seed 42 from the 80 realistic snippets and the templates. A template counts as one unit, all its variants together. Then the split writes both files and prints their mix as a table for this note:
+
+```sh
+uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl --review
+uv run python -m pii_anonymizer.t2_split data/test/t2.jsonl data/test/t2-dev.jsonl data/test/t2-final.jsonl
+```
 
 After splitting T2, export the Teacher exclusion manifest on the freeze side:
 
