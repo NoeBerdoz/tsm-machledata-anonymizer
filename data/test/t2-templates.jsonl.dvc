@@ -1,0 +1,5 @@
+outs:
+- md5: bbbb3d5017822978796c44b1ac6366b7
+  size: 30432
+  hash: md5
+  path: t2-templates.jsonl
