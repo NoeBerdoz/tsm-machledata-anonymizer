@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import io
 import json
@@ -6,7 +7,9 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +17,8 @@ import yaml
 from google.api_core.exceptions import PreconditionFailed
 from requests import Response, Timeout
 
-from pii_anonymizer import cloud_training, training_pipeline
+from pii_anonymizer import baselines, cloud_training, training_pipeline
+from pii_anonymizer.teacher_labels import TARGETS
 
 REPO = Path(__file__).resolve().parents[1]
 SHA = "a" * 40
@@ -210,6 +214,67 @@ def test_archive_validation_precedes_extraction(tmp_path, invalid):
     with pytest.raises(ValueError, match="Invalid checkpoint archive entry"):
         training_pipeline.unpack_checkpoint(path, tmp_path)
     assert not (tmp_path / "config.json").exists()
+
+
+@pytest.mark.parametrize("packaged_labels", [["age"], None], ids=["packaged", "legacy"])
+def test_evaluation_uses_checkpoint_labels(tmp_path, monkeypatch, packaged_labels):
+    text = "Mira is 42."
+
+    def extract(text, labels, *, threshold, include_spans):
+        entities = {"age": [{"start": 8, "end": 10}]} if "age" in labels else {}
+        return {"entities": entities}
+
+    checkpoint = Mock(extract_entities_long=Mock(side_effect=extract))
+    published = Mock(extract_entities_long=Mock(side_effect=extract))
+    monkeypatch.setitem(
+        sys.modules, "torch", SimpleNamespace(__version__="test", inference_mode=nullcontext)
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "gliner2",
+        SimpleNamespace(
+            AutoExtractor=Mock(from_pretrained=Mock(return_value=checkpoint)),
+            GLiNER2=Mock(from_pretrained=Mock(return_value=published)),
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "huggingface_hub",
+        SimpleNamespace(snapshot_download=Mock(return_value=str(tmp_path / "published"))),
+    )
+    monkeypatch.setattr(baselines, "set_torch_threads", Mock())
+    monkeypatch.setenv("HF_HUB_DISABLE_TELEMETRY", "1")
+    monkeypatch.setattr(training_pipeline, "set_thread_variables", Mock())
+    monkeypatch.setattr(training_pipeline, "git_sha", lambda: SHA)
+    monkeypatch.chdir(tmp_path)
+
+    source = tmp_path / "checkpoint"
+    source.mkdir()
+    (source / "config.json").write_text("{}")
+    if packaged_labels is not None:
+        (source / "labels.json").write_text(json.dumps(packaged_labels))
+    training_pipeline.OUTPUT.mkdir()
+    with tarfile.open(training_pipeline.ARCHIVE, "w:gz") as archive:
+        for path in source.iterdir():
+            archive.add(path, arcname=path.name)
+    training_pipeline.DATASET.parent.mkdir(parents=True)
+    row = {"id": "age", "text": text, "entities": [{"start": 8, "end": 10, "label": "age"}]}
+    training_pipeline.DATASET.write_text(json.dumps(row) + "\n")
+
+    training_pipeline.run_evaluation()
+
+    checkpoint.extract_entities_long.assert_called_once_with(
+        text,
+        TARGETS if packaged_labels is None else packaged_labels,
+        threshold=baselines.GLINER2_THRESHOLD,
+        include_spans=True,
+    )
+    with (training_pipeline.RESULTS / "results.csv").open(newline="") as results:
+        assert next(csv.DictReader(results))["n_protected"] == "1"
+    assert baselines.load_gliner2().detect(text) == []
+    published.extract_entities_long.assert_called_once_with(
+        text, baselines.GLINER2_LABELS, threshold=baselines.GLINER2_THRESHOLD, include_spans=True
+    )
 
 
 def test_normal_preflight_checks_frozen_inputs_before_pulling(tmp_path, monkeypatch):

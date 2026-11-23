@@ -91,9 +91,10 @@ def recall(model, rows: list[dict]) -> float:
 
 def package(model_dir: Path, archive: Path) -> str:
     """Write the checkpoint folder as a .tar.gz and return its SHA-256."""
-    files = sorted(path for path in model_dir.rglob("*") if path.is_file())
-    if not files or not (model_dir / "config.json").is_file():
+    if not (model_dir / "config.json").is_file():
         raise RuntimeError(f"No model checkpoint in {model_dir}")
+    (model_dir / "labels.json").write_text(json.dumps(TARGETS) + "\n", encoding="utf-8")
+    files = sorted(path for path in model_dir.rglob("*") if path.is_file())
     local = Path(archive.name)
     with tarfile.open(local, "w:gz", compresslevel=1) as handle:
         for path in files:
