@@ -80,7 +80,7 @@ The first two commands rebuild the test sets, which the third one reads to check
 | Gretel | train | 10,000 | 2,500 |
 
 - **80 % OpenPII-1M, 20 % Gretel.** OpenPII-1M holds the types that GLiNER2-PII misses most (title, age, sex, gender). Gretel adds IBANs, company names and the document formats where GLiNER2-PII misses IBANs (SWIFT messages, XML). Its documents are about ten times longer, so its 10,000 documents weigh about as much text as the 40,000 OpenPII-1M rows.
-- **Seed 1.** The rows are drawn with seed 1, sorted by uid (OpenPII-1M) or index (Gretel) first, so the draw does not depend on the file order. The test samples use seed 42 and come from the validation and test splits, so the splits already keep them apart. The Swiss values use seed 1 too (see [swiss-identifiers.md](swiss-identifiers.md)).
+- **Seed 1.** The rows are drawn with seed 1, sorted by uid (OpenPII-1M) or index (Gretel) first, so the draw does not depend on the file order. The test samples use seed 42 and come from the validation and test splits, so the splits already keep them apart. The Swiss values use seed 3, the training seed of `swiss_training.py`: seeds 0, 1 and 2 are kept for the Swiss test sets (see [swiss-identifiers.md](swiss-identifiers.md)).
 - **Pinned data.** Both datasets are read from the pinned commits of `PARQUET_REVISIONS` in `public_data.py`.
 - **Checks.** The script stops if an entity has a label without a teacher label, or if a training row has the id or the text of a test row.
 
@@ -88,7 +88,7 @@ The file written on 2026-11-22 (DVC md5 `467749555317968ee6a14428ff71129c`, 49,4
 
 - 50,000 rows: 10,000 OpenPII-1M rows and 2,500 Gretel documents per language. 26.3 million characters, 13.9 million from OpenPII-1M and 12.4 million from Gretel.
 - No OpenPII-1M entity dropped. 76 Gretel entities dropped, because their span is empty, does not fit the text or has outer spaces (`convert_gretel_row` in `public_data.py`).
-- 4,227 rows with Swiss values: 1,409 AVS numbers, 3,434 phone numbers and 127 IBANs. Every AVS number and IBAN passes the validators of `rules.py`.
+- 4,206 rows with Swiss values: 1,322 AVS numbers, 3,471 phone numbers and 121 IBANs. Every AVS number and IBAN passes the validators of `rules.py`.
 - No training row has the id or the text of a row of T1 (both samples), the Gretel test sample or the Swiss test set. T2 does not exist yet: its files must be added with `--exclude` when it does (issue #43), and the subset rebuilt if a row is shared.
 - 665 OpenPII-1M phone numbers have a trailing space inside their span, as in the dataset. `to_example` strips it, so the teacher learns the number without the space.
 

@@ -108,7 +108,8 @@ def build(
     print(f"{len(gretel)} Gretel documents ({dropped_gretel} entities dropped)")
     check_labels(records)
     check_disjoint(records, test_sets)
-    return inject_share(records, seed=seed)
+    # The Swiss values use their own training seed, outside those of the Swiss test sets.
+    return inject_share(records)
 
 
 def load_train(dataset_id: str, columns: Sequence[str], filters=None):
