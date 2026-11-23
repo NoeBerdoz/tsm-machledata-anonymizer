@@ -6,10 +6,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pii_anonymizer import evaluate, gate, swiss, t2_marking, tracking
+from pii_anonymizer import evaluate, gate, tracking
 from pii_anonymizer.benchmark import Latency
 from pii_anonymizer.results import PER_TYPE_COLUMNS, RESULT_COLUMNS, replace_rows
-from pii_anonymizer.rules import find_all
 from pii_anonymizer.spans import Span
 
 REPO = Path(__file__).resolve().parents[1]
@@ -309,88 +308,6 @@ def test_evaluator_writes_exact_evidence_for_one_job(
     assert len(swiss) == 1
     assert swiss[0]["model_sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
     assert swiss[0]["dataset_sha256"] == hashlib.sha256(one_entity_dataset.read_bytes()).hexdigest()
-
-
-def test_t2_policy_labels_and_real_swiss_gate_evidence(tmp_path, gate_inputs, archived_detector):
-    _, _, _, params, run_gate = gate_inputs
-    author, realistic = tmp_path / "marked.jsonl", tmp_path / "realistic.jsonl"
-    original, variants = tmp_path / "templates.jsonl", tmp_path / "planted.jsonl"
-    dataset = tmp_path / "t2-dev.jsonl"
-    author.write_text(
-        json.dumps(
-            {
-                "id": "t2-0001",
-                "marked_text": "Call ⟦phone_number@PHONE|+41 79 123 45 67⟧ or "
-                "⟦phone_number|+1 202 555 0100⟧.",
-                "lang": "en",
-                "source": "prompt",
-                "kind": "realistic",
-                "group": "call",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    original.write_text(
-        json.dumps(
-            {
-                "id": "t2-0021",
-                "marked_text": "AVS ⟦@AVS/dashes:national_id_number|worker⟧, "
-                "IBAN ⟦@IBAN/lower:iban|salary⟧.",
-                "lang": "en",
-                "source": "email",
-                "kind": "planted",
-                "group": "salary",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    t2_marking.main(["build", str(author), str(realistic)])
-    swiss.main([str(original), str(variants), "--template-slots"])
-    records = [swiss.read_jsonl(realistic)[0], swiss.read_jsonl(variants)[0]]
-    dataset.write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
-    assert [
-        (entity["label"], entity.get("swiss")) for row in records for entity in row["entities"]
-    ] == [
-        ("phone_number", "PHONE"),
-        ("phone_number", None),
-        ("national_id_number", "AVS"),
-        ("iban", "IBAN"),
-    ]
-
-    detector, archive = archived_detector()
-    detector.detect = lambda text, lang=None: find_all(text)
-    for model in ("student", "teacher", "regex+student"):
-        row = evaluate.evaluate(
-            model, detector, dataset, tmp_path, None, benchmark_job=JOB, model_file=archive
-        )
-    assert (row["n_protected"], row["n_entities"]) == ("3", "4")
-    counts = {
-        evidence["label"]: (evidence["n_protected"], evidence["n_entities"])
-        for evidence in gate._job_rows(tmp_path / "recall_per_type.csv", JOB)
-        if evidence["model"] == "regex+student"
-    }
-    assert counts == {
-        "AVS": ("1", "1"),
-        "IBAN": ("1", "1"),
-        "PHONE": ("1", "1"),
-        "national_id_number": ("1", "1"),
-        "iban": ("1", "1"),
-        "phone_number": ("1", "2"),
-    }
-    config = yaml.safe_load(params.read_text())
-    config["quality_gate"]["t2_dev_sha256"] = row["dataset_sha256"]
-    params.write_text(yaml.safe_dump(config))
-    report = tmp_path / "report.json"
-    run_gate(use_fixture_results=False, report=report)
-    (check,) = [
-        check
-        for check in json.loads(report.read_text())["checks"]
-        if check["name"] == "Swiss recall"
-    ]
-    assert check["passed"]
-    assert check["detail"].startswith("3/3 >= ")
 
 
 @pytest.mark.parametrize(

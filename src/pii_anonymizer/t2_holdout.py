@@ -8,10 +8,11 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 
-from pii_anonymizer.swiss import T2_TEMPLATE_ID, read_jsonl
+from pii_anonymizer.swiss import read_jsonl
+from pii_anonymizer.t2_marking import T2_BASE_ID
 
 FINAL_FILENAME = "t2-final.jsonl"
-_T2_VARIANT = re.compile(rf"({T2_TEMPLATE_ID})-s[012]-ch")
+_T2_VARIANT = re.compile(rf"({T2_BASE_ID})-s[012]-ch")
 
 
 def source_id(record_id: str) -> str:

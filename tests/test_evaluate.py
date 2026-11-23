@@ -68,17 +68,6 @@ def test_load_dataset_refuses_bad_offsets(tmp_path):
         load_dataset(write_dataset(tmp_path / "bad.jsonl", bad))
 
 
-@pytest.mark.parametrize("kind", ["phone", None, ["AVS"]])
-def test_load_dataset_rejects_invalid_swiss_kind(tmp_path, kind):
-    record = {
-        "id": "t2-0001",
-        "text": "example",
-        "entities": [{"start": 0, "end": 7, "label": "phone_number", "swiss": kind}],
-    }
-    with pytest.raises(ValueError, match="line 1: invalid Swiss kind"):
-        load_dataset(write_dataset(tmp_path / "bad.jsonl", [record]))
-
-
 def test_results_row_is_replaced_on_rerun(tmp_path):
     dataset = write_dataset(tmp_path / "t2-dev.jsonl")
     out = tmp_path / "results"

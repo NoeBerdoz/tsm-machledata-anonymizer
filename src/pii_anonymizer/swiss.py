@@ -58,7 +58,6 @@ PHONE_FORMATS = {
 }
 
 _FORMATS = {"AVS": AVS_FORMATS, "IBAN": IBAN_FORMATS, "PHONE": PHONE_FORMATS}
-T2_TEMPLATE_ID = r"t2-[0-9]{4}"
 _TEMPLATE_SEEDS = (0, 1, 2)
 
 # A label written inside the gold span, such as "IBAN: DE12 ...", stays in the text.
@@ -269,8 +268,6 @@ def _build_templates(inputs: Sequence[Path], output: Path, assets_dir: Path | No
     rows = []
     documents = {}
     for location, row in read_marked(inputs, "planted", output):
-        if not re.fullmatch(T2_TEMPLATE_ID, row["id"]):
-            raise ValueError(f"{location}: expected a template id of the form t2-NNNN")
         filename = row.get("filename")
         base = None
         if filename is not None:

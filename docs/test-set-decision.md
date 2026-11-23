@@ -113,33 +113,40 @@ usernames, credentials and IP addresses in code and log cases.
 
 | Source | Real FR | DE | IT | EN | Total | Templates FR | DE | IT | EN | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| prompt | 6 | 6 | 6 | 6 | 24 | 3 | 3 | 3 | 3 | 12 |
+| prompt | 6 | 6 | 6 | 6 | 24 | 2 | 2 | 2 | 2 | 8 |
 | email | 4 | 4 | 4 | 4 | 16 | 2 | 2 | 2 | 2 | 8 |
-| pdf | 2 | 2 | 2 | 2 | 8 | 1 | 1 | 1 | 1 | 4 |
-| docx | 2 | 2 | 2 | 2 | 8 | 1 | 1 | 1 | 1 | 4 |
+| pdf | 2 | 2 | 2 | 2 | 8 | 2 | 2 | 2 | 2 | 8 |
+| docx | 2 | 2 | 2 | 2 | 8 | 2 | 2 | 2 | 2 | 8 |
 | csv | 2 | 2 | 2 | 2 | 8 | 2 | 2 | 2 | 2 | 8 |
-| txt | 4 | 4 | 4 | 4 | 16 | 1 | 1 | 1 | 1 | 4 |
+| txt | 4 | 4 | 4 | 4 | 16 | 0 | 0 | 0 | 0 | 0 |
 | **Total** | **20** | **20** | **20** | **20** | **80** | **10** | **10** | **10** | **10** | **40** |
 
 - Keep the text of `t2-0001` through `t2-0007`, `t2-0013` through `t2-0017`, and `t2-0019` and `t2-0020`.
   Keep the `t2-0018` scenario and replace provider-shaped tokens with visibly inert placeholders.
   Rebuild `t2-0008` through `t2-0012` from documents. Use `t2-0021` through `t2-0030` as template
   starting points, including the four file layouts. Review every row under the published policy.
-- Audit pilot groups across sources. Check Muster AG and Régie du Lac in `t2-0008`, `t2-0009`,
-  `t2-0015` and `t2-0021`, and Fintech SA in `t2-0011` and `t2-0023`.
-- Plan 14 AVS, 12 IBAN and 16 PHONE slot occurrences per language. This gives 168 AVS, 144 IBAN
-  and 192 PHONE spans after expansion. Aim for about 252 planted Swiss spans per half, including
-  84 AVS, 72 IBAN and 96 PHONE. Around 16 natural Swiss spans across the realistic rows bring each
-  half to about 260. Count occurrences after review and check the mix with groups intact.
+- Keep realistic counts even for each source and language. Give each template its own group. Use
+  distinct people, companies, addresses and identifying values in each template. When adapting pilot
+  templates, replace details shared with other snippets. Audit related realistic rows separately.
+- Match the slot counts within each template pair. In AVS, IBAN and PHONE order, plan 1/1/2 per
+  prompt, 1/2/1 per email, 2/1/2 per PDF, 2/1/1 per DOCX and 1/1/2 per CSV. Each half gets five
+  templates per language and three variants each. That gives 84 AVS, 72 IBAN and 96 PHONE spans
+  per half. About eight realistic spans with these labels per half bring the total to about 260.
+  Check the actual counts after review with groups intact.
 
 ### Authoring and file checks
 
 Write each original as a UTF-8 JSONL record with `id`, `marked_text`, `lang`, `source`, `kind` and `group`.
-For PDF and DOCX rows add `filename` relative to the dataset directory. Copy `⟦label|value⟧` to
-mark a literal span. Add `@KIND` to the label for every Swiss value in realistic text, for example
-`⟦phone_number@PHONE|+41 79 123 45 67⟧`. Keep the policy label on every span.
-Use `⟦@AVS:national_id_number|worker⟧` for a slot. Add a format with
-`⟦@AVS/dashes:national_id_number|worker⟧` or `⟦@IBAN/lower:iban|salary⟧`.
+Keep pilot realistic IDs `t2-0001` through `t2-0020`. Assign new realistic rows `t2-0061`
+through `t2-0120` across both realistic files. Reserve `t2-0021` through `t2-0060` for templates,
+including the ten pilot templates. A variant adds the seed, as in `t2-0031-s0-ch`. The holdout
+manifest uses the template base ID for all its variants.
+
+For PDF and DOCX rows add `filename` relative to the dataset directory. Copy `⟦label|value⟧`
+and use the policy label, as in `⟦full_name|Élise Exemple⟧` or `⟦PHONE|+41 79 123 45 67⟧`.
+Put surrounding whitespace outside the mark. Keep any line breaks inside the value.
+Use `⟦@AVS|worker⟧`, `⟦@IBAN/lower|salary⟧` or `⟦@PHONE|contact⟧` for generated values.
+Each slot uses its kind as the label. Use `⟦@AVS/dashes|worker⟧` for a dashed AVS number.
 Repeat the same slot name and kind to repeat a value. Use the same format setting on every occurrence.
 Keep the Unicode brackets for marks. The builder preserves all other text and computes code-point offsets.
 
@@ -164,19 +171,18 @@ before building the JSONL. The verification command reads the stored files with 
 
 For planted file rows, name the recipe by base ID, such as `t2-0021.typ` or `t2-0023.json`.
 Set the template's `filename` to the base ID with its document extension in the asset directory.
-Use a distinct default probe for each Typst input, for example
+Use a distinct default probe with prefix `PROBE_` for each Typst input, for example
 `sys.inputs.at("worker", default: "PROBE_WORKER")`, or a DOCX cell such as `{{worker}}`.
 Render the draft, extract it and replace each probe in the extracted text with its slot mark.
 Template mode passes the generated slot values to the layout and checks each variant's extraction.
+The PDF file check rejects leftover Typst probes.
+
+Track each [split input](#how-we-split-t2) separately in DVC. Keep `t2-templates.jsonl` as a separate
+DVC input and track documents and recipes in `t2-file-assets/` and `t2-planted-assets/`.
+Give Michael an index of the 80 realistic IDs and 40 template base IDs with their files. Include the
+template groups printed by the review command and the per-group source, kind, language and label counts.
 
 ## How we split T2
-
-- **Inputs** are `t2-realistic.jsonl`, `t2-files.jsonl` and `t2-planted.jsonl` under `data/test/`,
-  with separate DVC pointers. Keep `t2-templates.jsonl` as a separate DVC input. Track the documents
-  and recipes in `t2-file-assets/` and `t2-planted-assets/`. Noé pushes the data to DVC.
-- **Review** uses an index of 80 realistic IDs and 40 template base IDs with their source files.
-  Give Michael the index and per-group source, kind, language and Swiss counts. Draw 24 distinct originals.
-- **Swiss counts** use the entity's `swiss` kind. Preserve it and the policy label through the split.
 
 - **Related snippets** share a `group` key in the JSONL file: all variants of a template, and snippets that share a person, a company, an address or a value. Apart from variants of one template, each snippet gets its own values, so most groups hold a single snippet.
 - **Split**: by group, half of the snippets to dev and half to final (about 100 each). We stratify by `source` (`prompt`, `email`, `pdf`, `docx`, `csv`, `txt`), by `kind` (`realistic` or `planted`) and by language, with seed 42.
@@ -197,4 +203,4 @@ After splitting T2, export the Teacher exclusion manifest on the freeze side:
 uv run python -m pii_anonymizer.t2_holdout data/test/t2-final.jsonl data/test/t2-final-holdout.json
 ```
 
-Track the manifest as a separate DVC artifact so training can fetch it independently. It contains sorted, deduplicated source IDs and SHA-256 digests of the exact UTF-8 row texts. Source IDs drop legacy `-ch` suffixes and map T2 variants to their template base ID. Give the [Teacher training command](swiss-identifiers.md#the-training-rows) the manifest and keep the raw final split on the freeze side.
+Track the manifest as a separate DVC artifact so training can fetch it independently. It contains sorted, deduplicated source IDs with trailing `-ch` suffixes removed and SHA-256 digests of the exact UTF-8 row texts. Give the [Teacher training command](swiss-identifiers.md#the-training-rows) the manifest and keep the raw final split on the freeze side.

@@ -17,6 +17,7 @@ from pii_anonymizer.files import read_text
 from pii_anonymizer.t2_marking import FILE_SOURCES, SLOT_NAME, SOURCES, check_filename, read_rows
 
 _DOCX_SLOT = re.compile(rf"\{{\{{({SLOT_NAME})\}}\}}")
+_TYPST_PROBE = re.compile(r"PROBE_[A-Za-z0-9_-]*", re.IGNORECASE)
 
 
 def render_docx(layout: Path, slots: Mapping[str, str] | None = None) -> bytes:
@@ -101,6 +102,8 @@ def _extract(filename: str, data: bytes) -> str:
 
 def check_extraction(filename: str, data: bytes, expected: str) -> None:
     actual = _extract(filename, data)
+    if Path(filename).suffix.lower() == ".pdf" and (probe := _TYPST_PROBE.search(actual)):
+        raise ValueError(f"{filename}: unresolved Typst draft probe {probe[0]!r}")
     if actual != expected:
         position = next(
             (i for i, pair in enumerate(zip(expected, actual, strict=False)) if pair[0] != pair[1]),

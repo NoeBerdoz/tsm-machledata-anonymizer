@@ -104,7 +104,7 @@ def test_planted_docx_renders_each_seed_and_keeps_batch_on_mismatch(tmp_path, ca
     author, output = tmp_path / "templates.jsonl", tmp_path / "planted.jsonl"
     row = {
         "id": "t2-0023",
-        "marked_text": "Assurance\nCompte\t⟦@IBAN/lower:iban|refund⟧",
+        "marked_text": "Assurance\nCompte\t⟦@IBAN/lower|refund⟧",
         "lang": "fr",
         "source": "docx",
         "kind": "planted",
@@ -130,3 +130,19 @@ def test_planted_docx_renders_each_seed_and_keeps_batch_on_mismatch(tmp_path, ca
         swiss.main(args)
     assert "t2-0023-s0-ch.docx: extracted text differs" in capsys.readouterr().err
     assert all(path.read_bytes() == data for path, data in snapshot.items())
+
+
+@pytest.mark.parametrize("probe", ["PROBE_PHONE", "probe_iban"])
+def test_pdf_verification_rejects_a_draft_probe_even_when_text_matches(tmp_path, capsys, probe):
+    pdf = tmp_path / "form.pdf"
+    data = PDF.replace(b"Marie Dupont", probe.encode("ascii").ljust(len(b"Marie Dupont")))
+    pdf.write_bytes(data)
+    extracted = read_text(pdf.name, data)
+    assert probe in extracted
+    dataset = tmp_path / "t2-planted.jsonl"
+    row = {"id": "t2-0021-s0-ch", "source": "pdf", "filename": pdf.name, "text": extracted}
+    dataset.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="2"):
+        t2_files.main(["verify", str(dataset)])
+    assert f"form.pdf: unresolved Typst draft probe {probe!r}" in capsys.readouterr().err

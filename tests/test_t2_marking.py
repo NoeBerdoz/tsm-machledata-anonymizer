@@ -5,7 +5,7 @@ from collections import defaultdict
 import pytest
 
 from pii_anonymizer import swiss, t2_marking
-from pii_anonymizer.rules import ean13_ok, iban_ok
+from pii_anonymizer.rules import ean13_ok, find_phone, iban_ok
 from pii_anonymizer.spans import load_dataset
 
 
@@ -13,7 +13,7 @@ def _write_rows(path, *rows):
     path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
 
 
-def _row(marked_text, *, id="t2-0042", kind="realistic", source="prompt"):
+def _row(marked_text, *, id="t2-0061", kind="realistic", source="prompt"):
     return {
         "id": id,
         "marked_text": marked_text,
@@ -47,16 +47,25 @@ def _row(marked_text, *, id="t2-0042", kind="realistic", source="prompt"):
             "txt",
         ),
         (
-            "Tél. ⟦phone_number@PHONE|+41 79 123 45 67⟧",
+            "Tél. ⟦PHONE|+41 79 123 45 67⟧",
             "Tél. +41 79 123 45 67",
             ["+41 79 123 45 67"],
             "prompt",
+        ),
+        (
+            "Adresse ⟦street_address|Rue du Midi\n14⟧",
+            "Adresse Rue du Midi\n14",
+            ["Rue du Midi\n14"],
+            "pdf",
         ),
     ],
 )
 def test_build_compiles_exact_text_and_code_point_offsets(tmp_path, marked, plain, values, source):
     author, output = tmp_path / "marked.jsonl", tmp_path / "rows.jsonl"
-    _write_rows(author, _row(marked, source=source))
+    row = _row(marked, source=source)
+    if source == "pdf":
+        row["filename"] = "letter.pdf"
+    _write_rows(author, row)
     t2_marking.main(["build", str(author), str(output)])
     (example,) = load_dataset(output)
     assert example.text == plain
@@ -67,9 +76,10 @@ def test_build_compiles_exact_text_and_code_point_offsets(tmp_path, marked, plai
         start = plain.index(value, cursor)
         cursor = start + len(value)
         assert (entity.start, entity.end) == (start, cursor)
-    if "@PHONE" in marked:
+    if "⟦PHONE|" in marked:
         (entity,) = example.entities
-        assert (entity.label, entity.swiss) == ("phone_number", "PHONE")
+        assert entity.label == "PHONE"
+        assert set(swiss.read_jsonl(output)[0]["entities"][0]) == {"start", "end", "label"}
 
 
 @pytest.mark.parametrize(
@@ -79,17 +89,19 @@ def test_build_compiles_exact_text_and_code_point_offsets(tmp_path, marked, plai
         ("⟦label|value", "unclosed mark"),
         ("⟦label|⟦label|value⟧⟧", "nested or unclosed mark"),
         ("⟦label|⟧", "nonempty value"),
+        ("⟦label| value⟧", "marked values cannot start or end with whitespace"),
+        ("⟦label|value\t⟧", "marked values cannot start or end with whitespace"),
         ("⟦phone_number@UNKNOWN|+41⟧", "invalid mark header"),
-        ("⟦@AVS:national_id_number|worker⟧", "Swiss slots require template mode"),
+        ("⟦@AVS|worker⟧", "Swiss slots require template mode"),
     ],
 )
 def test_build_reports_location_and_keeps_previous_output(tmp_path, capsys, marked, error):
     author, output = tmp_path / "marked.jsonl", tmp_path / "rows.jsonl"
-    _write_rows(author, _row("unchanged"), _row(f"😀{marked}", id="t2-0043"))
+    _write_rows(author, _row("unchanged"), _row(f"😀{marked}", id="t2-0062"))
     output.write_text("previous output\n", encoding="utf-8")
     with pytest.raises(SystemExit, match="2"):
         t2_marking.main(["build", str(author), str(output)])
-    assert f"{author}, line 2, row 't2-0043', character 2: {error}" in capsys.readouterr().err
+    assert f"{author}, line 2, row 't2-0062', character 2: {error}" in capsys.readouterr().err
     assert output.read_text(encoding="utf-8") == "previous output\n"
 
 
@@ -98,21 +110,30 @@ def test_build_rejects_duplicate_ids(tmp_path, capsys):
     _write_rows(author, _row("one"), _row("two"))
     with pytest.raises(SystemExit, match="2"):
         t2_marking.main(["build", str(author), str(output)])
-    assert "line 2, row 't2-0042': duplicate id" in capsys.readouterr().err
+    assert "line 2, row 't2-0061': duplicate id" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_build_rejects_realistic_id_in_template_range(tmp_path, capsys):
+    author, output = tmp_path / "marked.jsonl", tmp_path / "rows.jsonl"
+    _write_rows(author, _row("realistic text", id="t2-0031"))
+    with pytest.raises(SystemExit, match="2"):
+        t2_marking.main(["build", str(author), str(output)])
+    assert "row 't2-0031': realistic IDs must be in" in capsys.readouterr().err
     assert not output.exists()
 
 
 def test_template_mode_writes_three_variants_for_each_of_40_templates(tmp_path):
     source, output = tmp_path / "templates.jsonl", tmp_path / "planted.jsonl"
-    avs = "⟦@AVS/dashes:national_id_number|worker⟧"
-    iban = "⟦@IBAN/lower:iban|salary⟧"
+    avs = "⟦@AVS/dashes|worker⟧"
+    iban = "⟦@IBAN/lower|salary⟧"
     rows = [
         _row(
-            f"Paie {avs}, compte {iban}, rappel {avs} pour ⟦full_name|Élise⟧",
+            f"Paie {avs}, compte {iban}, rappel {avs} pour ⟦full_name|Élise⟧. Tél. ⟦@PHONE|tel⟧",
             id=f"t2-{i:04}",
             kind="planted",
         )
-        for i in range(1, 41)
+        for i in range(21, 61)
     ]
     _write_rows(source, *rows)
     args = [str(source), str(output), "--template-slots"]
@@ -126,13 +147,15 @@ def test_template_mode_writes_three_variants_for_each_of_40_templates(tmp_path):
         seeds_by_template[base_id].append(int(seed))
         assert row["group"] == f"case-{base_id}"
         assert row["kind"] == "planted"
-        assert [(entity.label, entity.swiss) for entity in example.entities] == [
-            ("national_id_number", "AVS"),
-            ("iban", "IBAN"),
-            ("national_id_number", "AVS"),
-            ("full_name", None),
+        assert [entity.label for entity in example.entities] == [
+            "AVS",
+            "IBAN",
+            "AVS",
+            "full_name",
+            "PHONE",
         ]
-        avs_value, iban_value, repeated, name = [
+        assert all(set(entity) == {"start", "end", "label"} for entity in row["entities"])
+        avs_value, iban_value, repeated, name, phone = [
             example.text[entity.start : entity.end] for entity in example.entities
         ]
         assert name == "Élise"
@@ -140,6 +163,7 @@ def test_template_mode_writes_three_variants_for_each_of_40_templates(tmp_path):
         assert re.fullmatch(r"756-\d{4}-\d{4}-\d{2}", avs_value)
         assert ean13_ok(avs_value.replace("-", ""))
         assert iban_value.startswith(("ch", "li")) and iban_ok(iban_value)
+        assert len(find_phone(phone)) == 1
     assert seeds_by_template == {row["id"]: [0, 1, 2] for row in rows}
     assert len({example.text for example in examples[:3]}) == 3
     swiss.main(args)
@@ -150,17 +174,35 @@ def test_template_mode_writes_three_variants_for_each_of_40_templates(tmp_path):
     ("marked", "error"),
     [
         ("⟦full_name|Élise⟧", "expected at least one Swiss slot"),
-        ("⟦@AVS/lower:national_id_number|worker⟧", "unknown AVS format"),
+        ("⟦@AVS/lower|worker⟧", "unknown AVS format"),
+        ("⟦@AVS:national_id_number|worker⟧", "invalid Swiss slot"),
         (
-            "⟦@AVS:national_id_number|worker⟧ ⟦@PHONE:phone_number|worker⟧",
+            "⟦@AVS|worker⟧ ⟦@PHONE|worker⟧",
             "conflicting kind or format for slot 'worker'",
         ),
     ],
 )
 def test_template_mode_rejects_invalid_slots(tmp_path, capsys, marked, error):
     author, output = tmp_path / "templates.jsonl", tmp_path / "planted.jsonl"
-    _write_rows(author, _row(marked, kind="planted"))
+    _write_rows(author, _row(marked, id="t2-0021", kind="planted"))
     with pytest.raises(SystemExit, match="2"):
         swiss.main([str(author), str(output), "--template-slots"])
     assert error in capsys.readouterr().err
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    ("base_id", "error"),
+    [
+        ("t2-0061", "template IDs must be in"),
+        ("t2-0022", "more than one template uses group 'pair'"),
+    ],
+)
+def test_template_mode_rejects_reserved_ids_or_shared_groups(tmp_path, capsys, base_id, error):
+    author, output = tmp_path / "templates.jsonl", tmp_path / "planted.jsonl"
+    first = {**_row("⟦@AVS|worker⟧", id="t2-0021", kind="planted"), "group": "pair"}
+    _write_rows(author, first, {**first, "id": base_id})
+    with pytest.raises(SystemExit, match="2"):
+        swiss.main([str(author), str(output), "--template-slots"])
+    assert f"row {base_id!r}: {error}" in capsys.readouterr().err
     assert not output.exists()

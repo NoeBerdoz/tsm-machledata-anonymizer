@@ -17,8 +17,8 @@ The v1 teacher is fine-tuned on Swiss identifiers, so training needs such rows t
 
 Public rows give us many valid Swiss values. T2 also covers text extracted from files, prompts that
 mix instructions with personal data, and pasted code or logs. The [T2 template mode](test-set-decision.md#authoring-and-file-checks)
-reuses these generators for explicit slots. It writes all three seeds in one output, keeps the policy
-label with a separate `swiss` kind, and keeps the whole template group together.
+reuses these generators for explicit slots. It writes all three seeds in one output with the policy
+labels `AVS`, `IBAN` and `PHONE`, and keeps the whole template group together.
 
 ## What
 

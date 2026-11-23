@@ -7,15 +7,13 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 
-from pii_anonymizer.spans import SWISS_KINDS
-
 FILE_SOURCES = ("pdf", "docx")
 SOURCES = ("prompt", "email", "csv", "txt", *FILE_SOURCES)
+T2_BASE_ID = r"t2-[0-9]{4}"
 _LANGUAGES = ("fr", "de", "it", "en")
 _BRACKET = re.compile("[⟦⟧]")
-_LABEL = r"[A-Za-z][A-Za-z0-9_-]*"
-_LITERAL = re.compile(rf"({_LABEL})(?:@([A-Z]+))?")
-_SLOT = re.compile(rf"@([A-Z]+)(?:/([a-z0-9_]+))?:({_LABEL})")
+_LABEL = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
+_SLOT = re.compile(r"@(AVS|IBAN|PHONE)(?:/([a-z0-9_]+))?")
 SLOT_NAME = r"[A-Za-z0-9_-]+"
 
 type SlotResolver = Callable[[str, str | None, str], str]
@@ -53,14 +51,25 @@ def check_filename(source: str, filename: object) -> None:
 
 def read_marked(inputs: Sequence[Path], kind: str, output: Path) -> Iterator[tuple[str, dict]]:
     seen = set()
+    template_groups = set()
     for path in inputs:
         if path.resolve() == output.resolve():
             raise ValueError(f"output aliases input: {path}")
         for location, row in read_rows(path):
             try:
-                for key in ("id", "group"):
-                    if not isinstance(row.get(key), str) or not row[key].strip():
-                        raise ValueError(f"{key} must be a nonempty string")
+                base_id = row.get("id")
+                if not isinstance(base_id, str) or not re.fullmatch(T2_BASE_ID, base_id):
+                    raise ValueError("expected an id of the form t2-NNNN")
+                number = int(base_id[3:])
+                if kind == "planted":
+                    if not 21 <= number <= 60:
+                        raise ValueError("template IDs must be in t2-0021 through t2-0060")
+                elif not (1 <= number <= 20 or 61 <= number <= 120):
+                    raise ValueError(
+                        "realistic IDs must be in t2-0001..t2-0020 or t2-0061..t2-0120"
+                    )
+                if not isinstance(row.get("group"), str) or not row["group"].strip():
+                    raise ValueError("group must be a nonempty string")
                 if row.get("kind") != kind:
                     raise ValueError(f"expected kind {kind!r}")
                 if row.get("lang") not in _LANGUAGES or row.get("source") not in SOURCES:
@@ -70,31 +79,36 @@ def read_marked(inputs: Sequence[Path], kind: str, output: Path) -> Iterator[tup
                 check_filename(row["source"], row.get("filename"))
                 if row["id"] in seen:
                     raise ValueError(f"duplicate id {row['id']!r}")
+                if kind == "planted":
+                    if row["group"] in template_groups:
+                        raise ValueError(f"more than one template uses group {row['group']!r}")
+                    template_groups.add(row["group"])
             except ValueError as error:
                 raise ValueError(f"{location}: {error}") from error
             seen.add(row["id"])
             yield location, row
 
 
-def _read_mark(mark: str, resolve_slot: SlotResolver | None) -> tuple[str, str | None, str]:
+def _read_mark(mark: str, resolve_slot: SlotResolver | None) -> tuple[str, str]:
     header, separator, value = mark.partition("|")
     if not separator:
         raise ValueError("expected '|' after the mark header")
-    if not value.strip():
+    stripped = value.strip()
+    if not stripped:
         raise ValueError("nonempty value required")
+    if value != stripped:
+        raise ValueError("marked values cannot start or end with whitespace")
     if header.startswith("@"):
         if resolve_slot is None:
             raise ValueError("Swiss slots require template mode")
         slot = _SLOT.fullmatch(header)
-        if not slot or slot[1] not in SWISS_KINDS or not re.fullmatch(SLOT_NAME, value):
+        if not slot or not re.fullmatch(SLOT_NAME, value):
             raise ValueError(f"invalid Swiss slot {mark!r}")
-        swiss, style, label = slot.groups()
-        return label, swiss, resolve_slot(swiss, style, value)
-    literal = _LITERAL.fullmatch(header)
-    if not literal or (literal[2] is not None and literal[2] not in SWISS_KINDS):
+        label, style = slot.groups()
+        return label, resolve_slot(label, style, value)
+    if not _LABEL.fullmatch(header):
         raise ValueError(f"invalid mark header {header!r}")
-    label, swiss = literal.groups()
-    return label, swiss, value
+    return header, value
 
 
 def compile_row(row: Mapping, location: str, resolve_slot: SlotResolver | None = None) -> dict:
@@ -113,16 +127,13 @@ def compile_row(row: Mapping, location: str, resolve_slot: SlotResolver | None =
                 raise ValueError("unclosed mark")
             if closing[0] == "⟦":
                 raise ValueError("nested or unclosed mark")
-            label, swiss, value = _read_mark(marked[opening.end() : closing.start()], resolve_slot)
+            label, value = _read_mark(marked[opening.end() : closing.start()], resolve_slot)
         except ValueError as error:
             raise ValueError(f"{location}, character {opening.start() + 1}: {error}") from error
         plain = marked[cursor : opening.start()]
         start = length + len(plain)
         length = start + len(value)
-        entity = {"start": start, "end": length, "label": label}
-        if swiss is not None:
-            entity["swiss"] = swiss
-        entities.append(entity)
+        entities.append({"start": start, "end": length, "label": label})
         pieces.extend((plain, value))
         cursor = closing.end()
     pieces.append(marked[cursor:])

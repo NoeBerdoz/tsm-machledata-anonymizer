@@ -7,14 +7,12 @@ How we measure every model, from the first baseline to the quantized student, so
 A test set is a JSONL file: one JSON record per line.
 
 ```json
-{"id": "t2-0001", "text": "Pay to CH93 0076 2011 6238 5295 7 today.", "entities": [{"start": 7, "end": 33, "label": "iban", "swiss": "IBAN"}]}
+{"id": "t2-0001", "text": "Pay to CH93 0076 2011 6238 5295 7 today.", "entities": [{"start": 7, "end": 33, "label": "IBAN"}]}
 ```
 
 - `id` is unique in the file.
 - `start` and `end` are Python string indices, so they count code points, not bytes. `end` is exclusive: `text[start:end]` is the entity.
 - `label` is the type as the dataset writes it. The evaluation script does not map labels between datasets and detectors. The converters of each dataset do that.
-- `swiss` is an optional entity field with kind `AVS`, `IBAN` or `PHONE`. T2 keeps the policy label
-  and uses the kind to identify Swiss spans in realistic and planted rows. Older datasets can omit it.
 - `lang` is optional: the language code of the text (`fr`, `de`, `it`, `en`). The evaluation script passes it to the detector.
 - Other keys, such as `source` or `group`, are allowed. The evaluation script ignores them.
 
@@ -75,9 +73,6 @@ To make a detector available to the command line, add a function that loads it t
 **Strict recall** is the number of protected gold entities divided by the number of gold entities, over the whole test set (micro-average). One minus strict recall is the leak rate.
 
 **Recall per type** is the same rule, grouped by the gold label.
-For data with Swiss tags, `recall_per_type.csv` also reports the tagged spans under the reserved
-labels `AVS`, `IBAN` and `PHONE`. The release gate reads these rows. One span can appear in both
-its policy label and its Swiss kind. Overall recall counts each gold span once.
 
 **Character precision** is the share of masked characters that belong to a gold entity. We count only non-whitespace characters, and a character masked by two spans counts once. Over the whole test set, it is the number of masked characters inside a gold entity divided by the number of masked characters. A model that masks everything gets a low precision. When a detector masks nothing on the whole test set, precision is undefined, and its cell stays empty (never 0 or 1).
 
