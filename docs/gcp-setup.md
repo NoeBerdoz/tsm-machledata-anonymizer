@@ -538,7 +538,7 @@ The service is open to the Internet, because the app on a laptop calls it withou
 
 Two service accounts keep the permissions apart:
 
-- `pii-backend` runs the service. It can read the secret `pii-backend-token` and nothing else.
+- `pii-backend` runs the service. It can read the secrets `pii-backend-token` and `gemini-api-key`, and nothing else.
 - `pii-backend-build` builds the image. It has the Cloud Run Builder role, so the default Compute Engine account needs no extra rights.
 
 ### Deploy
@@ -559,10 +559,17 @@ gcloud secrets add-iam-policy-binding pii-backend-token --project "$P" \
 gcloud iam service-accounts create pii-backend-build --project "$P"
 gcloud projects add-iam-policy-binding "$P" --member="serviceAccount:$B" --role=roles/run.builder
 
-# Each deploy, from the repository root.
+# Once: the Gemini API key from https://aistudio.google.com, without a trailing newline.
+read -rs KEY && printf '%s' "$KEY" |
+  gcloud secrets create gemini-api-key --project "$P" --replication-policy=automatic --data-file=- && unset KEY
+gcloud secrets add-iam-policy-binding gemini-api-key --project "$P" \
+  --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor
+
+# Each deploy, from the repository root, on main.
 gcloud run deploy pii-backend --project "$P" --region "$R" --source . \
   --service-account "$SA" --build-service-account "projects/$P/serviceAccounts/$B" \
-  --set-secrets PII_BACKEND_TOKEN=pii-backend-token:latest \
+  --set-env-vars LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai,LLM_MODEL=gemini-3.5-flash-lite \
+  --set-secrets PII_BACKEND_TOKEN=pii-backend-token:latest,LLM_API_KEY=gemini-api-key:latest \
   --allow-unauthenticated --min-instances 0 --max-instances 1
 ```
 
@@ -579,7 +586,32 @@ export PII_BACKEND_URL="$(gcloud run services describe pii-backend --project "$P
 export PII_BACKEND_TOKEN="$(gcloud secrets versions access latest --secret pii-backend-token --project "$P")"
 ```
 
-The deployed backend cannot reach the local Ollama of a laptop. `/answer` returns a 502 until `LLM_BASE_URL`, `LLM_MODEL` and `LLM_API_KEY` point it to a hosted LLM (#100). Store a key as a secret, like the token, and add it to `--set-secrets`.
+### The LLM: Gemini 3.5 Flash-Lite
+
+The deployed backend cannot reach the local Ollama of a laptop, so it answers through the Gemini API (#110). The API has an OpenAI-compatible endpoint, so the code of #100 needs only its three settings: `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `LLM_MODEL=gemini-3.5-flash-lite`, and `LLM_API_KEY` from the secret `gemini-api-key`. The key belongs to the group's Google account and uses the free tier, so it costs nothing. Daily use stays on the local Ollama.
+
+We tested two free models through the backend on 2026-11-24:
+
+| Model | Result |
+|---|---|
+| `gemma-4-31b-it` | Kept the placeholders, but took 47 to 71 s and wrote its reasoning in a `<thought>` block inside the response. The API refuses every option that turns the reasoning off. 3 of 5 calls got a 503 "high demand", as did `gemma-4-26b-a4b-it` |
+| `gemini-3.5-flash-lite` | Kept the placeholders and answered in about 6 s, with no reasoning in the response |
+
+**Free tier limits.** Google shows each model's limits on the rate limit page of AI Studio, and they change over time. On 2026-11-24, third-party guides reported about 15 requests per minute and 500 per day for Flash-Lite, against 30 per minute and 14,400 per day for Gemma, and only 20 per day for the larger Flash models. We did not check these numbers in AI Studio. 500 per day is enough for tests and the demonstration. A request over the limit gets a 502 from the backend.
+
+**Data.** On the free tier, Google may use the prompts and responses to improve its products. The backend only sends pseudonymized content, but a value that the detector misses goes with it. Check the current terms in AI Studio, and do not send real personal data through the cloud backend.
+
+**Rotate the key.** Create a new key in AI Studio, add it as a new version of the secret, and deploy a new revision so that the service reads it. Then disable the old version and delete the old key in AI Studio.
+
+```sh
+read -rs KEY && printf '%s' "$KEY" |
+  gcloud secrets versions add gemini-api-key --project "$P" --data-file=- && unset KEY
+gcloud run services update pii-backend --project "$P" --region "$R" \
+  --update-secrets LLM_API_KEY=gemini-api-key:latest
+gcloud secrets versions disable OLD_VERSION --secret gemini-api-key --project "$P"
+```
+
+Redeployed with Gemini on **2026-11-24** (revision `pii-backend-00002-wgz`). That day, the real app on a laptop, with its local detection, sent a pseudonymized prompt through the deployed backend to Gemini, and the restored answer showed on screen. A request without the token and one with a wrong token still got a 401. The service's logs held only uvicorn's access lines: neither the prompt, the response, the placeholders nor the key were in them. The Gemini URL appears only in the audit log of the deployment, which records the service's settings.
 
 ### Cost and teardown
 

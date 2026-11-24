@@ -82,7 +82,7 @@ uv run python -m pii_anonymizer               # terminal 2: opens the interface 
 
 The app finds the backend at `PII_BACKEND_URL` (default `http://127.0.0.1:8000`). The backend refuses every request without the token, and it never logs a prompt or a response.
 
-The same backend also runs on Cloud Run. To use it instead of the local one, skip terminal 1 and set `PII_BACKEND_URL` and `PII_BACKEND_TOKEN` as described in [docs/gcp-setup.md](docs/gcp-setup.md#use-it-from-the-app). It cannot reach your local Ollama, so it answers with an error until it is set to a hosted LLM.
+The same backend also runs on Cloud Run. To use it instead of the local one, skip terminal 1 and set `PII_BACKEND_URL` and `PII_BACKEND_TOKEN` as described in [docs/gcp-setup.md](docs/gcp-setup.md#use-it-from-the-app). It cannot reach your local Ollama, so it answers through the free tier of the Gemini API instead. Only pseudonymized content goes there.
 
 Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
 
@@ -94,13 +94,13 @@ By default the backend asks `qwen3:4b` through the local Ollama, so nothing leav
 
 The backend talks to any endpoint of the OpenAI-compatible Chat Completions API. Three variables in the backend's environment choose it, and the code does not change:
 
-| Variable | Default | Example for OpenAI | Example for Claude |
-|---|---|---|---|
-| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` (local Ollama) | `https://api.openai.com/v1` | `https://api.anthropic.com/v1/` |
-| `LLM_MODEL` | `qwen3:4b` | the chosen model | the chosen model |
-| `LLM_API_KEY` | empty, Ollama needs none | the API key | the API key |
+| Variable | Default | Gemini (the cloud backend) | Example for OpenAI | Example for Claude |
+|---|---|---|---|---|
+| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` (local Ollama) | `https://generativelanguage.googleapis.com/v1beta/openai` | `https://api.openai.com/v1` | `https://api.anthropic.com/v1/` |
+| `LLM_MODEL` | `qwen3:4b` | `gemini-3.5-flash-lite` | the chosen model | the chosen model |
+| `LLM_API_KEY` | empty, Ollama needs none | a key from AI Studio | the API key | the API key |
 
-The key stays on the backend side: it is never in the app, and it is sent only when it is set. A hosted model costs money for each request, so set a spending limit with the provider. The backend still refuses content longer than 14,000 characters, the limit measured for the local model.
+The key stays on the backend side: it is never in the app, and it is sent only when it is set. A hosted model costs money for each request, so set a spending limit with the provider. Gemini's free tier costs nothing but limits the requests per minute and per day: see [docs/gcp-setup.md](docs/gcp-setup.md#the-llm-gemini-35-flash-lite). The backend still refuses content longer than 14,000 characters, the limit measured for the local model.
 
 ## Build the report
 
