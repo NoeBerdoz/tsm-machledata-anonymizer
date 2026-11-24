@@ -19,7 +19,8 @@ from pydantic import BaseModel
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "http://127.0.0.1:11434/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "qwen3:4b")
-LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+# A secret saved with a trailing newline would make an invalid header.
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "").strip()
 
 # Ollama's OpenAI-compatible endpoint ignores num_ctx and cuts what exceeds the server's
 # context without any error, so Ollama must run with OLLAMA_CONTEXT_LENGTH=16384 (README).
@@ -35,6 +36,10 @@ the language of the user."""
 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 app = FastAPI(title="PII anonymizer backend")
+
+
+class ContentTooLong(Exception):
+    """The content does not fit in the LLM's context. Its message holds counts, never content."""
 
 
 class Prompt(BaseModel):
@@ -57,10 +62,12 @@ def _check_token(authorization: str | None) -> None:
 def ask_llm(text: str) -> str:
     """Return the LLM's response to pseudonymized content.
 
-    Raises ValueError if the text is too long, OSError if the LLM cannot answer.
+    Raises ContentTooLong if the text is too long, OSError if the LLM cannot answer.
     """
     if len(text) > MAX_ANSWER_CHARS:
-        raise ValueError(f"The content is too long ({len(text)} of {MAX_ANSWER_CHARS} characters).")
+        raise ContentTooLong(
+            f"The content is too long ({len(text)} of {MAX_ANSWER_CHARS} characters)."
+        )
     body = {
         "model": LLM_MODEL,
         "messages": [
@@ -92,9 +99,11 @@ def answer(prompt: Prompt, authorization: str | None = Header(None)) -> Answer:
     _check_token(authorization)
     try:
         return Answer(response=ask_llm(prompt.text))
-    except ValueError as error:  # too long: the message holds counts, never content
+    except ContentTooLong as error:  # the message holds counts, never content
         raise HTTPException(413, str(error)) from None
-    except OSError:
+    except Exception:
+        # Any other message may hold the API key (an invalid header) or content, so the app and
+        # the logs only ever get this fixed text.
         raise HTTPException(502, "The LLM could not answer.") from None
 
 

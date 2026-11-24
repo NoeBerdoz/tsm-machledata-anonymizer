@@ -56,7 +56,12 @@ def test_refuses_everything_when_no_token_is_configured(api, fake_llm, monkeypat
 
 
 @pytest.mark.parametrize(
-    ("error", "status"), [(ValueError("too long (9 of 8 characters)"), 413), (OSError("down"), 502)]
+    ("error", "status"),
+    [
+        (backend.ContentTooLong("too long (9 of 8 characters)"), 413),
+        (OSError("down"), 502),
+        (ValueError("any other error"), 502),
+    ],
 )
 def test_llm_errors_become_http_errors(api, monkeypatch, error, status):
     def fail(_):
@@ -147,6 +152,17 @@ def test_a_reply_without_response_text_becomes_a_502(api, endpoint, body):
 
 def test_too_long_content_is_refused_before_the_llm_can_cut_it(endpoint):
     sent, reply_with = endpoint
-    with pytest.raises(ValueError, match="too long"):
+    with pytest.raises(backend.ContentTooLong, match="too long"):
         backend.ask_llm("x" * (backend.MAX_ANSWER_CHARS + 1))
     assert sent == {}
+
+
+def test_an_invalid_key_never_reaches_the_app(api, monkeypatch):
+    # Python's HTTP client refuses this header with a ValueError that holds the whole key.
+    monkeypatch.setattr(backend, "ask_llm", ASK_LLM)
+    monkeypatch.setattr(backend, "LLM_BASE_URL", "http://127.0.0.1:9/v1")
+    monkeypatch.setattr(backend, "LLM_API_KEY", "sk-secret-key\n")
+
+    reply = api.post("/answer", json={"text": "x"}, headers=AUTH)
+    assert reply.status_code == 502
+    assert "sk-secret-key" not in reply.text
