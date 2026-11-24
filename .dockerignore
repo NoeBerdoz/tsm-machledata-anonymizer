@@ -1,0 +1,7 @@
+# Only what the backend image needs (Dockerfile).
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+**/__pycache__/

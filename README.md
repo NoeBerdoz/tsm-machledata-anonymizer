@@ -82,6 +82,8 @@ uv run python -m pii_anonymizer               # terminal 2: opens the interface 
 
 The app finds the backend at `PII_BACKEND_URL` (default `http://127.0.0.1:8000`). The backend refuses every request without the token, and it never logs a prompt or a response.
 
+The same backend also runs on Cloud Run. To use it instead of the local one, skip terminal 1 and set `PII_BACKEND_URL` and `PII_BACKEND_TOKEN` as described in [docs/gcp-setup.md](docs/gcp-setup.md#use-it-from-the-app). It cannot reach your local Ollama, so it answers with an error until it is set to a hosted LLM.
+
 Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
 
 The app sends nothing when the local model fails, when a file cannot be read or holds no text, or when the model found a value that it cannot place in the text. It tells the user instead.

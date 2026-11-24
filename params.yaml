@@ -5,21 +5,37 @@ tracking:
     gate: tsm-gates
     gate_proof: tsm-gates-proof
 
+# The teacher v1 (#46). pii_anonymizer.cloud_training runs one Agent Platform job with the
+# shared values and those of one mode. Agent Platform stops the job after max_hours.
 training:
-  max_hours: 0.5
-  seed: 42
-  dataset: ai4privacy/pii-masking-openpii-1m
-  dataset_revision: ecfdc547f4a0955600cfe6ab98ba2a162207fcc0
+  seed: 1
+  data: data/train/teacher-v1.jsonl.dvc
   base_model: fastino/gliner2-privacy-filter-PII-multi
   model_revision: 1cb4166094dc58fa8d836429f060d6c95f62b495
-  rows: 1000
-  holdout_rows: 100
   epochs: 2
-  batch_size: 8
+  # 4 rows per step, 2 steps per update: the batch of 8 of the trial with less GPU memory.
+  batch_size: 4
+  gradient_accumulation_steps: 2
+  modes:
+    # `dvc repro` in GitHub Actions: a pipeline check that fits in the 90-minute runner.
+    ci:
+      max_hours: 0.5
+      rows: 1000
+      holdout_rows: 100
+    # --trial: the short run that measures the speed before the full run.
+    trial:
+      max_hours: 0.5
+      rows: 2000
+      holdout_rows: 200
+    # --full: the teacher, on every row of the subset (rows null).
+    full:
+      max_hours: 5
+      rows: null
+      holdout_rows: 0
 
 quality_gate:
-  # TODO: Record the frozen t2-dev.jsonl SHA-256 (NoeBerdoz/tsm-machledata-anonymizer#60).
-  t2_dev_sha256: null
+  # The frozen data/test/t2-dev.jsonl (#60, docs/test-set-decision.md).
+  t2_dev_sha256: 17449f078944484aa328a3379995d6240363a4e5435d5be738752dee3d02595a
   release:
     min_teacher_recall_ratio: "95/100"
     # TODO: Fill in the GLiNER2-PII ratios from T2-dev (NoeBerdoz/tsm-machledata-anonymizer#56).

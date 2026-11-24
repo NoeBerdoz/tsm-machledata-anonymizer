@@ -1,4 +1,4 @@
-"""Put valid fake Swiss identifiers into public test rows.
+"""Put valid fake Swiss identifiers into public test rows or planted T2 templates.
 
 Usage:
     uv run python -m pii_anonymizer.swiss <in.jsonl> [<in2.jsonl> ...] <out.jsonl> --seed 0
@@ -56,6 +56,9 @@ PHONE_FORMATS = {
     "intl_trunk": 1,  # +41 (0)79 123 45 67
     "slash": 1,  # 079/123 45 67
 }
+
+_FORMATS = {"AVS": AVS_FORMATS, "IBAN": IBAN_FORMATS, "PHONE": PHONE_FORMATS}
+_TEMPLATE_SEEDS = (0, 1, 2)
 
 # A label written inside the gold span, such as "IBAN: DE12 ...", stays in the text.
 _LABEL_PREFIX = re.compile(r"(?i)^iban\s*:?\s*")
@@ -129,14 +132,14 @@ def format_phone(number: str, style: str) -> str:
     }[style]
 
 
-def fake_value(kind: str, rng: random.Random) -> str:
-    """A valid fake Swiss value of the kind (`AVS`, `IBAN` or `PHONE`), in a random format."""
+def fake_value(kind: str, rng: random.Random, *, style: str | None = None) -> str:
+    """A valid fake Swiss value with a random or explicitly requested format."""
     if kind == "AVS":
-        return format_avs(avs_number(rng), _choose(rng, AVS_FORMATS))
+        return format_avs(avs_number(rng), style or _choose(rng, AVS_FORMATS))
     if kind == "IBAN":
-        return format_iban(iban_number(rng), _choose(rng, IBAN_FORMATS))
+        return format_iban(iban_number(rng), style or _choose(rng, IBAN_FORMATS))
     if kind == "PHONE":
-        return format_phone(phone_number(rng), _choose(rng, PHONE_FORMATS))
+        return format_phone(phone_number(rng), style or _choose(rng, PHONE_FORMATS))
     raise ValueError(f"unknown kind {kind!r}")
 
 
@@ -230,14 +233,96 @@ def read_jsonl(path: Path) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def _template_variant(row: Mapping, location: str, seed: int) -> tuple[dict, dict[str, str]]:
+    from pii_anonymizer.t2_marking import compile_row
+
+    rng = random.Random(f"{seed}:{row['id']}")
+    slots: dict[str, tuple[str, str | None, str]] = {}
+
+    def resolve_slot(kind: str, style: str | None, name: str) -> str:
+        if style is not None and style not in _FORMATS[kind]:
+            raise ValueError(f"unknown {kind} format {style!r}")
+        if name not in slots:
+            slots[name] = (kind, style, fake_value(kind, rng, style=style))
+        slot_kind, slot_style, value = slots[name]
+        if (slot_kind, slot_style) != (kind, style):
+            raise ValueError(f"conflicting kind or format for slot {name!r}")
+        return value
+
+    result = compile_row(row, location, resolve_slot)
+    if not slots:
+        raise ValueError(f"{location}: expected at least one Swiss slot")
+    result["id"] = f"{row['id']}-s{seed}-ch"
+    return result, {name: slot[2] for name, slot in slots.items()}
+
+
+def _build_templates(inputs: Sequence[Path], output: Path, assets_dir: Path | None) -> None:
+    from pii_anonymizer.t2_marking import read_marked, write_dataset
+
+    root = output.parent.resolve()
+    protected = {path.resolve() for path in [*inputs, output]}
+    if assets_dir is not None:
+        assets_dir = assets_dir.resolve()
+        if not assets_dir.is_relative_to(root):
+            raise ValueError("--assets-dir must be inside the output dataset directory")
+    rows = []
+    documents = {}
+    for location, row in read_marked(inputs, "planted", output):
+        filename = row.get("filename")
+        base = None
+        if filename is not None:
+            from pii_anonymizer.t2_files import check_extraction, render_docx, render_pdf
+
+            if assets_dir is None:
+                raise ValueError(f"{location}: file templates require --assets-dir")
+            base = root / filename
+            if base != assets_dir / f"{row['id']}.{row['source']}":
+                raise ValueError(f"{location}: filename must name the base ID in --assets-dir")
+        for seed in _TEMPLATE_SEEDS:
+            variant, slots = _template_variant(row, location, seed)
+            if base is not None:
+                document = base.with_stem(variant["id"])
+                if document.resolve() in protected:
+                    raise ValueError(f"{location}: document output aliases an input or dataset")
+                variant["filename"] = document.relative_to(root).as_posix()
+                try:
+                    if row["source"] == "pdf":
+                        data = render_pdf(base.with_suffix(".typ"), slots)
+                    else:
+                        data = render_docx(base.with_suffix(".json"), slots)
+                    check_extraction(variant["filename"], data, variant["text"])
+                except (OSError, ValueError) as error:
+                    raise ValueError(f"{location}: {variant['id']}: {error}") from error
+                documents[document] = data
+            rows.append(variant)
+    write_dataset(output, rows, documents)
+    print(f"{output}: {len(rows)} variants from {len(rows) // len(_TEMPLATE_SEEDS)} templates")
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Put valid fake Swiss identifiers into rows.")
     parser.add_argument("paths", nargs="+", type=Path, help="input JSONL files, then the output")
-    parser.add_argument("--seed", type=int, default=0, help="seed of the random values")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--seed", type=int, default=0, help="seed for legacy injection")
+    mode.add_argument(
+        "--template-slots", action="store_true", help="expand T2 templates for 3 seeds"
+    )
+    parser.add_argument(
+        "--assets-dir", type=Path, help="directory for T2 template layouts and files"
+    )
     args = parser.parse_args(argv)
     if len(args.paths) < 2:
         parser.error("give at least one input file and the output file")
     *inputs, output = args.paths
+
+    if args.template_slots:
+        try:
+            _build_templates(inputs, output, args.assets_dir)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        return
+    if args.assets_dir is not None:
+        parser.error("--assets-dir requires --template-slots")
 
     records = [record for path in inputs for record in read_jsonl(path)]
     injected = inject_all(records, args.seed)

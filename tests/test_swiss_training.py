@@ -7,9 +7,22 @@ import pytest
 from pii_anonymizer.rules import ean13_ok, iban_ok
 from pii_anonymizer.swiss import inject_all
 from pii_anonymizer.swiss_training import check_disjoint, inject_share, main
+from pii_anonymizer.t2_holdout import Holdout, source_id
 from pii_anonymizer.t2_holdout import main as freeze_holdout
 
 TEXT = "Anna Muster, AVS 1 69 01 75895 374 66, tel. +33 6 12 34 56 78, IBAN: DE12 3456, Bern"
+
+
+def test_holdout_normalizes_t2_variants_to_the_base_id():
+    variants = [{"id": f"t2-0021-s{seed}-ch", "text": f"variant {seed}"} for seed in range(3)]
+    holdout = Holdout.from_records(variants)
+    assert holdout.source_ids == {"t2-0021"}
+    assert len(holdout.text_sha256) == 3
+    with pytest.raises(ValueError, match="also test rows"):
+        holdout.check_disjoint([{"id": "t2-0021", "text": "another text"}])
+    assert source_id("public-s0-ch-ch") == "public-s0"
+    assert source_id("t2-0021-s3-ch") == "t2-0021-s3"
+    assert source_id("t2-0021-s0") == "t2-0021-s0"
 
 
 def _entity(text, value, label):

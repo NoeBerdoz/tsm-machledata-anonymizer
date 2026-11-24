@@ -185,7 +185,14 @@ class Gliner2Detector:
     overlapping word chunks and gives offsets into the whole text.
     """
 
-    def __init__(self, int8_dir: Path | None = None, *, checkpoint_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        int8_dir: Path | None = None,
+        *,
+        checkpoint_dir: Path | None = None,
+        labels: list[str] | None = None,
+    ) -> None:
+        self.labels = GLINER2_LABELS if labels is None else labels
         disable_hf_telemetry()
         import torch
 
@@ -225,7 +232,7 @@ class Gliner2Detector:
     def detect(self, text: str, lang: str | None = None) -> list[Span]:
         with self._no_grad():
             result = self.model.extract_entities_long(
-                text, GLINER2_LABELS, threshold=GLINER2_THRESHOLD, include_spans=True
+                text, self.labels, threshold=GLINER2_THRESHOLD, include_spans=True
             )
         spans = []
         for label, found in result["entities"].items():
@@ -242,8 +249,22 @@ def load_gliner2():
     return Gliner2Detector()
 
 
-def load_gliner2_checkpoint(model_dir: Path):
-    return Gliner2Detector(checkpoint_dir=model_dir)
+def load_gliner2_checkpoint(model_dir: Path, *, fallback_labels: list[str] | None = None):
+    """Use the labels packaged with the checkpoint, or an explicit fallback for older archives."""
+    path = model_dir / "labels.json"
+    try:
+        labels = json.loads(path.read_bytes())
+    except FileNotFoundError:
+        if fallback_labels is None:
+            raise
+        labels = fallback_labels
+    if (
+        not isinstance(labels, list)
+        or not labels
+        or any(not isinstance(label, str) or not label.strip() for label in labels)
+    ):
+        raise ValueError(f"{path} must contain a non-empty list of label names")
+    return Gliner2Detector(checkpoint_dir=model_dir, labels=labels)
 
 
 def load_gliner2_int8():

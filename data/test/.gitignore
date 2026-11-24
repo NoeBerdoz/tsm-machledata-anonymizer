@@ -1,2 +1,13 @@
 /t2_pilot.jsonl
 /o4_requests
+/t2-realistic.jsonl
+/t2-files.jsonl
+/t2-planted.jsonl
+/t2-templates.jsonl
+/t2-file-assets/
+/t2-planted-assets/
+/t2-realistic.marked.jsonl
+/t2-files.marked.jsonl
+/t2-dev.jsonl
+/t2-final.jsonl
+/t2-final-holdout.json

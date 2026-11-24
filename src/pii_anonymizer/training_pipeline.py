@@ -19,6 +19,7 @@ from pii_anonymizer import evaluate, gate
 from pii_anonymizer.baselines import load_gliner2_checkpoint
 from pii_anonymizer.benchmark import set_thread_variables
 from pii_anonymizer.results import sha256_file
+from pii_anonymizer.teacher_labels import TARGETS
 from pii_anonymizer.tracking import _data_provenance
 
 PARAMS = Path("params.yaml")
@@ -98,6 +99,8 @@ def prepare(proof: bool) -> None:
             raise ValueError("The frozen data/test/t2-dev.jsonl.dvc is missing")
         validate_gate_inputs(config)
         dvc("pull", str(POINTER))
+    # The training subset of the train stage, from the main remote even in proof mode.
+    dvc("pull", "--remote", "data", config["training"]["data"])
     validate_dataset(validate_gate_inputs(config))
 
 
@@ -132,7 +135,7 @@ def run_evaluation() -> None:
     with TemporaryDirectory() as temp:
         checkpoint = Path(temp)
         unpack_checkpoint(ARCHIVE, checkpoint)
-        detector = load_gliner2_checkpoint(checkpoint)
+        detector = load_gliner2_checkpoint(checkpoint, fallback_labels=TARGETS)
         evaluate.evaluate(
             MODEL,
             detector,
