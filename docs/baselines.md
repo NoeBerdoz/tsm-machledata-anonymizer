@@ -71,6 +71,29 @@ Recall per type for the main types (OpenPII-1M first, then 500k):
 
 Wall time for one run of 1,000 texts on this machine, loading included: regex about 1 s, Presidio 16 s (OpenPII-1M) and 12 s (500k), GLiNER2 134 s and 105 s, Privacy Filter 184 s and 92 s (`regex+privacy-filter` 182 s and 92 s).
 
+## T2-dev
+
+T2-dev (`data/test/t2-dev.jsonl`, 100 snippets, 1,080 entities, SHA-256 `17449f07…d02595a`) holds our own app traffic: prompts, e-mails, CSV, plain text and the text extracted from PDF and DOCX files. We ran every detector on it on 2026-11-25, before any tuning (issue #56). Nothing here reads T2-final.
+
+| Detector | Strict recall | Protected / entities | Char. precision | Correct / masked chars | Size (MB) |
+|---|---|---|---|---|---|
+| regex | 31.4 % | 339 / 1,080 | 95.4 % | 6,264 / 6,569 | (rules) |
+| presidio | 59.5 % | 643 / 1,080 | 77.5 % | 8,385 / 10,826 | 2,357 |
+| gliner2 | 88.8 % | 959 / 1,080 | 92.3 % | 12,064 / 13,072 | 1,244 |
+| gliner2-int8 | 87.3 % | 943 / 1,080 | 93.3 % | 11,866 / 12,719 | 338 |
+| regex+gliner2 | 93.1 % | 1,006 / 1,080 | 92.7 % | 12,755 / 13,763 | 1,244 |
+| privacy-filter | 81.7 % | 882 / 1,080 | 93.5 % | 11,665 / 12,471 | 2,827 |
+| regex+privacy-filter | 83.1 % | 897 / 1,080 | 93.1 % | 11,887 / 12,775 | 2,827 |
+| engine | 68.0 % | 734 / 1,080 | 91.5 % | 10,428 / 11,391 | 2,497 |
+
+GLiNER2-PII's character precision, 12,064 of 13,072 (92.29 %), is the O2 floor of the development gate ([smart-goals.md](smart-goals.md#thresholds)). `engine-cpu` is left out, as the issue asks. `gliner2-int8` is the published checkpoint at `1cb4166`, quantized with `quantize_gliner2`. The regex adds 47 entities to GLiNER2 here, against 5 on T1, because T2-dev holds Swiss identifiers. The per-type counts are in `results/recall_per_type.csv`.
+
+The latency sample `src/pii_anonymizer/latency_ids.txt` was drawn before these runs: 30 snippets with seed 0, each source getting its share (7 prompts, 6 e-mails, 5 each of CSV, PDF and DOCX, 2 plain text), of 6 to 167 words, 57 in the median (`python -m pii_anonymizer.latency_sample`). These runs timed it on an Intel i9-10850K desktop, not the reference laptop, so the latency in `results/results.csv` compares only with rows of that CPU. The `engine` row let Ollama 0.40.18 choose the device, and the PC has an NVIDIA GPU.
+
+```
+uv run --group baselines python -m pii_anonymizer.evaluate <detector> data/test/t2-dev.jsonl results/
+```
+
 ## The main misses
 
 ### regex
@@ -228,7 +251,7 @@ What the engine shows:
 
 ## Latency on an Apple M5 Max
 
-The protocol times 30 T2-dev snippets. Until T2-dev exists, `src/pii_anonymizer/latency_ids_t1.txt` holds a temporary sample of 30 texts of `t1-openpii-1m-200.jsonl` (seed 0, written by the same `subset` command with `--latency-ids`). They have 12 to 177 words, 34 in the median. Each detector made 5 warm-up calls and then 10 runs per text, so 300 timed calls, on 4 CPU threads.
+The protocol times 30 T2-dev snippets. Before T2-dev existed, `src/pii_anonymizer/latency_ids_t1.txt` held a temporary sample of 30 texts of `t1-openpii-1m-200.jsonl` (seed 0, written by the `subset` command of the time; the file was removed in #56 and stays in the git history). They have 12 to 177 words, 34 in the median. Each detector made 5 warm-up calls and then 10 runs per text, so 300 timed calls, on 4 CPU threads.
 
 We measured on 2026-11-10 on an Apple M5 Max, a high-end laptop. A browser stayed open, and the load average stayed between 2 and 5, the run's own 4 threads included. GLiNER2, run twice, gave a p95 of 137.5 ms and then 138.3 ms. These numbers compare only with rows from the same machine. The official numbers for O3 will come from the reference laptop.
 
@@ -273,6 +296,4 @@ Int8 weight storage with the pruned vocabulary and six layers leaves about 6 MB 
 
 ## Next steps
 
-- Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
-- Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
-- Record the character precision threshold of O2 on T2-dev, before any tuning, and write the 30-text latency sample.
+- Measure the latency on the reference laptop on T2-dev, with `latency_ids.txt`, `engine-cpu` included (O3).
