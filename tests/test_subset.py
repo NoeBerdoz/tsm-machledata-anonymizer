@@ -2,7 +2,7 @@ from collections import Counter
 
 import pytest
 
-from pii_anonymizer.subset import latency_ids, main, read_jsonl, stratified
+from pii_anonymizer.subset import main, read_jsonl, stratified
 
 
 def records(per_language):
@@ -32,22 +32,11 @@ def test_subset_refuses_a_language_with_too_few_texts():
         stratified(records(3), per_language=5)
 
 
-def test_latency_sample_is_seeded_and_taken_from_the_subset():
-    subset = stratified(records(20), per_language=10)
-    ids = latency_ids(subset, n=8)
-    assert ids == latency_ids(subset, n=8)
-    assert len(set(ids)) == 8
-    assert set(ids) <= {r["id"] for r in subset}
-
-
-def test_command_writes_the_subset_and_a_commented_id_file(tmp_path):
+def test_command_writes_the_subset(tmp_path):
     source = tmp_path / "set.jsonl"
     source.write_text(
         "".join(f'{{"id": "{r["id"]}", "lang": "{r["lang"]}"}}\n' for r in records(60))
     )
-    out, ids = tmp_path / "set-200.jsonl", tmp_path / "ids.txt"
-    main([str(source), str(out), "--latency-ids", str(ids)])
+    out = tmp_path / "set-200.jsonl"
+    main([str(source), str(out)])
     assert len(read_jsonl(out)) == 200
-    lines = ids.read_text().splitlines()
-    assert lines[0].startswith("#")
-    assert len([line for line in lines if not line.startswith("#")]) == 30
