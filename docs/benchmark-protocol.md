@@ -21,7 +21,7 @@ The quality gate of the CI (#14) runs the student and the teacher in the same jo
 
 ## Inputs
 
-- The texts: a fixed sample of 30 T2-dev snippets, listed by snippet ID in `src/pii_anonymizer/latency_ids.txt`, one ID per line. They are drawn from T2-dev with a fixed seed, across its sources, before any timing. We create this file in issue #6, once T2-dev exists (issue #5).
+- The texts: a fixed sample of 30 T2-dev snippets, listed by snippet ID in `src/pii_anonymizer/latency_ids.txt`, one ID per line. They are drawn from T2-dev with seed 0 before any timing, each source getting its share of the 30 (largest remainder), by `python -m pii_anonymizer.latency_sample` (issue #56).
 - We measure latency only on a test set that holds this sample. On the other test sets, the latency cells stay empty.
 - We count the length of an input in words, split on whitespace. We report latency per input and per 100 words.
 

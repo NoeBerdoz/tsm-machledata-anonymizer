@@ -1,0 +1,32 @@
+# Latency sample: 30 snippets of t2-dev.jsonl, seed 0,
+# proportional to each source. Written by pii_anonymizer.latency_sample.
+t2-0009
+t2-0016
+t2-0021-s2-ch
+t2-0024-s0-ch
+t2-0024-s1-ch
+t2-0030-s0-ch
+t2-0035-s1-ch
+t2-0037-s0-ch
+t2-0041-s2-ch
+t2-0044-s1-ch
+t2-0045-s1-ch
+t2-0048-s1-ch
+t2-0051-s0-ch
+t2-0051-s1-ch
+t2-0054-s0-ch
+t2-0056-s1-ch
+t2-0058-s0-ch
+t2-0065
+t2-0069
+t2-0075
+t2-0083
+t2-0085
+t2-0088
+t2-0091
+t2-0095
+t2-0102
+t2-0106
+t2-0114
+t2-0115
+t2-0120
