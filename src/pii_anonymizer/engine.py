@@ -111,9 +111,9 @@ def load_model(model_dir: Path):
     """Load the detection model of a local folder. Nothing else loads it, so the runtime of
     issue #72 only has to change this function.
 
-    The folder holds GLiNER2-PII as published, a checkpoint of ours with its labels.json, or
-    an int8 folder written by quantize_gliner2.py. Raises OSError if the folder is missing,
-    ValueError if a label of the model has no placeholder type.
+    The folder holds GLiNER2-PII as published, or a checkpoint of ours with its labels.json.
+    Raises OSError if the folder is missing, ValueError if a label of the model has no
+    placeholder type.
     """
     if not model_dir.is_dir():
         raise FileNotFoundError(f"No model folder at {model_dir}")
@@ -132,10 +132,7 @@ def load_model(model_dir: Path):
     # The model runs on this device: never ask the Hugging Face Hub for its files.
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     from pii_anonymizer.baselines import Gliner2Detector
-    from pii_anonymizer.quantize_gliner2 import MANIFEST_FILE
 
-    if (model_dir / MANIFEST_FILE).is_file():
-        return Gliner2Detector(model_dir, labels=labels)
     return Gliner2Detector(checkpoint_dir=model_dir, labels=labels)
 
 

@@ -71,7 +71,7 @@ DVC comes with `uv sync`. To get the data, log in once per machine with the grou
 
 ## Run the local interface
 
-The app finds personal data with the regex rules of `rules.py` and a GLiNER2 model in a local folder, set by `PII_MODEL_DIR`. Until our student is in the registry (#15), use GLiNER2-PII as published (1.2 GB). The folder may also hold one of our checkpoints with its `labels.json`, or an int8 folder written by `quantize_gliner2.py`. The model never calls the network.
+The app finds personal data with the regex rules of `rules.py` and a GLiNER2 model in a local folder, set by `PII_MODEL_DIR`. Until our student is in the registry (#15), use GLiNER2-PII as published (1.2 GB). The folder may also hold one of our checkpoints with its `labels.json`. The model never calls the network.
 
 The backend needs [Ollama](https://ollama.com) with the model `qwen3:4b` to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
 
