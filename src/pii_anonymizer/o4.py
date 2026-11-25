@@ -23,15 +23,7 @@ APP = Path(engine.__file__).with_name("app.py")
 PLACEHOLDER = re.compile(r"<[A-Z_]+_\d+>")
 SEPARATOR = "\n--- O4 ---\n"
 BOUNDARIES = ("backend", "sentry", "llm")
-RESTORABLE_LABELS = {*engine.RULES, *engine.MODEL_LABELS}
-LABELS = {
-    "full_name": "PERSON",
-    "first_name": "PERSON",
-    "middle_name": "PERSON",
-    "last_name": "PERSON",
-    "phone_number": "PHONE",
-    "street_address": "ADDRESS",
-}
+RESTORABLE_LABELS = {*engine.RULE_LABELS, *engine.MODEL_LABELS}
 
 
 @dataclass
@@ -53,7 +45,7 @@ class RequestRun:
 
 
 def placeholder_label(label: str) -> str:
-    adapted = LABELS.get(label.lower(), label.upper())
+    adapted = engine.PLACEHOLDER_TYPES.get(label.lower(), label.upper())
     # The app has no generic token. Use a restorable label for the remaining categories.
     return adapted if adapted in RESTORABLE_LABELS else "PERSON"
 
@@ -176,11 +168,11 @@ def run_request(request: dict, directory: Path, detector: Detector) -> RequestRu
         ]
 
     def record_detection(texts):
-        spans, missed = original_detect(texts)
+        spans = original_detect(texts)
         names = (["prompt"] if request["prompt"].strip() else []) + [file.name for file in uploads]
         sources.update(zip(names, texts, strict=True))
         detected.update(zip(names, spans, strict=True))
-        return spans, missed
+        return spans
 
     def send_to_backend(outgoing, timeout):
         captures["backend"].append(

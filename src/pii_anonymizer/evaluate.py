@@ -18,7 +18,6 @@ from pathlib import Path, PurePosixPath
 
 from pii_anonymizer.baselines import (
     load_engine,
-    load_engine_cpu,
     load_gliner2,
     load_gliner2_int8,
     load_presidio,
@@ -58,7 +57,6 @@ DETECTORS: dict[str, Callable[[], Detector]] = {
     "privacy-filter": load_privacy_filter,
     "regex+privacy-filter": load_regex_privacy_filter,
     "engine": load_engine,
-    "engine-cpu": load_engine_cpu,
 }
 
 LATENCY_IDS = Path(__file__).with_name("latency_ids.txt")

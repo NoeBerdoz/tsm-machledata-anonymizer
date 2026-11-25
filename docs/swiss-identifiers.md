@@ -142,14 +142,11 @@ On the two T1 samples, `regex+gliner2` gives almost the same strict recall as GL
 
 Privacy Filter's recall on this set by language, over all entities: 84.0 % in French, 75.7 % in German, 78.1 % in Italian and 71.5 % in English. The English rows include most of the Gretel documents, where it misses the IBANs in SWIFT and XML and many company names.
 
-## Two sets of rules, until issue #66
+## One set of rules since issue #66
 
-Since issue #45, `rules.py` accepts AVS numbers with dashes, lowercase IBANs and IBANs glued to the word before them, so it finds every format the engine's rules find. Two sets remain, on purpose, until the engine runs our own model (issue #66):
+Since issue #45, `rules.py` accepts AVS numbers with dashes, lowercase IBANs and IBANs glued to the word before them. Until issue #66, the engine kept its own, wider copy, because `qwen3:4b` only looked for names, addresses, birth dates and health data: that copy also masked foreign IBANs and foreign phone numbers.
 
-- `rules.py` is the `regex` baseline and the regex half of `regex+gliner2`. It only looks for Swiss identifiers and e-mail addresses, and checks every AVS number and IBAN, so that O1 measures the Swiss types.
-- The rules in `engine.py` are wider, because `qwen3:4b` only looks for names, addresses, birth dates and health data. They also mask foreign IBANs, foreign phone numbers and AVS-shaped numbers with a wrong check digit, which the app must not send either.
-
-When issue #66 puts our model behind `detect()`, the model finds the foreign values, and the engine uses `rules.py` instead of its own copy.
+Since issue #66, the engine runs a GLiNER2 model, which finds the foreign values (`iban`, `phone_number`), and it uses `rules.py` like the `regex` baseline. `rules.py` still only looks for Swiss identifiers and e-mail addresses, and checks every AVS number and IBAN, so that O1 measures the Swiss types. An AVS-shaped number with a wrong check digit is no longer masked by a rule: only the model can still find it.
 
 ## Limits
 

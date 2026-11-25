@@ -99,7 +99,7 @@ We use [uv](https://docs.astral.sh/uv/). `uv run <command>` runs a command insid
 
 `uv add` and `uv remove` also update `uv.lock`. Commit both `pyproject.toml` and `uv.lock`.
 
-The `tracking` group contains the lightweight MLflow client and PyYAML. Plain `uv sync` installs `dev` and `tracking`. The app's runtime dependencies are in `[project]`. The optional `mlflow-server` group is for running the server with Basic Auth. See [the MLflow setup](gcp-setup.md#mlflow-tracking-and-model-registry).
+The `tracking` group contains the lightweight MLflow client and PyYAML. Plain `uv sync` installs `dev`, `tracking` and `engine`. The `engine` group holds PyTorch (CPU only) and GLiNER2, which the app needs to run its detection model (issue #66). The backend's runtime dependencies are in `[project]`, and its Docker image installs no group, so it stays without PyTorch. The optional `mlflow-server` group is for running the server with Basic Auth. See [the MLflow setup](gcp-setup.md#mlflow-tracking-and-model-registry).
 
 To install the server group locally, use a separate environment under the ignored `.venv/` directory:
 

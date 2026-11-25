@@ -91,9 +91,9 @@ def test_counts_every_echo_of_a_placeholder_with_a_missing_mapping(monkeypatch, 
     original_pseudonymize = engine.pseudonymize
 
     def lose_mapping_entry(texts):
-        masked, mapping, missed = original_pseudonymize(texts)
+        masked, mapping = original_pseudonymize(texts)
         del mapping["<PERSON_2>"]
-        return masked, mapping, missed
+        return masked, mapping
 
     monkeypatch.setattr(engine, "pseudonymize", lose_mapping_entry)
     run = o4.run_request(french, tmp_path, detector)
@@ -244,5 +244,5 @@ def test_restores_a_literal_tagged_as_account_id(tmp_path):
     assert report["requests"][0]["restoration"]["failures"] == []
     assert {o4.placeholder_label(label) for label in GLINER2_LABELS} <= {
         *engine.MODEL_LABELS,
-        *engine.RULES,
+        *engine.RULE_LABELS,
     }

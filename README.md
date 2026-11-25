@@ -71,14 +71,22 @@ DVC comes with `uv sync`. To get the data, log in once per machine with the grou
 
 ## Run the local interface
 
-You need [Ollama](https://ollama.com) with the model `qwen3:4b`. The app uses it to detect personal data until our own model is trained, and the backend uses it to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
+The app finds personal data with the regex rules of `rules.py` and a GLiNER2 model in a local folder, set by `PII_MODEL_DIR`. Until our student is in the registry (#15), use GLiNER2-PII as published (1.2 GB). The folder may also hold one of our checkpoints with its `labels.json`. The model never calls the network.
+
+The backend needs [Ollama](https://ollama.com) with the model `qwen3:4b` to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
 
 ```sh
-ollama pull qwen3:4b                          # first time only
+# first time only
+uv run hf download fastino/gliner2-privacy-filter-PII-multi --revision 1cb4166094dc58fa8d836429f060d6c95f62b495 --include "*.json" --include "*.safetensors" --local-dir models/gliner2-pii
+ollama pull qwen3:4b
+
 export PII_BACKEND_TOKEN=change-me            # PowerShell: $env:PII_BACKEND_TOKEN = "change-me"
+export PII_MODEL_DIR=models/gliner2-pii       # PowerShell: $env:PII_MODEL_DIR = "models/gliner2-pii"
 uv run python -m pii_anonymizer.backend       # terminal 1: the backend on http://127.0.0.1:8000
 uv run python -m pii_anonymizer               # terminal 2: opens the interface in your browser
 ```
+
+The model loads on the first request, which takes about 20 seconds, and longer the very first time.
 
 The app finds the backend at `PII_BACKEND_URL` (default `http://127.0.0.1:8000`). The backend refuses every request without the token, and it never logs a prompt or a response.
 
@@ -86,7 +94,7 @@ The same backend also runs on Cloud Run. To use it instead of the local one, ski
 
 Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
 
-The app sends nothing when the local model fails, when a file cannot be read or holds no text, or when the model found a value that it cannot place in the text. It tells the user instead.
+The app sends nothing when the local model fails, or when a file cannot be read or holds no text. It tells the user instead.
 
 By default the backend asks `qwen3:4b` through the local Ollama, so nothing leaves your machine, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
 

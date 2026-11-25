@@ -6,8 +6,18 @@ from streamlit.testing.v1 import AppTest
 
 from pii_anonymizer import client, engine
 from pii_anonymizer.feedback import FEEDBACK_FILE
+from pii_anonymizer.spans import Span
 
 APP = Path(engine.__file__).with_name("app.py")
+
+
+def find(*names):
+    """A fake model that finds these names when they are in the text."""
+    return lambda text: [
+        Span(text.index(name), text.index(name) + len(name), "PERSON")
+        for name in names
+        if name in text
+    ]
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +31,7 @@ def fake_model(monkeypatch, tmp_path):
         received.append(text)
         return "Bonjour <PERSON_1>"
 
-    monkeypatch.setattr(engine, "ask_model", lambda _: [("PERSON", "Marie Dupont")])
+    monkeypatch.setattr(engine, "ask_model", find("Marie Dupont"))
     monkeypatch.setattr(client, "ask_backend", answer)
     return received
 
@@ -70,6 +80,7 @@ def test_removing_a_rating_records_nothing():
         pytest.param(OSError("connection refused"), id="connection-error"),
         pytest.param(TimeoutError("timed out"), id="timeout"),
         pytest.param(ValueError("cut answer"), id="malformed-output"),
+        pytest.param(RuntimeError("torch failed"), id="runtime-error"),
     ],
 )
 def test_nothing_is_sent_when_the_engine_fails(monkeypatch, fake_model, error):
@@ -136,9 +147,7 @@ def test_response_with_an_image_is_shown_as_plain_text(monkeypatch):
     ],
 )
 def test_response_corruption_is_shown_with_a_warning(monkeypatch, token):
-    monkeypatch.setattr(
-        engine, "ask_model", lambda _: [("PERSON", "Marie Dupont"), ("PERSON", "Hans Müller")]
-    )
+    monkeypatch.setattr(engine, "ask_model", find("Marie Dupont", "Hans Müller"))
     monkeypatch.setattr(client, "ask_backend", lambda _: f"<PERSON_1> et {token}.")
     page = run_with_prompt("Marie Dupont, Hans Müller, marie@example.ch")
     assert page.code[0].value == "<PERSON_1>, <PERSON_2>, <EMAIL_1>"
@@ -146,16 +155,6 @@ def test_response_corruption_is_shown_with_a_warning(monkeypatch, token):
     warning = page.warning[0].value
     assert warning.startswith("The response contains placeholders")
     assert warning.partition("They are shown as they are: ")[2] == f"`{token.strip('[]')}`"
-
-
-def test_values_not_found_are_shown_and_nothing_is_sent(monkeypatch, fake_model):
-    monkeypatch.setattr(engine, "ask_model", lambda _: [("PERSON", "Claire Favre")])
-    page = run_with_prompt("Favre Claire")
-    assert "1 of the values" in page.warning[0].value
-    assert page.code[0].value == "Claire Favre"
-    assert page.code[1].value == "Favre Claire"
-    assert len(page.code) == 2  # no response
-    assert fake_model == []
 
 
 class FakeUpload:
