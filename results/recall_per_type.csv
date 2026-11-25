@@ -1,100 +1,100 @@
 model,dataset,label,n_entities,n_protected,recall,cpu,runtime
-engine,t1-open-pii-500k-200,AGE,11,3,0.2727,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,BUILDINGNUM,20,15,0.7500,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,CITY,30,12,0.4000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,DATE,18,14,0.7778,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,DRIVERLICENSENUM,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,EMAIL,28,28,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,GENDER,3,2,0.6667,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,GIVENNAME,170,124,0.7294,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,IDCARDNUM,16,1,0.0625,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,PASSPORTNUM,5,1,0.2000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,SEX,5,2,0.4000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,SOCIALNUM,2,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,STREET,23,17,0.7391,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,SURNAME,78,66,0.8462,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,TAXNUM,5,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,TELEPHONENUM,32,21,0.6562,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,TIME,22,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,TITLE,19,6,0.3158,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-open-pii-500k-200,ZIPCODE,11,5,0.4545,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,AGE,69,9,0.1304,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,BUILDINGNUM,68,59,0.8676,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,CITY,104,73,0.7019,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,CREDITCARDNUMBER,46,5,0.1087,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,DATE,184,99,0.5380,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,DRIVERLICENSENUM,52,8,0.1538,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,EMAIL,97,96,0.9897,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,GENDER,28,16,0.5714,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,GIVENNAME,172,148,0.8605,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,IDCARDNUM,48,13,0.2708,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,PASSPORTNUM,27,7,0.2593,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,SEX,35,5,0.1429,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,SOCIALNUM,38,16,0.4211,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,STREET,68,62,0.9118,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,SURNAME,161,142,0.8820,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,TAXNUM,46,11,0.2391,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,TELEPHONENUM,73,54,0.7397,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,TITLE,90,49,0.5444,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-openpii-1m-200,ZIPCODE,53,39,0.7358,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,AGE,60,7,0.1167,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,AVS,57,57,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,BUILDINGNUM,67,62,0.9254,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,CITY,87,70,0.8046,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,CREDITCARDNUMBER,33,10,0.3030,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,DATE,159,95,0.5975,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,DRIVERLICENSENUM,41,8,0.1951,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,EMAIL,110,110,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,GENDER,39,17,0.4359,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,GIVENNAME,144,121,0.8403,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,IBAN,61,61,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,IDCARDNUM,46,13,0.2826,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,PASSPORTNUM,26,8,0.3077,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,PHONE,133,133,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,SEX,34,3,0.0882,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,STREET,67,61,0.9104,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,SURNAME,135,114,0.8444,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,TAXNUM,45,8,0.1778,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,TITLE,72,42,0.5833,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,ZIPCODE,59,50,0.8475,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,account_pin,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,bank_routing_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,company,52,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,credit_card_security_code,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,customer_id,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,date,92,2,0.0217,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,date_of_birth,1,1,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,driver_license_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,email,11,10,0.9091,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,first_name,2,2,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,ipv4,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,ipv6,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,name,101,73,0.7228,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,passport_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,password,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,street_address,51,43,0.8431,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,swift_bic_code,6,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,time,12,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine,t1-swiss-200,user_name,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
-engine-cpu,t1-openpii-1m-200,AGE,69,10,0.1449,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,BUILDINGNUM,68,59,0.8676,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,CITY,104,73,0.7019,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,CREDITCARDNUMBER,46,7,0.1522,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,DATE,184,100,0.5435,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,DRIVERLICENSENUM,52,12,0.2308,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,EMAIL,97,96,0.9897,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,GENDER,28,17,0.6071,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,GIVENNAME,172,148,0.8605,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,IDCARDNUM,48,15,0.3125,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,PASSPORTNUM,27,6,0.2222,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,SEX,35,6,0.1714,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,SOCIALNUM,38,17,0.4474,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,STREET,68,62,0.9118,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,SURNAME,161,141,0.8758,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,TAXNUM,46,13,0.2826,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,TELEPHONENUM,73,52,0.7123,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,TITLE,90,50,0.5556,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
-engine-cpu,t1-openpii-1m-200,ZIPCODE,53,39,0.7358,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3,t1-open-pii-500k-200,AGE,11,3,0.2727,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,BUILDINGNUM,20,15,0.7500,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,CITY,30,12,0.4000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,DATE,18,14,0.7778,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,DRIVERLICENSENUM,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,EMAIL,28,28,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,GENDER,3,2,0.6667,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,GIVENNAME,170,124,0.7294,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,IDCARDNUM,16,1,0.0625,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,PASSPORTNUM,5,1,0.2000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,SEX,5,2,0.4000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,SOCIALNUM,2,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,STREET,23,17,0.7391,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,SURNAME,78,66,0.8462,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,TAXNUM,5,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,TELEPHONENUM,32,21,0.6562,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,TIME,22,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,TITLE,19,6,0.3158,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-open-pii-500k-200,ZIPCODE,11,5,0.4545,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,AGE,69,9,0.1304,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,BUILDINGNUM,68,59,0.8676,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,CITY,104,73,0.7019,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,CREDITCARDNUMBER,46,5,0.1087,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,DATE,184,99,0.5380,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,DRIVERLICENSENUM,52,8,0.1538,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,EMAIL,97,96,0.9897,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,GENDER,28,16,0.5714,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,GIVENNAME,172,148,0.8605,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,IDCARDNUM,48,13,0.2708,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,PASSPORTNUM,27,7,0.2593,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,SEX,35,5,0.1429,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,SOCIALNUM,38,16,0.4211,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,STREET,68,62,0.9118,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,SURNAME,161,142,0.8820,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,TAXNUM,46,11,0.2391,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,TELEPHONENUM,73,54,0.7397,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,TITLE,90,49,0.5444,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-openpii-1m-200,ZIPCODE,53,39,0.7358,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,AGE,60,7,0.1167,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,AVS,57,57,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,BUILDINGNUM,67,62,0.9254,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,CITY,87,70,0.8046,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,CREDITCARDNUMBER,33,10,0.3030,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,DATE,159,95,0.5975,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,DRIVERLICENSENUM,41,8,0.1951,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,EMAIL,110,110,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,GENDER,39,17,0.4359,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,GIVENNAME,144,121,0.8403,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,IBAN,61,61,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,IDCARDNUM,46,13,0.2826,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,PASSPORTNUM,26,8,0.3077,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,PHONE,133,133,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,SEX,34,3,0.0882,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,STREET,67,61,0.9104,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,SURNAME,135,114,0.8444,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,TAXNUM,45,8,0.1778,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,TITLE,72,42,0.5833,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,ZIPCODE,59,50,0.8475,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,account_pin,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,bank_routing_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,company,52,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,credit_card_security_code,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,customer_id,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,date,92,2,0.0217,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,date_of_birth,1,1,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,driver_license_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,email,11,10,0.9091,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,first_name,2,2,1.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,ipv4,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,ipv6,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,name,101,73,0.7228,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,passport_number,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,password,3,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,street_address,51,43,0.8431,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,swift_bic_code,6,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,time,12,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3,t1-swiss-200,user_name,1,0,0.0000,Apple M5 Max,ollama 0.40.16 model@3e4cb14 device chosen by ollama
+engine-qwen3-cpu,t1-openpii-1m-200,AGE,69,10,0.1449,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,BUILDINGNUM,68,59,0.8676,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,CITY,104,73,0.7019,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,CREDITCARDNUMBER,46,7,0.1522,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,DATE,184,100,0.5435,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,DRIVERLICENSENUM,52,12,0.2308,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,EMAIL,97,96,0.9897,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,GENDER,28,17,0.6071,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,GIVENNAME,172,148,0.8605,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,IDCARDNUM,48,15,0.3125,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,PASSPORTNUM,27,6,0.2222,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,SEX,35,6,0.1714,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,SOCIALNUM,38,17,0.4474,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,STREET,68,62,0.9118,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,SURNAME,161,141,0.8758,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,TAXNUM,46,13,0.2826,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,TELEPHONENUM,73,52,0.7123,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,TITLE,90,50,0.5556,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
+engine-qwen3-cpu,t1-openpii-1m-200,ZIPCODE,53,39,0.7358,Apple M5 Max,ollama 0.40.16 model@3e4cb14 cpu
 gliner2,t1-open-pii-500k,AGE,50,7,0.1400,Apple M5 Max,torch 2.15.0 model@1cb4166
 gliner2,t1-open-pii-500k,BUILDINGNUM,93,83,0.8925,Apple M5 Max,torch 2.15.0 model@1cb4166
 gliner2,t1-open-pii-500k,CITY,158,126,0.7975,Apple M5 Max,torch 2.15.0 model@1cb4166

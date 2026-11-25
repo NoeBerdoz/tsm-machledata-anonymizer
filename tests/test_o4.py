@@ -244,5 +244,5 @@ def test_restores_a_literal_tagged_as_account_id(tmp_path):
     assert report["requests"][0]["restoration"]["failures"] == []
     assert {o4.placeholder_label(label) for label in GLINER2_LABELS} <= {
         *engine.MODEL_LABELS,
-        *engine.RULES,
+        *engine.RULE_LABELS,
     }

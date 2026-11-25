@@ -2,10 +2,10 @@
 
 | Model | Dataset | Strict recall | Char. precision | Size (MB) | p95 latency (ms) |
 |---|---|---|---|---|---|
-| engine | t1-open-pii-500k-200 | 63.5 % | 92.3 % | 2497.3 |  |
-| engine | t1-openpii-1m-200 | 62.4 % | 87.4 % | 2497.3 | 941.15 |
-| engine | t1-swiss-200 | 64.9 % | 84.5 % | 2497.3 |  |
-| engine-cpu | t1-openpii-1m-200 | 63.3 % | 86.6 % | 2497.3 | 6615.18 |
+| engine-qwen3 | t1-open-pii-500k-200 | 63.5 % | 92.3 % | 2497.3 |  |
+| engine-qwen3 | t1-openpii-1m-200 | 62.4 % | 87.4 % | 2497.3 | 941.15 |
+| engine-qwen3 | t1-swiss-200 | 64.9 % | 84.5 % | 2497.3 |  |
+| engine-qwen3-cpu | t1-openpii-1m-200 | 63.3 % | 86.6 % | 2497.3 | 6615.18 |
 | gliner2 | t1-open-pii-500k | 81.8 % | 96.7 % | 1244.4 |  |
 | gliner2 | t1-open-pii-500k-200 | 82.6 % | 98.1 % | 1244.4 |  |
 | gliner2 | t1-openpii-1m | 80.6 % | 98.2 % | 1244.4 | 138.27 |

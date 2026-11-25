@@ -22,7 +22,7 @@ def rate(result: dict) -> None:
 st.set_page_config(page_title="PII anonymizer")
 st.title("PII anonymizer")
 st.caption(
-    f"Personal data is found on this device, with {MODEL} through Ollama. "
+    f"Personal data is found on this device, with the model {MODEL}. "
     f"Only the pseudonymized content goes to the backend ({BACKEND_URL})."
 )
 
@@ -56,11 +56,11 @@ if st.button("Pseudonymize and answer", type="primary"):
         with st.spinner("Looking for personal data..."):
             texts, mapping, missed = pseudonymize([text for _, text in named_texts])
         pseudonymized = perf_counter()
-    except (OSError, ValueError) as error:
+    except Exception as error:  # the model's libraries raise their own errors
         # Regex results alone would look complete, so nothing is shown and nothing is sent.
         st.error(
             f"The local model could not finish, so nothing was sent: {error}\n\n"
-            f"Check that Ollama is running and that the model is there: `ollama pull {MODEL}`"
+            "Check that PII_MODEL_DIR is the folder of the detection model (README)."
         )
         st.stop()
 

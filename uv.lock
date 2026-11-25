@@ -3056,7 +3056,7 @@ wheels = [
 name = "pii-anonymizer"
 version = "0.1.0"
 source = { editable = "." }
-default-groups = ["dev", "tracking"]
+default-groups = ["dev", "engine", "tracking"]
 dependencies = [
     { name = "fastapi" },
     { name = "pypdf" },
@@ -3082,6 +3082,11 @@ dev = [
     { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
+]
+engine = [
+    { name = "gliner2", extra = ["local"] },
+    { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torch", version = "2.15.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 gliner2-tests = [
     { name = "gliner2", extra = ["local"] },
@@ -3126,6 +3131,11 @@ dev = [
     { name = "httpx2", specifier = ">=2.16.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.17.2" },
+]
+engine = [
+    { name = "gliner2", extras = ["local"], specifier = ">=2.1.0" },
+    { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.9.0,<2.16" },
+    { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.9.0,<2.16", index = "https://download.pytorch.org/whl/cpu" },
 ]
 gliner2-tests = [
     { name = "gliner2", extras = ["local"], specifier = ">=2.1.0" },

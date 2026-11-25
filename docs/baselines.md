@@ -13,7 +13,8 @@ These are **T1 candidate numbers only**. T2-dev does not exist yet (NoeBerdoz/ts
 - **regex+gliner2**: the two detectors together. It masks every span that either of them finds, because goal O1 measures the Swiss identifiers caught by the regex and the model together. Its size is the size of GLiNER2, since the regex has no files.
 - **privacy-filter**: `openai/privacy-filter` as published, on the CPU, in its published bfloat16 weights. We run it through the token-classification pipeline of transformers 5.22.2 with `aggregation_strategy="simple"`, the documented way to get spans with character offsets. This takes the most likely tag of each token. It does not run the constrained Viterbi decoder of OpenAI's own repo, so the operating points of the model card are not used. The pipeline only knows B- and I- tags, and the model writes B-, I-, E- and S- tags, so the last token of an entity comes back as a separate span. We join spans of the same type that touch, and we strip the space that the tokens carry before a word. We checked the offsets by hand on accented and multilingual texts: they point at the right characters.
 - **regex+privacy-filter**: the regex and Privacy Filter together, built like `regex+gliner2`.
-- **engine**: the detector of our app today (issue #29), `engine.detect()`. It has its own regex rules (AVS, IBAN, e-mail, phone) and asks qwen3:4b, through Ollama, for names, addresses, birth dates and health data. The model stands in for our student until the pipeline delivers one. It runs as in the app, so Ollama chooses the device (the GPU on a Mac). **engine-cpu** is the same detector on the CPU with the protocol's 4 threads, for the latency (see below).
+- **engine**: the detector of our app, `engine.detect()`. Since issue #66 it runs the rules of `rules.py` and the GLiNER2 model of the `PII_MODEL_DIR` folder (README), merged as the app merges them. Its runtime and size are the model's.
+- **engine-qwen3**: the rows of the engine before issue #66, kept under this name. It had its own regex rules (AVS, IBAN, e-mail, phone) and asked qwen3:4b, through Ollama, for names, addresses, birth dates and health data. It ran as in the app, so Ollama chose the device (the GPU on a Mac). **engine-qwen3-cpu** is the same detector on the CPU with the protocol's 4 threads, for the latency (see below).
 
 The code of the detectors is in `src/pii_anonymizer/baselines.py`. They need the `baselines` dependency group ([development.md](development.md)).
 
@@ -203,7 +204,9 @@ These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and a
 
 ## The app's engine, on 200 texts per set
 
-A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it, and no call failed. Forced on the CPU (`engine-cpu`, see the latency below), a few of its answers differ, and it scores 63.3 % / 86.6 % on OpenPII-1M.
+These numbers are the engine with qwen3:4b, before issue #66, now named `engine-qwen3`.
+
+A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it, and no call failed. Forced on the CPU (`engine-qwen3-cpu`, see the latency below), a few of its answers differ, and it scores 63.3 % / 86.6 % on OpenPII-1M.
 
 Strict recall / character precision on the two T1 samples, and recall on the three Swiss types (AVS, IBAN, PHONE) of the Swiss sample. The size counts every file the detector needs to run.
 
@@ -215,7 +218,7 @@ Strict recall / character precision on the two T1 samples, and recall on the thr
 | privacy-filter | 79.4 % / 97.5 % | 73.1 % / 97.1 % | 94.4 % | 2,827 MB |
 | regex+gliner2 | 82.0 % / 98.5 % | 82.6 % / 98.1 % | 99.2 % | 1,244 MB |
 | regex+privacy-filter | 79.5 % / 97.5 % | 73.3 % / 97.1 % | 100.0 % | 2,827 MB |
-| engine | 62.4 % / 87.4 % | 63.5 % / 92.3 % | 100.0 % | 2,497 MB |
+| engine-qwen3 | 62.4 % / 87.4 % | 63.5 % / 92.3 % | 100.0 % | 2,497 MB |
 
 What the engine shows:
 
@@ -240,10 +243,10 @@ We measured on 2026-11-10 on an Apple M5 Max, a high-end laptop. A browser staye
 | privacy-filter | 137 ms | 360 ms | 512 ms |
 | regex+gliner2 | 76 ms | 137 ms | 425 ms |
 | regex+privacy-filter | 131 ms | 356 ms | 502 ms |
-| engine-cpu | 2,962 ms | 6,615 ms | 15,359 ms |
-| engine, on the GPU as in the app | 621 ms | 941 ms | 2,740 ms |
+| engine-qwen3-cpu | 2,962 ms | 6,615 ms | 15,359 ms |
+| engine-qwen3, on the GPU as the app ran it | 621 ms | 941 ms | 2,740 ms |
 
-`engine-cpu` passes `num_gpu` 0 and `num_thread` 4 to Ollama through `engine.OLLAMA_OPTIONS`, which the app leaves empty, so its latency compares with the other CPU rows. On the CPU, the engine takes 6.6 s at p95, 48 times GLiNER2's 138 ms. On the GPU, as the app runs it, it takes 0.94 s, still about 7 times GLiNER2 on the CPU. The regex adds nothing measurable to GLiNER2. The `engine-cpu` run, with its 200 texts scored, took 36 minutes on this Mac.
+`engine-qwen3-cpu` passed `num_gpu` 0 and `num_thread` 4 to Ollama, which the app left empty, so its latency compares with the other CPU rows. On the CPU, the engine takes 6.6 s at p95, 48 times GLiNER2's 138 ms. On the GPU, as the app runs it, it takes 0.94 s, still about 7 times GLiNER2 on the CPU. The regex adds nothing measurable to GLiNER2. The `engine-qwen3-cpu` run, with its 200 texts scored, took 36 minutes on this Mac.
 
 The per-100-words values are higher than the per-call ones because most texts are shorter than 100 words.
 
@@ -274,5 +277,5 @@ Int8 weight storage with the pruned vocabulary and six layers leaves about 6 MB 
 ## Next steps
 
 - Run the detectors on T2-dev when it exists (issue #5), and write the latency sample `src/pii_anonymizer/latency_ids.txt`.
-- Measure the latency on the reference laptop with the temporary T1 sample, `engine-cpu` included, then again on T2-dev.
+- Measure the latency on the reference laptop with the temporary T1 sample, `engine` included, then again on T2-dev.
 - Record the character precision threshold of O2 on T2-dev, before any tuning, and write the 30-text latency sample.

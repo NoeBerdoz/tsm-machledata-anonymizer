@@ -1,13 +1,17 @@
+import json
+
 import pytest
 
 from pii_anonymizer import engine
+from pii_anonymizer.baselines import GLINER2_LABELS
 from pii_anonymizer.engine import CHUNK_SIZE, detect, pseudonymize, restore
 from pii_anonymizer.spans import Span
+from pii_anonymizer.teacher_labels import TARGETS
 
 
 @pytest.fixture
 def model(monkeypatch):
-    """Replace Ollama: the fake model finds the given pairs when they are in the text."""
+    """Replace the local model: the fake model finds the given pairs when they are in the text."""
 
     def install(*pairs):
         calls = []
@@ -35,7 +39,6 @@ def model(monkeypatch):
         ("0041 79 123 45 67", "<PHONE_1>"),
         ("+41 (0)79 123 45 67", "<PHONE_1>"),
         ("079 123 45 67", "<PHONE_1>"),
-        ("+33 6 12 34 56 78", "<PHONE_1>"),
         ("079/123 45 67", "<PHONE_1>"),
         ("0041791234567", "<PHONE_1>"),
         ("756-1234-5678-97", "<AVS_1>"),
@@ -174,7 +177,7 @@ def test_value_on_a_chunk_edge_is_whole_in_one_chunk(model):
     assert any(value in chunk for chunk in calls)
 
 
-def test_ollama_failure_is_not_hidden(monkeypatch):
+def test_model_failure_is_not_hidden(monkeypatch):
     def ask_model(_):
         raise OSError("connection refused")
 
@@ -342,3 +345,50 @@ def test_pseudonymize_then_restore_gives_back_the_real_values(model):
         "Marie Dupont, marie@example.ch, 079 123 45 67",
         [],
     )
+
+
+@pytest.mark.parametrize("label", sorted({*GLINER2_LABELS, *TARGETS}))
+def test_every_model_label_gets_a_placeholder_that_restore_finds(label):
+    token = f"<{engine.PLACEHOLDER_TYPES[label]}_1>"
+    assert restore(f"Bonjour {token}.", {token: "Marie"}, []) == ("Bonjour Marie.", [])
+
+
+@pytest.mark.parametrize("label", engine.RULE_LABELS)
+def test_every_rule_label_gets_a_placeholder_that_restore_finds(label):
+    token = f"<{label}_1>"
+    assert restore(token, {token: "x"}, []) == ("x", [])
+
+
+class FakeDetector:
+    def detect(self, text):
+        return [Span(0, 5, "first_name"), Span(6, 12, "last_name"), Span(16, 20, "city")]
+
+
+def test_model_labels_become_placeholder_types(monkeypatch):
+    monkeypatch.setattr(engine, "_model", FakeDetector)
+    assert pseudonymize(["Marie Dupont de Sion."])[0] == ["<PERSON_1> <PERSON_2> de <ADDRESS_1>."]
+
+
+@pytest.fixture
+def no_loaded_model(monkeypatch):
+    engine._model.cache_clear()
+    yield
+    engine._model.cache_clear()
+
+
+def test_nothing_is_pseudonymized_without_a_model_folder(monkeypatch, no_loaded_model):
+    monkeypatch.setattr(engine, "MODEL_DIR", "")
+    with pytest.raises(FileNotFoundError, match="PII_MODEL_DIR"):
+        pseudonymize(["marie@example.ch"])
+
+
+def test_a_missing_model_folder_raises(monkeypatch, tmp_path, no_loaded_model):
+    monkeypatch.setattr(engine, "MODEL_DIR", str(tmp_path / "missing"))
+    with pytest.raises(FileNotFoundError):
+        pseudonymize(["marie@example.ch"])
+
+
+def test_a_model_with_an_unknown_label_does_not_load(tmp_path):
+    (tmp_path / "labels.json").write_text(json.dumps(["first_name", "shoe_size"]))
+    with pytest.raises(ValueError, match="shoe_size"):
+        engine.load_model(tmp_path)

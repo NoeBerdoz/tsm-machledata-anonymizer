@@ -71,14 +71,22 @@ DVC comes with `uv sync`. To get the data, log in once per machine with the grou
 
 ## Run the local interface
 
-You need [Ollama](https://ollama.com) with the model `qwen3:4b`. The app uses it to detect personal data until our own model is trained, and the backend uses it to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
+The app finds personal data with the regex rules of `rules.py` and a GLiNER2 model in a local folder, set by `PII_MODEL_DIR`. Until our student is in the registry (#15), use GLiNER2-PII as published (1.2 GB). The folder may also hold one of our checkpoints with its `labels.json`, or an int8 folder written by `quantize_gliner2.py`. The model never calls the network.
+
+The backend needs [Ollama](https://ollama.com) with the model `qwen3:4b` to answer. Ollama must run with a context of 16384 tokens: set `OLLAMA_CONTEXT_LENGTH=16384` in the environment of the Ollama server, then restart it. Without it, Ollama cuts long content from the backend without any error. The app only sends pseudonymized content to our backend (FastAPI), which returns the response. Both read the same shared token from `PII_BACKEND_TOKEN`; choose any long random string. From the repository root, in two terminals:
 
 ```sh
-ollama pull qwen3:4b                          # first time only
+# first time only
+uv run hf download fastino/gliner2-privacy-filter-PII-multi --revision 1cb4166094dc58fa8d836429f060d6c95f62b495 --include "*.json" --include "*.safetensors" --local-dir models/gliner2-pii
+ollama pull qwen3:4b
+
 export PII_BACKEND_TOKEN=change-me            # PowerShell: $env:PII_BACKEND_TOKEN = "change-me"
+export PII_MODEL_DIR=models/gliner2-pii       # PowerShell: $env:PII_MODEL_DIR = "models/gliner2-pii"
 uv run python -m pii_anonymizer.backend       # terminal 1: the backend on http://127.0.0.1:8000
 uv run python -m pii_anonymizer               # terminal 2: opens the interface in your browser
 ```
+
+The model loads on the first request, which takes a few seconds.
 
 The app finds the backend at `PII_BACKEND_URL` (default `http://127.0.0.1:8000`). The backend refuses every request without the token, and it never logs a prompt or a response.
 
