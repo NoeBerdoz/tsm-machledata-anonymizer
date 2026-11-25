@@ -20,11 +20,13 @@ MODEL_DIR = os.environ.get("PII_MODEL_DIR", "")
 # The name that the app shows and that the feedback records.
 MODEL = Path(MODEL_DIR).name or "no model"
 
-# The model reads a few hundred words at a time and cuts longer texts itself. These chunks
-# keep each call short, and the overlap keeps a value that falls on the edge of a chunk whole
-# in the next one.
-CHUNK_SIZE = 3000
-CHUNK_OVERLAP = 200
+# The model reads 384 words at a time. GLiNER2 can cut longer texts itself, but of two versions
+# of a value on a cut it keeps the surer one, which may be the truncated one. Here both are kept
+# and merged, and the overlap gives a value on a cut whole to the next chunk.
+CHUNK_WORDS = 384
+CHUNK_OVERLAP = 64
+# At least as many words as GLiNER2's splitter counts, so GLiNER2 never cuts a chunk again.
+_WORD = re.compile(r"\w+|[^\w\s]")
 
 # Each label that our models can return -> the type of its placeholder: the 42 labels of
 # GLiNER2-PII's model card and the labels of our teacher (teacher_labels.py). A model with a
@@ -145,15 +147,30 @@ def _model():
     return load_model(Path(MODEL_DIR))
 
 
-def ask_model(text: str) -> list[tuple[str, str]]:
-    """Return the (placeholder type, value) pairs that the local model finds in a text.
+def ask_model(text: str) -> list[Span]:
+    """Return what the local model finds in a text, labelled with the placeholder types.
 
     Raises if the model is missing or fails.
     """
     return [
-        (PLACEHOLDER_TYPES[span.label], text[span.start : span.end])
-        for span in _model().detect(text)
+        Span(span.start, span.end, PLACEHOLDER_TYPES[span.label]) for span in _model().detect(text)
     ]
+
+
+def _find(text: str) -> list[Span]:
+    """Return what the model finds in a text of any length. Spans may repeat or overlap."""
+    words = list(_WORD.finditer(text))
+    spans = []
+    for first in range(0, len(words), CHUNK_WORDS - CHUNK_OVERLAP):
+        if first and len(words) - first <= CHUNK_OVERLAP:
+            break  # the previous chunk already holds these words
+        chunk = words[first : first + CHUNK_WORDS]
+        start = chunk[0].start()
+        spans += [
+            Span(start + span.start, start + span.end, span.label)
+            for span in ask_model(text[start : chunk[-1].end()])
+        ]
+    return spans
 
 
 def _pattern(value: str) -> re.Pattern:
@@ -174,67 +191,54 @@ def _spans(text: str, patterns: dict[str, tuple[re.Pattern, str]]) -> list[tuple
     return spans
 
 
-def _detect(texts: list[str]) -> tuple[list[list[Span]], list[str]]:
-    """Return the spans to hide in each text, and the values that the model found but that are
-    not in the texts as it wrote them.
+def _detect(texts: list[str]) -> list[list[Span]]:
+    """Return the spans to hide in each text.
 
     A value that the model finds in one text is also searched in the others.
     """
-    found = [
-        pair
-        for text in texts
-        for start in range(0, len(text), CHUNK_SIZE - CHUNK_OVERLAP)
-        for pair in ask_model(text[start : start + CHUNK_SIZE])
-    ]
-    # The model sometimes returns empty values, which would match everywhere.
+    found = [_find(text) for text in texts]
     values = {
-        value: label
-        for label, value in reversed(found)
+        text[span.start : span.end]: span.label
+        for text, spans in reversed(list(zip(texts, found, strict=True)))
+        for span in reversed(spans)
+    }
+    # Searched elsewhere, a one-character value would match everywhere.
+    patterns = {
+        value: (_pattern(value), label)
+        for value, label in values.items()
         if len(value.strip()) > 1 and re.search(r"\w", value)
     }
-    patterns = {value: (_pattern(value), label) for value, label in values.items()}
-
-    # The model may have invented a value, or written a real one differently from the text
-    # (Claire Favre for Favre Claire): the code cannot tell which, so the user has to check.
-    matched = [v for v, (p, _) in patterns.items() if any(p.search(text) for text in texts)]
-    missed = [
-        value
-        for value in patterns
-        if value not in matched
-        # A value cut by the edge of a chunk is whole in the next chunk.
-        and not any(value.lower() in other.lower() for other in matched)
-    ]
 
     detected = []
-    for text in texts:
+    for text, model_spans in zip(texts, found, strict=True):
         merged: list[list] = []
-        for start, end, label in sorted(_spans(text, patterns), key=lambda s: (s[0], -s[1])):
+        spans = _spans(text, patterns) + [(s.start, s.end, s.label) for s in model_spans]
+        for start, end, label in sorted(spans, key=lambda s: (s[0], -s[1])):
             if merged and start < merged[-1][1]:
                 # A partly masked value is a leak, so overlapping spans become one.
                 merged[-1][1] = max(merged[-1][1], end)
             else:
                 merged.append([start, end, label])
         detected.append([Span(*span) for span in merged])
-    return detected, missed
+    return detected
 
 
 def detect(text: str) -> list[Span]:
     """Return the spans of personal data in one text, sorted and without overlaps, found by the
     model and the rules exactly as pseudonymize() finds them.
     """
-    return _detect([text])[0][0]
+    return _detect([text])[0]
 
 
-def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]]:
-    """Return the texts with their personal data replaced, {placeholder: real value}, and the
-    values that the model found but that are not in the texts as it wrote them.
+def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str]]:
+    """Return the texts with their personal data replaced, and {placeholder: real value}.
 
     The texts share one mapping, so a value gets the same placeholder in all of them, and a
     value that the model finds in one text is also hidden in the others. The key of a value is
     its label and its exact text, so restore() writes back exactly what was replaced: "Marie
     Dupont" and "MARIE DUPONT", or a name broken over two lines, get placeholders of their own.
     """
-    detected, missed = _detect(texts)
+    detected = _detect(texts)
 
     # A text about this project can already contain <PERSON_1> or <PERSON-1>: that number is
     # skipped, so the restoration never swaps the literal text for a real value.
@@ -256,7 +260,7 @@ def pseudonymize(texts: list[str]) -> tuple[list[str], dict[str, str], list[str]
             position = end
         results.append("".join(parts) + text[position:])
 
-    return results, {token: value for (_, value), token in placeholders.items()}, missed
+    return results, {token: value for (_, value), token in placeholders.items()}
 
 
 def restore(response: str, mapping: dict[str, str], sent: list[str]) -> tuple[str, list[str]]:

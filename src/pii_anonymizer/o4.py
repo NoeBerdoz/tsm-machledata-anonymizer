@@ -168,11 +168,11 @@ def run_request(request: dict, directory: Path, detector: Detector) -> RequestRu
         ]
 
     def record_detection(texts):
-        spans, missed = original_detect(texts)
+        spans = original_detect(texts)
         names = (["prompt"] if request["prompt"].strip() else []) + [file.name for file in uploads]
         sources.update(zip(names, texts, strict=True))
         detected.update(zip(names, spans, strict=True))
-        return spans, missed
+        return spans
 
     def send_to_backend(outgoing, timeout):
         captures["backend"].append(

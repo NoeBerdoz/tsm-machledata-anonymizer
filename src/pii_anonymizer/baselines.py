@@ -210,7 +210,12 @@ class Gliner2Detector:
             self.model.eval()
             source = "local checkpoint" if checkpoint_dir else f"model@{GLINER2_REVISION[:7]}"
             self.runtime = f"torch {torch.__version__} {source}"
-            self.files = sorted(p for p in local_dir.rglob("*") if p.is_file())
+            # `hf download --local-dir` keeps its own records in .cache, next to the model.
+            self.files = sorted(
+                p
+                for p in local_dir.rglob("*")
+                if p.is_file() and ".cache" not in p.relative_to(local_dir).parts
+            )
         else:
             from pii_anonymizer.quantize_gliner2 import load_int8_model, read_int8_artifact
 

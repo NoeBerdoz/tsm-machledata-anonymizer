@@ -86,7 +86,7 @@ uv run python -m pii_anonymizer.backend       # terminal 1: the backend on http:
 uv run python -m pii_anonymizer               # terminal 2: opens the interface in your browser
 ```
 
-The model loads on the first request, which takes a few seconds.
+The model loads on the first request, which takes about 20 seconds, and longer the very first time.
 
 The app finds the backend at `PII_BACKEND_URL` (default `http://127.0.0.1:8000`). The backend refuses every request without the token, and it never logs a prompt or a response.
 
@@ -94,7 +94,7 @@ The same backend also runs on Cloud Run. To use it instead of the local one, ski
 
 Write a prompt, attach files (PDF, TXT, DOCX, CSV) and press **Pseudonymize and answer**. The page shows the pseudonymized content, the response with the response time, and the mapping table. You can rate the response from 1 to 5 stars. The rating and the times go to `feedback.jsonl` in the current folder, without any prompt or response text.
 
-The app sends nothing when the local model fails, when a file cannot be read or holds no text, or when the model found a value that it cannot place in the text. It tells the user instead.
+The app sends nothing when the local model fails, or when a file cannot be read or holds no text. It tells the user instead.
 
 By default the backend asks `qwen3:4b` through the local Ollama, so nothing leaves your machine, and the response keeps its placeholders. Start the interface with this command and not with `streamlit run`: it keeps the page on your machine and turns off Streamlit's usage statistics.
 
