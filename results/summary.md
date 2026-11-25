@@ -45,3 +45,16 @@
 | regex+privacy-filter | t1-openpii-1m-200 | 79.5 % | 97.5 % | 2826.9 | 355.51 |
 | regex+privacy-filter | t1-swiss | 78.1 % | 91.3 % | 2826.9 |  |
 | regex+privacy-filter | t1-swiss-200 | 76.7 % | 90.8 % | 2826.9 |  |
+
+## Intel(R) Core(TM) i9-10850K CPU @ 3.60GHz
+
+| Model | Dataset | Strict recall | Char. precision | Size (MB) | p95 latency (ms) |
+|---|---|---|---|---|---|
+| engine | t2-dev | 68.0 % | 91.5 % | 2497.3 | 1806.15 |
+| gliner2 | t2-dev | 88.8 % | 92.3 % | 1244.4 | 441.78 |
+| gliner2-int8 (d567a2515149) | t2-dev | 87.3 % | 93.3 % | 337.6 | 449.04 |
+| presidio | t2-dev | 59.5 % | 77.5 % | 2357.4 | 25.58 |
+| privacy-filter | t2-dev | 81.7 % | 93.5 % | 2826.9 | 1451.25 |
+| regex | t2-dev | 31.4 % | 95.4 % |  | 0.08 |
+| regex+gliner2 | t2-dev | 93.1 % | 92.7 % | 1244.4 | 450.56 |
+| regex+privacy-filter | t2-dev | 83.1 % | 93.0 % | 2826.9 | 1445.29 |
