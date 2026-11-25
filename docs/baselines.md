@@ -204,7 +204,7 @@ These samples cannot measure the Swiss part of O1: they have no Swiss IBAN and a
 
 ## The app's engine, on 200 texts per set
 
-These numbers are the engine with qwen3:4b, before issue #66, now named `engine-qwen3`.
+`engine-qwen3` is the engine before issue #66, with qwen3:4b, and the text below describes it. `engine` is the engine since issue #66, with GLiNER2-PII as published. We scored it on OpenPII-1M only, on 2026-11-25 on an Intel i5-10300H (Windows), without the latency. The other rows come from an Apple M5 Max.
 
 A 4B model is slow, so we scored the engine on 200 texts per test set, 50 per language, drawn with a fixed seed by `uv run python -m pii_anonymizer.subset` (for example `data/test/t1-openpii-1m.jsonl data/test/t1-openpii-1m-200.jsonl`). Every other detector ran on the same 200 texts, so the table compares like with like. The engine ran on this Mac's GPU, as the app runs it, and no call failed. Forced on the CPU (`engine-qwen3-cpu`, see the latency below), a few of its answers differ, and it scores 63.3 % / 86.6 % on OpenPII-1M.
 
@@ -219,6 +219,7 @@ Strict recall / character precision on the two T1 samples, and recall on the thr
 | regex+gliner2 | 82.0 % / 98.5 % | 82.6 % / 98.1 % | 99.2 % | 1,244 MB |
 | regex+privacy-filter | 79.5 % / 97.5 % | 73.3 % / 97.1 % | 100.0 % | 2,827 MB |
 | engine-qwen3 | 62.4 % / 87.4 % | 63.5 % / 92.3 % | 100.0 % | 2,497 MB |
+| engine | 82.0 % / 98.5 % | not measured | not measured | 1,244 MB |
 
 What the engine shows:
 

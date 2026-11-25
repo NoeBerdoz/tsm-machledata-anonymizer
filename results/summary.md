@@ -45,3 +45,9 @@
 | regex+privacy-filter | t1-openpii-1m-200 | 79.5 % | 97.5 % | 2826.9 | 355.51 |
 | regex+privacy-filter | t1-swiss | 78.1 % | 91.3 % | 2826.9 |  |
 | regex+privacy-filter | t1-swiss-200 | 76.7 % | 90.8 % | 2826.9 |  |
+
+## Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz
+
+| Model | Dataset | Strict recall | Char. precision | Size (MB) | p95 latency (ms) |
+|---|---|---|---|---|---|
+| engine | t1-openpii-1m-200 | 82.0 % | 98.5 % | 1244.4 |  |
