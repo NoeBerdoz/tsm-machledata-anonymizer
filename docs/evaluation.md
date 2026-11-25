@@ -50,6 +50,33 @@ The JSON report traces occurrences and mask spans by source and offset. A plante
 
 Published GLiNER2-PII with the app rules detected 100 of 100 planted IDs, recorded zero app leaks and detector misses, and restored all 112 intact placeholders. See the [O4 results](../results/o4.md).
 
+## O2 test prompts
+
+The prompts of O2 ([smart-goals.md](smart-goals.md#o2-utility)) live in `data/test/o2_prompts/`, versioned together in DVC and never used for training. Its UTF-8 manifest, `prompts.jsonl`, has one line per prompt: 20 test prompts, 5 in each of French, German, Italian and English, and 5 stress prompts. Every value in them is synthetic.
+
+```json
+{"id":"o2-fr-01","lang":"fr","stress":false,"task":"extraction","prompt":"Voici la facture du garage pour Chloé Vuilleumier. Sur quel IBAN dois-je payer ? Réponds uniquement avec l'IBAN.","files":["facture_garage.pdf"],"check":{"type":"exact","value":"CH10 2117 2745 4686 1187 8"},"repeated":["Chloé Vuilleumier"]}
+```
+
+- `id` is unique. `lang` is `fr`, `de`, `it` or `en`.
+- `stress` is `true` for the 5 prompts that need to link two forms of one person, such as `Marie Dupont` in the prompt and `Marie` and `Dupont` in two cells. The app does not link them, so they are counted apart, outside the 90 %.
+- `task` is `summary`, `extraction` or `table`.
+- `prompt` is sent as the user typed it. `files` lists the attachments in upload order, as paths relative to the manifest. The runner reads each one with `pii_anonymizer.files.read_text(filename, bytes)`, as the app does. Ten or more test prompts have at least one file.
+- `repeated` lists values that appear verbatim in two or more sources of the prompt (the prompt text or a file), so the app gives them one placeholder. It is documentation for the reader; the runner ignores it.
+- `check` is the answer check, fixed in advance. It is applied to the answer the user sees, so after `restore()`.
+
+Before any comparison, the answer and the expected values are normalized: Unicode NFC, `casefold()`, runs of whitespace collapsed to one space, and a space, `'` or `’` between two digits removed. So `CH10 2117 …`, `ch102117…`, `1'930` and `1930` compare equal. Dots and dashes stay, so a date or an AVS number must keep its separators.
+
+| `type` | Keys | Passes when |
+|---|---|---|
+| `exact` | `value`: a string or a list of strings | every value is a substring of the normalized answer |
+| `json` | `fields`: an object of key to string | the answer holds a JSON object, the first one found, optionally inside a ```` ```json ```` fence, that has every key, and the normalized value of each key (a number or other non-string value is first written as JSON) contains the expected value |
+| `label` | `options`, `expected` | exactly one of the options is a substring of the normalized answer, and it is `expected` |
+
+`json` uses "contains" so that `342.60` matches an expected `342.6`, and `Petra Huber, Verwaltung Huber AG` matches `Petra Huber`. Expected numbers are written without trailing zeros for this reason.
+
+Generate the files locally with `uv run python scripts/generate_o2_prompts.py`. The test in `tests/test_o2_prompts.py` generates its own copy in a temporary directory and checks the mix of languages, tasks and files, the checks, the file extraction and the repeated values, so it runs without a DVC download.
+
 ## Detector interface
 
 A detector takes one text and returns the character spans to mask, each with a type (`Span(start, end, label)`). It also gives its runtime and version (`runtime`, for example `"torch 2.9.1"`) and the files it needs to run (`files`, used for the size). The `Detector` protocol in `spans.py` has the exact signature:

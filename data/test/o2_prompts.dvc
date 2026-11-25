@@ -1,0 +1,6 @@
+outs:
+- md5: f2de144e7de48ff284d8e46949c5ee9a.dir
+  size: 4159873
+  nfiles: 18
+  hash: md5
+  path: o2_prompts
