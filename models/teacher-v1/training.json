@@ -1,0 +1,24 @@
+{
+  "git_sha": "8c76c9c54f8c432ee56f2bb7548453325ca6c2d8",
+  "run_id": "dae301b6953445f3b756dccfa1995ba6",
+  "mode": "full",
+  "model_sha256": "5911bc56afd95c3884401550ceee1deb39cb8f088ddab598518a015b503bc65b",
+  "epoch_1": {
+    "sha256": "bb3ba5d0a110a2f469e19ba3639aa837e04cebf8da64d80d45fb68223382929e",
+    "step": 6184
+  },
+  "metrics": {
+    "train_rows": 50000,
+    "holdout_rows": 0,
+    "train_chars": 26256877,
+    "train_seconds": 9549.44849332,
+    "rows_per_second": 10.471808929065556,
+    "chars_per_second": 5499.13998035952,
+    "full_run_hours_estimate": 2.652624581477778,
+    "total_steps": 12359,
+    "gpu_max_memory_gb": 15.423352832,
+    "skipped_batches": 173
+  },
+  "job": "projects/517094606847/locations/europe-west4/customJobs/7129537478184140800",
+  "submission_id": "fdda33bc6a0718eda71b5b6c29e213f9"
+}

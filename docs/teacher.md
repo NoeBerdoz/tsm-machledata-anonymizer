@@ -119,3 +119,41 @@ uv run python -m pii_anonymizer.cloud_training --full --id <name>    # the teach
 - The `train` stage of `dvc.yaml` depends only on the shared values and `training.modes.ci`, so changing `--trial` or `--full` does not retrain in the CI. `training_pipeline prepare` pulls the subset with DVC.
 
 **The short run.** `--trial` trains on 2,000 rows of the subset, with 200 more held out to measure the recall before and after, and a cap of 30 minutes (`training.modes.trial`). It measures the speed on our data: `training.json` gives the characters per second and `full_run_hours_estimate`, the training time of the full subset at that speed. Our rows are longer than those of the first cloud run, because of the Gretel documents, so its 18 rows per second does not apply.
+
+## The run
+
+The teacher v1 was trained on 2026-11-28 by `cloud_training --full` at commit `8c76c9c` (MLflow run `dae301b6953445f3b756dccfa1995ba6`): 50,000 rows, 2 epochs, 12,359 updates in 2 h 39 (5,499 characters per second), 15.4 GB of GPU memory at most. The first full run had stopped at update 4,012: a batch of long documents ran out of GPU memory inside DeBERTa's TorchScript code, which raises a plain `RuntimeError` that GLiNER2 does not skip. The trainer now skips such a batch and counts it (`skipped_batches`), and stops on any other error. The teacher skipped 173 batches of 4 rows out of about 25,000, 0.7 % of the batches.
+
+`models/teacher-v1/` holds both archives, versioned with DVC (remote `data`), and the `training.json` of the run:
+
+| Archive | DVC md5 | SHA-256 |
+|---|---|---|
+| `model.tar.gz`, the teacher v1 | `91c273c657759469077982e11433d87c` | `5911bc56afd9…` |
+| `epoch-1.tar.gz`, the end of the first epoch (update 6,184) | `61104a0867700cf69267beac108a5c65` | `bb3ba5d0a110…` |
+
+To score them, unpack each archive and give its folder to the detector:
+
+```sh
+uv run dvc pull models/teacher-v1/model.tar.gz.dvc models/teacher-v1/epoch-1.tar.gz.dvc
+mkdir -p teacher-v1 && tar -xzf models/teacher-v1/model.tar.gz -C teacher-v1
+TEACHER_V1_DIR=teacher-v1 uv run --group baselines python -m pii_anonymizer.evaluate teacher-v1 data/test/t2-dev.jsonl results/
+```
+
+`teacher-v1-epoch-1` reads `TEACHER_V1_EPOCH_1_DIR` the same way.
+
+## Results
+
+Scored on 2026-11-28 on a laptop CPU (Intel i7-1255U), in `results/`. The GLiNER2-PII rows of T1 and the Swiss set are those of [baselines.md](baselines.md), on the same files (same SHA-256). Nothing was tuned on T2-dev, and nothing read T2-final.
+
+| Dataset | GLiNER2-PII | Teacher v1 | First epoch |
+|---|---|---|---|
+| T1, OpenPII-1M (7,275 entities) | 80.65 % (5,867) | **99.12 %** (7,211) | |
+| T1, open-pii-masking-500k (2,324) | 81.80 % (1,901) | **95.35 %** (2,216) | |
+| Swiss set (5,614) | 78.25 % (4,393) | **96.24 %** (5,403) | |
+| T2-dev (1,080) | **88.80 %** (959) | 80.09 % (865) | 74.63 % (806) |
+
+Strict recall, with the protected entities in brackets. The character precision of the teacher is 99.6 %, 99.0 %, 95.3 % and 94.5 % on the four sets.
+
+- **On T1 and the Swiss set**, the teacher finds almost every entity. These sets come from the same datasets as the training subset (other splits), so this measures what it learned from them.
+- **On T2-dev, the teacher is 8.7 points below GLiNER2-PII as published.** It gains the types it was trained on and that the card lacks: AVS numbers (47 → 83 of 84), titles (6 → 17 of 43), sex (0 → 5 of 5) and gender (1 → 3 of 3). It loses on types GLiNER2-PII already found: first names (44 → 25 of 44), last names (42 → 26 of 45), IBANs (72 → 53 of 72), cities (73 → 57 of 76), dates (76 → 62 of 86), employee ids (34 → 20 of 39), account ids (23 → 13 of 28) and user names (20 → 8 of 21). The model of the `--trial` run, trained on 2,000 rows only, had 88.5 % on T2-dev (not in `results/`). The longer the training on the public datasets, the further the teacher moves from the documents of T2.
+- **First epoch and teacher on T2-dev (#67):** 806 and 865 of 1,080 entities, 74.63 % and 80.09 %, a gap of 5.46 points, more than the 3 points O5 asks for.
