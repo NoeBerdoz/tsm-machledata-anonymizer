@@ -3,7 +3,8 @@
 Usage:
     uv run --group baselines python -m pii_anonymizer.teacher_data data/train/teacher-v1.jsonl \\
         --exclude data/test/t1-openpii-1m.jsonl --exclude data/test/t1-open-pii-500k.jsonl \\
-        --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl
+        --exclude data/test/gretel-test-iban.jsonl --exclude data/test/t1-swiss.jsonl \\
+        --exclude data/test/t2-dev.jsonl --exclude-manifest data/test/t2-final-holdout.json
 
 - 10,000 rows per language (FR, DE, IT, EN) of the OpenPII-1M train split,
 - 2,500 documents per language of the Gretel train split (all of them if a language has
@@ -11,7 +12,8 @@ Usage:
 - then Swiss values in a seeded share of the rows (swiss_training.py, issue #42).
 
 Only train splits are read. Every row must have a label of the teacher (teacher_labels.py)
-and must not be a test row: the script stops otherwise. See docs/teacher.md.
+and must not be a test row, by source id or text hash, before and after the Swiss values:
+the script stops otherwise. T2-final is read only through its manifest. See docs/teacher.md.
 """
 
 import argparse
@@ -20,6 +22,7 @@ import os
 import random
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
+from itertools import chain
 from pathlib import Path
 
 from pii_anonymizer.public_data import (
@@ -35,7 +38,8 @@ from pii_anonymizer.public_data import (
     write_jsonl,
 )
 from pii_anonymizer.swiss import read_jsonl
-from pii_anonymizer.swiss_training import check_disjoint, inject_share
+from pii_anonymizer.swiss_training import inject_share
+from pii_anonymizer.t2_holdout import FINAL_FILENAME, Holdout
 from pii_anonymizer.teacher_labels import gliner_label
 
 OPENPII_ID = "ai4privacy/pii-masking-openpii-1m"
@@ -93,6 +97,7 @@ def build(
     gretel_rows: Iterable[Mapping],
     test_sets: Iterable[Iterable[Mapping]],
     seed: int = SEED,
+    manifest: Holdout | None = None,
 ) -> list[dict]:
     """The training records: sampled, converted, checked, with Swiss values in a share."""
     openpii, dropped_openpii = convert(
@@ -107,9 +112,15 @@ def build(
     print(f"{len(openpii)} OpenPII-1M rows ({dropped_openpii} entities dropped)")
     print(f"{len(gretel)} Gretel documents ({dropped_gretel} entities dropped)")
     check_labels(records)
-    check_disjoint(records, test_sets)
+    holdout = Holdout.from_records(chain.from_iterable(test_sets))
+    if manifest is not None:
+        holdout.source_ids |= manifest.source_ids
+        holdout.text_sha256 |= manifest.text_sha256
+    holdout.check_disjoint(records)
     # The Swiss values use their own training seed, outside those of the Swiss test sets.
-    return inject_share(records)
+    out = inject_share(records)
+    holdout.check_disjoint(out)
+    return out
 
 
 def load_train(dataset_id: str, columns: Sequence[str], filters=None):
@@ -137,12 +148,18 @@ def main(argv: Sequence[str] | None = None) -> None:
         required=True,
         help="a test file whose rows must not be in training (repeat for each test file)",
     )
+    parser.add_argument(
+        "--exclude-manifest", type=Path, help="the frozen T2-final manifest (t2-final-holdout.json)"
+    )
     args = parser.parse_args(argv)
+    if any(path.name == FINAL_FILENAME for path in args.exclude):
+        parser.error("keep t2-final.jsonl on the freeze side and give --exclude-manifest")
 
     test_sets = [read_jsonl(path) for path in args.exclude]
+    manifest = Holdout.read(args.exclude_manifest) if args.exclude_manifest else None
     openpii_rows = load_train(OPENPII_ID, COLUMNS, [("language", "in", list(LANGUAGES))])
     gretel_rows = load_train(GRETEL_ID, GRETEL_COLUMNS)
-    records = build(openpii_rows, gretel_rows, test_sets)
+    records = build(openpii_rows, gretel_rows, test_sets, manifest=manifest)
     write_jsonl(records, args.out)
 
     per_source = Counter((r["source"], r["lang"]) for r in records)

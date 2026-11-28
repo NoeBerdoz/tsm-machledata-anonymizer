@@ -3,6 +3,7 @@ import json
 import pytest
 
 from pii_anonymizer import teacher_data
+from pii_anonymizer.t2_holdout import Holdout, text_hash
 from pii_anonymizer.teacher_data import build, check_labels, sample_gretel_train
 
 TEXT = "Anna Muster, tel. +33 6 12 34 56 78"
@@ -66,6 +67,20 @@ def test_a_test_row_stops_the_build(small):
     test_row = {"id": "t1", "text": f"{TEXT} #0", "entities": []}
     with pytest.raises(ValueError, match="training rows"):
         build(OPENPII, GRETEL, [[test_row]])
+
+
+def test_a_t2_final_row_stops_the_build(small):
+    rows = build(OPENPII, GRETEL, [])
+    manifest = Holdout(source_ids=set(), text_sha256={text_hash(rows[0]["text"])})
+    with pytest.raises(ValueError, match="training rows"):
+        build(OPENPII, GRETEL, [], manifest=manifest)
+    assert build(OPENPII, GRETEL, [], manifest=Holdout({"t2-0001"}, set())) == rows
+
+
+def test_the_raw_t2_final_is_refused(tmp_path):
+    final = tmp_path / "t2-final.jsonl"
+    with pytest.raises(SystemExit):
+        teacher_data.main([str(tmp_path / "out.jsonl"), "--exclude", str(final)])
 
 
 def test_an_unknown_label_stops_the_build():
