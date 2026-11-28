@@ -26,6 +26,8 @@ from pii_anonymizer.baselines import (
     load_regex,
     load_regex_gliner2,
     load_regex_privacy_filter,
+    load_teacher_v1,
+    load_teacher_v1_epoch_1,
 )
 from pii_anonymizer.benchmark import (
     RUNS_PER_INPUT,
@@ -54,6 +56,8 @@ DETECTORS: dict[str, Callable[[], Detector]] = {
     "presidio": load_presidio,
     "gliner2": load_gliner2,
     "gliner2-int8": load_gliner2_int8,
+    "teacher-v1": load_teacher_v1,
+    "teacher-v1-epoch-1": load_teacher_v1_epoch_1,
     "regex+gliner2": load_regex_gliner2,
     "privacy-filter": load_privacy_filter,
     "regex+privacy-filter": load_regex_privacy_filter,

@@ -195,6 +195,20 @@ This is well within our USD 50 of credits. Delete the saved model when it is no 
 gcloud --configuration=tsm-machledata storage rm -r gs://tsm-machledata-anonymizer-training/smoke/output
 ```
 
+### The teacher v1 (#46)
+
+The jobs of the teacher ([teacher.md](teacher.md#the-training-job)), with the running time from start to end of each job on Agent Platform. Three more attempts, on 2026-11-23 and 2026-11-28, got no T4 ("Resources are insufficient in region") and never started.
+
+| Job | Date | Running time | At list price |
+|---|---|---|---|
+| `--trial` (batch 8) | 2026-11-22 | 16.1 min | USD 0.17 |
+| `--trial` (batch 4 × 2) | 2026-11-23 | 14.1 min | USD 0.15 |
+| `--full`, stopped by an out-of-memory error | 2026-11-28 | 56.8 min | USD 0.59 |
+| `--full`, the teacher v1 | 2026-11-28 | 165.4 min | USD 1.71 |
+| **Total** | | **252.4 min** | **USD 2.61** |
+
+The teacher took 2 h 39 of training for 50,000 rows and 2 epochs, 5,499 characters per second. Its two archives (1.1 GB each) are stored twice, in the training bucket and in the DVC remote, about USD 0.09 per month together.
+
 ## Run the DVC pipeline
 
 Complete the [training setup](gcp-setup.md#training-from-github-actions) first.

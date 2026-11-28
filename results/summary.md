@@ -1,3 +1,14 @@
+## 12th Gen Intel(R) Core(TM) i7-1255U
+
+| Model | Dataset | Strict recall | Char. precision | Size (MB) | p95 latency (ms) |
+|---|---|---|---|---|---|
+| gliner2 | t2-dev | 88.8 % | 92.3 % | 1244.4 |  |
+| teacher-v1 | t1-open-pii-500k | 95.4 % | 99.0 % | 1244.4 |  |
+| teacher-v1 | t1-openpii-1m | 99.1 % | 99.6 % | 1244.4 |  |
+| teacher-v1 | t1-swiss | 96.2 % | 95.3 % | 1244.4 |  |
+| teacher-v1 | t2-dev | 80.1 % | 94.5 % | 1244.4 |  |
+| teacher-v1-epoch-1 | t2-dev | 74.6 % | 95.5 % | 1244.4 |  |
+
 ## Apple M5 Max
 
 | Model | Dataset | Strict recall | Char. precision | Size (MB) | p95 latency (ms) |

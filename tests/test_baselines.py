@@ -269,3 +269,29 @@ def test_privacy_filter_offsets_point_to_the_entity():
     found = [(s.label, text[s.start : s.end]) for s in detector.detect(text)]
     assert ("private_email", "anna.meier@example.ch") in found
     assert ("private_person", "Noémie Müller") in found
+
+
+def test_registry_has_the_teacher_and_its_first_epoch():
+    assert {"teacher-v1", "teacher-v1-epoch-1"} <= set(DETECTORS)
+
+
+def test_the_teacher_loads_its_folder_with_its_labels(tmp_path, monkeypatch):
+    from pii_anonymizer.teacher_labels import TARGETS
+
+    loaded = []
+    monkeypatch.setattr(
+        pii_anonymizer.baselines,
+        "Gliner2Detector",
+        lambda **kwargs: loaded.append(kwargs) or kwargs,
+    )
+    monkeypatch.delenv("TEACHER_V1_DIR", raising=False)
+    with pytest.raises(ValueError, match="TEACHER_V1_DIR"):
+        DETECTORS["teacher-v1"]()
+
+    # An archive from before labels.json falls back to the teacher's labels.
+    monkeypatch.setenv("TEACHER_V1_EPOCH_1_DIR", str(tmp_path))
+    DETECTORS["teacher-v1-epoch-1"]()
+    (tmp_path / "labels.json").write_text('["first_name", "iban"]')
+    DETECTORS["teacher-v1-epoch-1"]()
+    assert [call["labels"] for call in loaded] == [TARGETS, ["first_name", "iban"]]
+    assert loaded[0]["checkpoint_dir"] == tmp_path

@@ -267,6 +267,24 @@ def load_gliner2_checkpoint(model_dir: Path, *, fallback_labels: list[str] | Non
     return Gliner2Detector(checkpoint_dir=model_dir, labels=labels)
 
 
+def load_teacher(variable: str):
+    """The fine-tuned teacher v1 (#46), from the unpacked checkpoint folder in `variable`."""
+    model_dir = os.environ.get(variable)
+    if not model_dir:
+        raise ValueError(f"Set {variable} to the unpacked teacher checkpoint folder")
+    from pii_anonymizer.teacher_labels import TARGETS
+
+    return load_gliner2_checkpoint(Path(model_dir), fallback_labels=TARGETS)
+
+
+def load_teacher_v1():
+    return load_teacher("TEACHER_V1_DIR")
+
+
+def load_teacher_v1_epoch_1():
+    return load_teacher("TEACHER_V1_EPOCH_1_DIR")
+
+
 def load_gliner2_int8():
     model_dir = os.environ.get("GLINER2_INT8_DIR")
     if not model_dir:
