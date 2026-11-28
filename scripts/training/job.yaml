@@ -22,6 +22,8 @@ workerPoolSpecs:
           export MLFLOW_TRACKING_USERNAME=training
           export MLFLOW_SUPPRESS_PRINTING_URL_TO_STDOUT=true
           export HF_HUB_DISABLE_TELEMETRY=1
+          # The full run stopped on a fragmented GPU memory (#46); PyTorch advises this.
+          export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
           work=$(mktemp -d)
           cp "$inputs"/{train.py,tracking.py,teacher_labels.py,params.yaml,teacher-v1.jsonl,teacher-v1.jsonl.dvc} "$work/"
           curl -fsSL https://astral.sh/uv/0.13.9/install.sh | UV_UNMANAGED_INSTALL="$work/bin" sh

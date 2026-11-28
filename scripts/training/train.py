@@ -106,11 +106,29 @@ def package(model_dir: Path, archive: Path) -> str:
     return digest
 
 
+def out_of_memory(error: BaseException) -> bool:
+    # Inside TorchScript, a CUDA out-of-memory error is a plain RuntimeError.
+    return isinstance(error, torch.cuda.OutOfMemoryError) or "out of memory" in str(error)
+
+
 class Trainer(ExtractorTrainer):
-    """Copies the first-epoch checkpoint to the outputs as soon as it is saved."""
+    """Copies the first-epoch checkpoint to the outputs as soon as it is saved.
+
+    It also counts the batches skipped for lack of GPU memory. GLiNER2 skips an
+    OutOfMemoryError by itself; skip_step_errors lets it skip the RuntimeError of
+    TorchScript too, and any error that is not out of memory still stops the run.
+    """
 
     outputs: Path
     epoch_1: dict | None = None
+    skipped_batches: int = 0
+
+    def _record_failed_batch(self, batch, *, data_loader_step: int, error: BaseException):
+        super()._record_failed_batch(batch, data_loader_step=data_loader_step, error=error)
+        if not out_of_memory(error):
+            raise error
+        self.skipped_batches += 1
+        torch.cuda.empty_cache()
 
     def _save_checkpoint(self, name: str):
         super()._save_checkpoint(name)
@@ -154,6 +172,7 @@ def main(params_path: Path, revision: str, outputs: Path, mode: str) -> None:
             save_best=False,
             save_total_limit=settings["epochs"] + 2,
             num_workers=2,
+            skip_step_errors=True,
         )
         trainer = Trainer(model, config)
         trainer.outputs = outputs
@@ -175,6 +194,7 @@ def main(params_path: Path, revision: str, outputs: Path, mode: str) -> None:
             "full_run_hours_estimate": all_chars * settings["epochs"] / chars_per_second / 3600,
             "total_steps": summary["total_steps"],
             "gpu_max_memory_gb": torch.cuda.max_memory_allocated() / 1e9,
+            "skipped_batches": trainer.skipped_batches,
         }
         if holdout:
             metrics["recall_before"] = before
